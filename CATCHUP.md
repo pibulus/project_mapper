@@ -1,59 +1,85 @@
 # 🎨 Project Mapper - Session Catchup
 
-**Last session:** Nov 23, 2025 - Design system synthesis
+**Current session:** Nov 24, 2025 - Upload panel + loading modal polish
 
-## ✅ What We Built
+## ✅ What We Built This Session
 
-### Design Foundation (Commit: 67a790d)
-- **Warm Pastel Punk Design System** in `app.css`
-  - Synthesized from conversation_mapper (Svelte) + conversation_mapper_fresh (Fresh) + slideomatic
-  - Warm neutrals (soft-black, soft-cream) - NO pure white/black
-  - Pastel palette (pink, peach, mint, lavender, yellow)
-  - Hard slab shadows (neo-brutalist 4px/8px offsets)
-  - Glassmorphism with warm cream tints
-  - CSS custom properties for everything
+### Upload Panel - Unified Interface (Commits: 4ca6d82, 7cefbbb, 677a738)
+**Complete synthesis of all 3 versions with best features:**
 
-### Layout & Components
-- **Hero page**: Glassmorphism card with upload panel inside (Fresh approach)
-- **Sticky glass header**: Blurred backdrop, warm borders
-- **Dashboard**: 3-column grid (cards take 1 col, graph takes full 3)
-- **All cards**: Module header pattern (title + actions from Svelte)
-- **Upload**: Mode toggle, dashed borders, pink active states
-- **Action Items**: Warm hovers, mint completed bg, checkboxes work
-- **Summary**: Clean, shows topic count
-- **Topic Graph**: Warm borders, colorful badges
+- **AudioVisualizer.svelte** - Real-time frequency visualization
+  - 48 rounded gradient bars (pink → peach)
+  - Warm cream container with subtle shadows
+  - Compact 56px canvas height
+  - Perfect fit within fixed upload panel
 
-## 🎯 Next Session: Granular Component Polish
+- **Enhanced Upload.svelte** - Unified input handling
+  - ✅ Text input, file upload, OR audio recording (all in one)
+  - ✅ Drag-and-drop with pink glow feedback
+  - ✅ Live audio recording with MediaRecorder API
+  - ✅ 10-minute timer with 30-second warning
+  - ✅ File staging with mint-colored chip display
+  - ✅ Paperclip button for file browsing
+  - ✅ **Fixed 240px height** - zero layout shifts!
+  - ✅ Recording shows: timer + progress bar + visualizer
+  - ✅ Cmd/Ctrl+Enter to submit text
+  - ✅ Clean resource cleanup
 
-**Approach:** One component per session, give each piece its due attention
+- **Hero Card Aesthetics** - Pink underglow magic
+  - ✨ Radial gradients (pink + peach) with 50px blur
+  - ✨ Confident slab shadows (3 layers of depth)
+  - ✨ 3px border, 26px border-radius
+  - ✨ Subtle hover lift with intensified glow
+  - 🎨 Removed card-within-card pattern
+  - 🎨 Clean container structure
 
-**Granularity checklist** (examples of what to look for):
-- Loading transitions (Svelte fly/fade animations)
-- Theme shuffler/favorites system
-- Action item inline editing (not just toggle)
-- Loading skeleton warm styling
-- Each component compared to BOTH reference versions
-- Pick the BEST parts from each
+### Loading Modal (Commit: b3cf199)
+**Cute animated loading with warm pastel punk magic:**
 
-**Reference projects:**
-- `/conversation_mapper` (Svelte v1)
-- `/conversation_mapper_fresh` (Fresh/Deno v2)
-- `/slideomatic` (theme system inspiration)
+- **LoadingModal.svelte** - Delightful processing feedback
+  - 🪩 Random emoji animations (pulse & glow)
+  - ✨ 10 vibey loading messages
+  - 💫 Letter-by-letter bounce animation
+  - 🔮 Floating glassmorphism card
+  - 🌟 Animated pink→peach gradient border
+  - ⚡ Prevents body scroll when active
+  - 🌊 Fullscreen dark overlay with blur
+  - 📱 Responsive (380px → 300px on mobile)
 
 ## 📦 Current State
 
 - Design tokens: ✅ Complete
-- Hero layout: ✅ Complete
-- Card headers: ✅ Complete
+- Hero layout: ✅ Complete with pink underglow
+- Upload panel: ✅ Complete unified interface
+- Audio recording: ✅ Complete with visualizer
+- Loading states: ✅ Complete with cute modal
+- Fixed sizing: ✅ Zero layout shifts
 - Warm color palette: ✅ Complete
-- Component details: 🔄 Need granular pass
-- Interactions: 🔄 Need polish
-- Transitions: ❌ Not started
+- Component details: 🔄 Upload complete, others pending
+- Interactions: ✅ Upload/recording complete
+- Transitions: ✅ Loading modal complete
 - Theme system: ❌ Not started
 
+## 🎯 Next: Continue Component-by-Component Polish
+
+**Completed:**
+- ✅ Upload Panel (text/file/record unified)
+- ✅ Audio Visualizer (warm rounded bars)
+- ✅ Loading Modal (cute animations)
+
+**Next up:**
+- Action Items List (inline editing, animations)
+- Topic Graph (node interactions, warm styling)
+- Summary Card (transitions, metric displays)
+- Dashboard layout (smooth data loading)
+
+**Reference projects:**
+- `/conversation_mapper` (Svelte v1)
+- `/conversation_mapper_fresh` (Fresh/Deno v2)
+
 **Dev server:** Running on :8010
-**Last commit:** 67a790d - style: 💅 Warm pastel punk design system
+**Latest commit:** b3cf199 - feat: 🪩 Add cute loading modal
 
 ---
 
-*Continue with focused component-by-component polish to make this the true "best of" synthesis*
+*Upload capture experience is now unified, stable, and magical! Ready for next component.* 🎸
