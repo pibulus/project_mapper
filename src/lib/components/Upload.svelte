@@ -133,25 +133,18 @@
 </script>
 
 <div class="card">
-	<div class="card-header flex items-center justify-between">
-		<h2 class="text-lg font-bold">Start a Project</h2>
+	<div class="card-header">
+		<h2>Start a Project</h2>
 
 		<!-- Mode toggle -->
-		<div class="flex gap-2">
+		<div class="card-actions">
 			<button
-				class="px-3 py-1 rounded-lg text-sm font-medium transition-all {mode === 'audio'
-					? 'bg-pink-500 text-white'
-					: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+				class="mode-btn {mode === 'audio' ? 'active' : ''}"
 				on:click={() => (mode = 'audio')}
 			>
 				🎙️ Audio
 			</button>
-			<button
-				class="px-3 py-1 rounded-lg text-sm font-medium transition-all {mode === 'text'
-					? 'bg-purple-500 text-white'
-					: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-				on:click={() => (mode = 'text')}
-			>
+			<button class="mode-btn {mode === 'text' ? 'active' : ''}" on:click={() => (mode = 'text')}>
 				📝 Text
 			</button>
 		</div>
@@ -160,53 +153,51 @@
 	<div class="card-body">
 		{#if mode === 'audio'}
 			<!-- Audio upload -->
-			<div class="space-y-4">
-				<div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-pink-400 transition-all">
-					<input
-						type="file"
-						accept="audio/*"
-						on:change={handleFileSelect}
-						class="hidden"
-						id="audio-upload"
-					/>
-					<label for="audio-upload" class="cursor-pointer">
-						<div class="text-4xl mb-2">🎤</div>
-						{#if audioFile}
-							<p class="text-sm font-medium text-gray-900">{audioFile.name}</p>
-							<p class="text-xs text-gray-500 mt-1">
-								{(audioFile.size / 1024 / 1024).toFixed(2)} MB
-							</p>
-						{:else}
-							<p class="text-sm font-medium text-gray-700">Click to upload audio</p>
-							<p class="text-xs text-gray-500 mt-1">MP3, WAV, WEBM, M4A (max 50MB)</p>
-						{/if}
-					</label>
-				</div>
+			<div class="upload-area">
+				<input
+					type="file"
+					accept="audio/*"
+					on:change={handleFileSelect}
+					class="hidden"
+					id="audio-upload"
+				/>
+				<label for="audio-upload" class="upload-label">
+					<div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎤</div>
+					{#if audioFile}
+						<p style="font-size: var(--pm-text-sm); font-weight: 600; color: var(--pm-black);">
+							{audioFile.name}
+						</p>
+						<p style="font-size: var(--pm-text-xs); color: var(--pm-brown); margin-top: 0.25rem;">
+							{(audioFile.size / 1024 / 1024).toFixed(2)} MB
+						</p>
+					{:else}
+						<p style="font-size: var(--pm-text-sm); font-weight: 600; color: var(--pm-black);">
+							Click to upload audio
+						</p>
+						<p style="font-size: var(--pm-text-xs); color: var(--pm-brown); margin-top: 0.25rem;">
+							MP3, WAV, WEBM, M4A (max 50MB)
+						</p>
+					{/if}
+				</label>
 			</div>
 		{:else}
 			<!-- Text input -->
-			<div>
-				<textarea
-					bind:value={textInput}
-					placeholder="Paste your conversation, notes, or transcript here..."
-					class="w-full h-48 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-400 focus:outline-none resize-none"
-				></textarea>
-			</div>
+			<textarea
+				bind:value={textInput}
+				placeholder="Paste your conversation, notes, or transcript here..."
+				class="text-input"
+			></textarea>
 		{/if}
 
 		{#if error}
-			<div class="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg text-sm text-red-700">
+			<div class="error-box">
 				{error}
 			</div>
 		{/if}
 
-		<button
-			on:click={handleSubmit}
-			disabled={isProcessing || (mode === 'audio' ? !audioFile : !textInput.trim())}
-			class="mt-4 w-full btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-		>
+		<button on:click={handleSubmit} disabled={isProcessing || (mode === 'audio' ? !audioFile : !textInput.trim())} class="btn btn-primary" style="margin-top: 1rem; width: 100%;">
 			{#if isProcessing}
-				<span class="inline-block animate-spin mr-2">⚙️</span>
+				<span class="inline-block animate-spin-slow" style="margin-right: 0.5rem;">⚙️</span>
 				Processing with AI...
 			{:else}
 				Process {mode === 'audio' ? 'Audio' : 'Text'}
@@ -214,3 +205,82 @@
 		</button>
 	</div>
 </div>
+
+<style>
+	.mode-btn {
+		padding: 0.375rem 0.75rem;
+		border-radius: var(--pm-radius-sm);
+		font-size: var(--pm-text-sm);
+		font-weight: 600;
+		transition: all var(--pm-transition-fast);
+		cursor: pointer;
+		background: var(--pm-cream-dark);
+		color: var(--pm-black);
+		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
+	}
+
+	.mode-btn:hover {
+		background: var(--pm-cream-light);
+		transform: translateY(-1px);
+	}
+
+	.mode-btn.active {
+		background: var(--pm-pink);
+		color: var(--pm-cream);
+		border-color: var(--pm-pink);
+	}
+
+	.upload-area {
+		border: var(--pm-border-medium) dashed rgba(30, 23, 20, 0.2);
+		border-radius: var(--pm-radius-md);
+		padding: 2rem;
+		text-align: center;
+		transition: all var(--pm-transition-medium);
+		background: var(--pm-cream-dark);
+	}
+
+	.upload-area:hover {
+		border-color: var(--pm-pink);
+		background: var(--pm-cream-light);
+	}
+
+	.upload-label {
+		cursor: pointer;
+		display: block;
+	}
+
+	.text-input {
+		width: 100%;
+		height: 12rem;
+		padding: 1rem;
+		border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.12);
+		border-radius: var(--pm-radius-md);
+		font-size: var(--pm-text-sm);
+		color: var(--pm-black);
+		background: var(--pm-cream-dark);
+		resize: none;
+		transition: all var(--pm-transition-fast);
+		font-family: var(--pm-font-sans);
+	}
+
+	.text-input:focus {
+		outline: none;
+		border-color: var(--pm-pink);
+		background: var(--pm-cream-light);
+	}
+
+	.text-input::placeholder {
+		color: var(--pm-brown);
+		opacity: 0.5;
+	}
+
+	.error-box {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background: rgba(239, 68, 68, 0.1);
+		border: var(--pm-border-medium) solid rgba(239, 68, 68, 0.3);
+		border-radius: var(--pm-radius-sm);
+		font-size: var(--pm-text-sm);
+		color: #b91c1c;
+	}
+</style>

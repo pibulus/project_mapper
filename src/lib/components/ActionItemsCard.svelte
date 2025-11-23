@@ -10,6 +10,8 @@
 
 	export let items: ActionItem[] = [];
 
+	$: completedCount = items.filter((i) => i.status === 'completed').length;
+
 	function toggleItem(item: ActionItem) {
 		const updated = items.map((i) =>
 			i.id === item.id ? { ...i, status: i.status === 'completed' ? 'pending' : 'completed' } : i
@@ -19,50 +21,42 @@
 	}
 </script>
 
-<div class="card h-full flex flex-col">
-	<div class="card-header flex items-center justify-between">
-		<h3 class="text-lg font-bold">✅ Action Items</h3>
-		{#if items.length > 0}
-			<span class="text-xs text-gray-600">
-				{items.filter((i) => i.status === 'completed').length}/{items.length}
-			</span>
-		{/if}
+<div class="card">
+	<div class="card-header">
+		<h3>✅ Action Items</h3>
+		<div class="card-actions">
+			{#if items.length > 0}
+				<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
+					{completedCount}/{items.length} done
+				</span>
+			{/if}
+		</div>
 	</div>
-	<div class="card-body flex-1 overflow-y-auto max-h-96">
+	<div class="card-body" style="max-height: 400px; overflow-y: auto;">
 		{#if items.length === 0}
-			<p class="text-gray-500 italic">No action items yet</p>
+			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No action items yet</p>
 		{:else}
-			<div class="space-y-2">
+			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
 				{#each items as item (item.id)}
-					<label
-						class="flex items-start gap-3 p-3 rounded-lg border-2 border-gray-100 hover:border-gray-200 cursor-pointer transition-all {item.status ===
-						'completed'
-							? 'bg-green-50 border-green-200'
-							: 'bg-white'}"
-					>
+					<label class="action-item {item.status === 'completed' ? 'completed' : ''}">
 						<input
 							type="checkbox"
 							checked={item.status === 'completed'}
 							on:change={() => toggleItem(item)}
-							class="mt-0.5 w-5 h-5 rounded border-gray-300 text-pink-500 focus:ring-pink-500"
 						/>
-						<div class="flex-1 min-w-0">
-							<p
-								class="text-sm {item.status === 'completed'
-									? 'line-through text-gray-500'
-									: 'text-gray-900'}"
-							>
+						<div style="flex: 1; min-width: 0;">
+							<p class="action-text">
 								{item.description}
 							</p>
-							{#if item.assignee}
-								<p class="text-xs text-gray-500 mt-1">
-									👤 {item.assignee}
-								</p>
-							{/if}
-							{#if item.deadline}
-								<p class="text-xs text-gray-500 mt-1">
-									📅 {item.deadline}
-								</p>
+							{#if item.assignee || item.deadline}
+								<div class="action-meta">
+									{#if item.assignee}
+										<span>👤 {item.assignee}</span>
+									{/if}
+									{#if item.deadline}
+										<span>📅 {item.deadline}</span>
+									{/if}
+								</div>
 							{/if}
 						</div>
 					</label>
@@ -71,3 +65,55 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.action-item {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		border-radius: var(--pm-radius-sm);
+		background: var(--pm-cream-dark);
+		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.08);
+		cursor: pointer;
+		transition: all var(--pm-transition-fast);
+	}
+
+	.action-item:hover {
+		background: var(--pm-cream-light);
+		border-color: rgba(30, 23, 20, 0.12);
+		transform: translateY(-1px);
+	}
+
+	.action-item.completed {
+		background: rgba(168, 216, 234, 0.15);
+		border-color: var(--pm-mint);
+	}
+
+	.action-item input[type='checkbox'] {
+		margin-top: 0.25rem;
+		width: 1.125rem;
+		height: 1.125rem;
+		flex-shrink: 0;
+	}
+
+	.action-text {
+		font-size: var(--pm-text-sm);
+		color: var(--pm-black);
+		line-height: 1.5;
+	}
+
+	.completed .action-text {
+		text-decoration: line-through;
+		opacity: 0.5;
+	}
+
+	.action-meta {
+		display: flex;
+		gap: 0.75rem;
+		margin-top: 0.25rem;
+		font-size: var(--pm-text-xs);
+		color: var(--pm-brown);
+		opacity: 0.7;
+	}
+</style>

@@ -8,19 +8,33 @@
 	export let topicsCount: number = 0;
 </script>
 
-<div class="card h-full flex flex-col">
+<div class="card">
 	<div class="card-header">
-		<h3 class="text-lg font-bold">✨ Summary</h3>
+		<h3>✨ Summary</h3>
 	</div>
-	<div class="card-body flex-1">
+	<div class="card-body">
 		{#if !summary}
-			<p class="text-gray-500 italic">No summary yet</p>
+			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No summary yet</p>
 		{:else}
-			<p class="text-sm leading-relaxed mb-4">{summary}</p>
+			<p style="
+				font-size: var(--pm-text-sm);
+				line-height: 1.7;
+				color: var(--pm-black);
+				margin-bottom: 1rem;
+			">
+				{summary}
+			</p>
 			{#if topicsCount > 0}
-				<div class="mt-4 pt-4 border-t-2 border-gray-100">
-					<p class="text-xs text-gray-600">
-						<span class="font-semibold">{topicsCount}</span> topics identified
+				<div style="
+					margin-top: 1rem;
+					padding-top: 1rem;
+					border-top: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
+				">
+					<p style="
+						font-size: var(--pm-text-xs);
+						color: var(--pm-brown);
+					">
+						<span style="font-weight: 700; color: var(--pm-pink);">{topicsCount}</span> topics identified
 					</p>
 				</div>
 			{/if}

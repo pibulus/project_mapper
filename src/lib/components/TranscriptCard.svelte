@@ -7,20 +7,26 @@
 	export let transcript: string;
 
 	// Format transcript with speaker labels
-	$: lines = transcript.split('\n').filter(line => line.trim());
+	$: lines = transcript.split('\n').filter((line) => line.trim());
 </script>
 
-<div class="card h-full flex flex-col">
+<div class="card">
 	<div class="card-header">
-		<h3 class="text-lg font-bold">📝 Transcript</h3>
+		<h3>📝 Transcript</h3>
 	</div>
-	<div class="card-body flex-1 overflow-y-auto max-h-96">
+	<div class="card-body" style="max-height: 400px; overflow-y: auto;">
 		{#if lines.length === 0}
-			<p class="text-gray-500 italic">No transcript yet</p>
+			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No transcript yet</p>
 		{:else}
-			<div class="space-y-2 text-sm">
+			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
 				{#each lines as line}
-					<p class="leading-relaxed">{line}</p>
+					<p style="
+						font-size: var(--pm-text-sm);
+						line-height: 1.6;
+						color: var(--pm-black);
+					">
+						{line}
+					</p>
 				{/each}
 			</div>
 		{/if}

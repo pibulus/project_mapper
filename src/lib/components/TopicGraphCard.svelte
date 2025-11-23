@@ -81,38 +81,60 @@
 </script>
 
 <div class="card">
-	<div class="card-header flex items-center justify-between">
-		<h3 class="text-lg font-bold">🕸️ Topic Graph</h3>
-		{#if topics.length > 0}
-			<span class="text-xs text-gray-600">
-				{topics.length} topics, {edges.length} connections
-			</span>
-		{/if}
+	<div class="card-header">
+		<h3>🕸️ Topic Graph</h3>
+		<div class="card-actions">
+			{#if topics.length > 0}
+				<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
+					{topics.length} topics, {edges.length} connections
+				</span>
+			{/if}
+		</div>
 	</div>
 	<div class="card-body">
 		{#if topics.length === 0}
-			<p class="text-gray-500 italic">No topics identified yet</p>
+			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No topics identified yet</p>
 		{:else}
 			<!-- D3 Force-Directed Graph Container -->
 			<div
 				bind:this={containerRef}
-				class="w-full rounded-lg border-2 border-gray-200 overflow-hidden"
-				style="min-height: 400px;"
+				style="
+					width: 100%;
+					border-radius: var(--pm-radius-md);
+					border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.12);
+					overflow: hidden;
+					min-height: 400px;
+				"
 			></div>
 
 			<!-- Simple topic badges below graph -->
-			<div class="mt-4 flex flex-wrap gap-2">
+			<div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
 				{#each topics.slice(0, 6) as topic}
 					<div
-						class="px-3 py-1.5 rounded-lg border-2 flex items-center gap-2 text-sm"
-						style="background-color: {topic.color}20; border-color: {topic.color};"
+						style="
+							padding: 0.375rem 0.75rem;
+							border-radius: var(--pm-radius-sm);
+							border: var(--pm-border-medium) solid {topic.color};
+							background-color: {topic.color}20;
+							display: flex;
+							align-items: center;
+							gap: 0.5rem;
+							font-size: var(--pm-text-sm);
+							font-weight: 600;
+							color: var(--pm-black);
+						"
 					>
-						<span class="text-lg">{topic.emoji}</span>
-						<span class="font-medium">{topic.label}</span>
+						<span style="font-size: 1.125rem;">{topic.emoji}</span>
+						<span>{topic.label}</span>
 					</div>
 				{/each}
 				{#if topics.length > 6}
-					<div class="px-3 py-1.5 text-sm text-gray-500">
+					<div style="
+						padding: 0.375rem 0.75rem;
+						font-size: var(--pm-text-sm);
+						color: var(--pm-brown);
+						opacity: 0.6;
+					">
 						+{topics.length - 6} more
 					</div>
 				{/if}
