@@ -82,4 +82,53 @@
 
 ---
 
+## 🎸 Handoff Notes for Next Session
+
+**What's Ready to Rock:**
+The upload/capture flow is COMPLETE and polished:
+- Hero card has the pink underglow magic ✨
+- Upload panel is unified (text/file/record in one interface)
+- Fixed 240px height - no layout jumps when switching modes
+- Audio recording with real-time visualizer (pink→peach bars)
+- Cute loading modal with bouncing letters and random emojis
+- All warm pastel punk styling applied consistently
+
+**What to Polish Next:**
+Continue the component-by-component approach. Suggested order:
+
+1. **Action Items List** - Check both reference versions for:
+   - Inline editing UI (not just toggle)
+   - Add/delete animations (Svelte fly/fade?)
+   - Warm hover states
+   - Mint completed background
+
+2. **Topic Graph** - Compare visualizations:
+   - Node interactions (hover, click)
+   - Color mapping (use warm palette)
+   - Force layout styling
+   - Responsive behavior
+
+3. **Summary Card** - Polish display:
+   - Loading transitions
+   - Metric animations
+   - Empty states
+
+4. **Dashboard Layout** - Data loading flow:
+   - Smooth transition from loading modal to cards
+   - Staggered card animations?
+   - Empty state when no data
+
+**Testing Checklist:**
+- [ ] Record audio → watch visualizer dance
+- [ ] See loading modal with random message/emoji
+- [ ] Dashboard loads with all components visible
+- [ ] No layout shifts anywhere
+- [ ] Drag-drop file → mint chip appears
+- [ ] Type text → button changes label
+
+**Reference Locations:**
+- Svelte v1: `/conversation_mapper/src/lib/features/`
+- Fresh v2: `/conversation_mapper_fresh/islands/`
+- Current: `/project_mapper/src/lib/components/`
+
 *Upload capture experience is now unified, stable, and magical! Ready for next component.* 🎸
