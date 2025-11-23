@@ -429,12 +429,11 @@
 	});
 </script>
 
-<div class="card">
-	<div class="card-header">
+<div class="upload-container">
+	<!-- Header with mode toggle -->
+	<div class="upload-header">
 		<h2>Start a Project</h2>
-
-		<!-- Mode toggle -->
-		<div class="card-actions">
+		<div class="mode-toggle">
 			<button class="mode-btn {mode === 'audio' ? 'active' : ''}" on:click={() => (mode = 'audio')}>
 				🎙️ Audio
 			</button>
@@ -444,7 +443,7 @@
 		</div>
 	</div>
 
-	<div class="card-body">
+	<div class="upload-body">
 		<!-- Unified Input Area -->
 		<div
 			class="unified-input"
@@ -576,7 +575,40 @@
 
 <style>
 	/* ===================================================================
-	 * MODE TOGGLE
+	 * CONTAINER
+	 * ================================================================= */
+
+	.upload-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.upload-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.upload-header h2 {
+		font-size: var(--pm-text-lg);
+		font-weight: 700;
+		margin: 0;
+		color: var(--pm-black);
+	}
+
+	.upload-body {
+		/* Container for unified input */
+	}
+
+	.mode-toggle {
+		display: flex;
+		gap: var(--pm-space-sm);
+		align-items: center;
+	}
+
+	/* ===================================================================
+	 * MODE TOGGLE BUTTONS
 	 * ================================================================= */
 
 	.mode-btn {
