@@ -494,7 +494,6 @@
 					bind:this={textArea}
 					bind:value={textInput}
 					class="text-input"
-					rows={6}
 					placeholder="Talk it out, paste a rant, or drop a recording here."
 					on:input={() => {
 						if (audioFile) {
@@ -613,8 +612,12 @@
 		border: var(--pm-border-medium) dashed rgba(30, 23, 20, 0.2);
 		border-radius: var(--pm-radius-md);
 		padding: 1rem;
-		min-height: 200px;
-		transition: all var(--pm-transition-medium);
+		height: 240px; /* Fixed height - no layout shifts! */
+		display: flex;
+		flex-direction: column;
+		transition: border-color var(--pm-transition-medium),
+		            background var(--pm-transition-medium),
+		            box-shadow var(--pm-transition-medium);
 		background: var(--pm-cream-dark);
 		cursor: text;
 	}
@@ -647,15 +650,18 @@
 
 	.text-input {
 		width: 100%;
-		height: 100%;
+		flex: 1; /* Fill available space */
 		padding: 0;
+		margin: 0;
 		border: none;
 		font-size: var(--pm-text-sm);
+		line-height: 1.5;
 		color: var(--pm-black);
 		background: transparent;
 		resize: none;
 		font-family: var(--pm-font-sans);
 		outline: none;
+		overflow-y: auto; /* Scroll if text is too long */
 	}
 
 	.text-input::placeholder {
@@ -748,7 +754,9 @@
 	.record-visual {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.75rem;
+		height: 100%; /* Fill the fixed container */
+		justify-content: space-between;
 	}
 
 	.record-visual__top {
@@ -813,7 +821,10 @@
 	}
 
 	.record-visualizer {
-		margin-top: 0.5rem;
+		flex: 1; /* Take remaining space */
+		min-height: 0; /* Allow flexbox to shrink if needed */
+		display: flex;
+		align-items: flex-end; /* Align visualizer to bottom */
 	}
 
 	/* ===================================================================

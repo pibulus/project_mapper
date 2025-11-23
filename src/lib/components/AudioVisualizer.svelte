@@ -97,17 +97,21 @@
 <style>
 	.visualizer-container {
 		width: 100%;
+		flex: 1; /* Fill available space from parent */
+		min-height: 0; /* Allow flexbox to shrink */
 		background: rgba(30, 23, 20, 0.03);
 		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
 		border-radius: var(--pm-radius-md);
-		padding: 1rem;
+		padding: 0.75rem;
 		box-shadow: inset 0 1px 3px rgba(30, 23, 20, 0.06);
+		display: flex;
+		align-items: center;
 	}
 
 	.visualizer-canvas {
 		display: block;
 		width: 100%;
-		height: 60px;
+		height: 56px; /* Slightly smaller to fit better */
 		border-radius: var(--pm-radius-sm);
 	}
 </style>
