@@ -9,6 +9,7 @@
 	import { browser } from '$app/environment';
 	import { currentProject, updateProject } from '$lib/stores/projectStore';
 	import AudioVisualizer from './AudioVisualizer.svelte';
+	import LoadingModal from './LoadingModal.svelte';
 
 	// ===================================================================
 	// STATE MANAGEMENT
@@ -572,6 +573,9 @@
 	on:change={handleFileSelect}
 	style="display: none;"
 />
+
+<!-- Loading Modal -->
+<LoadingModal isOpen={isProcessing && !isRecording} />
 
 <style>
 	/* ===================================================================
