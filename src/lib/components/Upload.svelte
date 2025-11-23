@@ -1,38 +1,203 @@
 <script lang="ts">
 	/**
-	 * Upload Component
+	 * Upload Component - Unified Interface
 	 *
-	 * Handles audio file upload and text input
-	 * Sends to /api/process for AI analysis
+	 * Handles: text input, file upload (drag/drop), and audio recording
+	 * Warm pastel punk aesthetic with juicy interactions
 	 */
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { currentProject, updateProject } from '$lib/stores/projectStore';
+	import AudioVisualizer from './AudioVisualizer.svelte';
+
+	// ===================================================================
+	// STATE MANAGEMENT
+	// ===================================================================
 
 	let mode: 'audio' | 'text' = 'audio';
-	let audioFile: File | null = null;
 	let textInput = '';
+	let audioFile: File | null = null;
 	let isProcessing = false;
 	let error = '';
 
-	function handleFileSelect(event: Event) {
-		const target = event.target as HTMLInputElement;
-		if (target.files && target.files[0]) {
-			audioFile = target.files[0];
-			error = '';
+	// Recording state
+	let isRecording = false;
+	let recordingTime = 0;
+	let showTimeWarning = false;
+	let isDragActive = false;
+
+	// Recording refs
+	let mediaRecorder: MediaRecorder | null = null;
+	let audioChunks: Blob[] = [];
+	let stream: MediaStream | null = null;
+	let recordingTimer: number | null = null;
+	let audioContext: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+
+	// DOM refs
+	let fileInput: HTMLInputElement;
+	let textArea: HTMLTextAreaElement;
+
+	// Constants
+	const MAX_RECORDING_TIME = 10 * 60; // 10 minutes in seconds
+	const WARNING_TIME = 30; // 30 seconds before limit
+
+	// ===================================================================
+	// COMPUTED VALUES
+	// ===================================================================
+
+	$: timeRemaining = MAX_RECORDING_TIME - recordingTime;
+	$: hasText = textInput.trim().length > 0;
+	$: primaryLabel = isRecording
+		? 'Stop Recording'
+		: hasText
+			? 'Analyze Text'
+			: audioFile
+				? 'Map Audio'
+				: 'Start Recording';
+	$: primaryDisabled = isProcessing && !isRecording;
+
+	// ===================================================================
+	// TIME FORMATTING
+	// ===================================================================
+
+	function formatTime(seconds: number): string {
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+	}
+
+	// ===================================================================
+	// RECORDING FUNCTIONS
+	// ===================================================================
+
+	async function startRecording() {
+		try {
+			const userStream = await navigator.mediaDevices.getUserMedia({
+				audio: {
+					echoCancellation: true,
+					noiseSuppression: true,
+					autoGainControl: true
+				}
+			});
+
+			// Find supported mime type
+			const mimeTypes = ['audio/webm', 'audio/ogg', 'audio/mp4', ''];
+			let mediaRecorderOptions: MediaRecorderOptions | undefined;
+
+			for (const mimeType of mimeTypes) {
+				if (!mimeType || MediaRecorder.isTypeSupported(mimeType)) {
+					mediaRecorderOptions = mimeType ? { mimeType } : undefined;
+					break;
+				}
+			}
+
+			const recorder = new MediaRecorder(userStream, mediaRecorderOptions);
+			audioChunks = [];
+
+			recorder.ondataavailable = (event) => {
+				if (event.data.size > 0) {
+					audioChunks.push(event.data);
+				}
+			};
+
+			// Setup Web Audio API for visualization
+			try {
+				const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+				audioContext = new AudioContextClass();
+				const source = audioContext.createMediaStreamSource(userStream);
+				analyser = audioContext.createAnalyser();
+				analyser.fftSize = 256;
+				source.connect(analyser);
+			} catch (err) {
+				console.warn('Failed to initialize Web Audio API:', err);
+			}
+
+			recorder.start(1000); // Collect data every second
+			mediaRecorder = recorder;
+			stream = userStream;
+			isRecording = true;
+			recordingTime = 0;
+			showTimeWarning = false;
+
+			// Start timer
+			recordingTimer = setInterval(() => {
+				recordingTime++;
+
+				if (timeRemaining <= WARNING_TIME && !showTimeWarning) {
+					showTimeWarning = true;
+				}
+
+				if (recordingTime >= MAX_RECORDING_TIME) {
+					stopRecording();
+				}
+			}, 1000) as unknown as number;
+		} catch (err) {
+			console.error('Error starting recording:', err);
+			alert('Could not access microphone. Please grant permission and try again.');
+			cleanup();
 		}
 	}
 
-	async function processAudio() {
-		if (!audioFile) {
-			error = 'Please select an audio file';
-			return;
-		}
+	async function stopRecording() {
+		if (!mediaRecorder) return;
 
+		return new Promise<void>((resolve) => {
+			const recorder = mediaRecorder!;
+
+			recorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunks, {
+					type: recorder.mimeType || 'audio/webm'
+				});
+				await processRecordedAudio(audioBlob);
+				resolve();
+			};
+
+			recorder.stop();
+			stream?.getTracks().forEach((track) => track.stop());
+			stream = null;
+
+			if (recordingTimer) {
+				clearInterval(recordingTimer);
+				recordingTimer = null;
+			}
+
+			cleanup();
+		});
+	}
+
+	function cleanup() {
+		if (stream) {
+			stream.getTracks().forEach((track) => track.stop());
+			stream = null;
+		}
+		if (recordingTimer) {
+			clearInterval(recordingTimer);
+			recordingTimer = null;
+		}
+		if (audioContext && audioContext.state !== 'closed') {
+			audioContext.close();
+			audioContext = null;
+		}
+		analyser = null;
+		isRecording = false;
+	}
+
+	// ===================================================================
+	// PROCESSING FUNCTIONS
+	// ===================================================================
+
+	async function processRecordedAudio(audioBlob: Blob) {
+		console.log('🎤 Starting audio processing...', {
+			size: audioBlob.size,
+			type: audioBlob.type
+		});
 		isProcessing = true;
 		error = '';
 
 		try {
 			const formData = new FormData();
-			formData.append('audio', audioFile);
+			formData.append('audio', audioBlob, 'recording.webm');
 			formData.append('conversationId', crypto.randomUUID());
 
 			const response = await fetch('/api/process', {
@@ -52,7 +217,55 @@
 				id: result.conversation.id,
 				title: result.conversation.title || 'Untitled Project',
 				summary: result.summary || '',
-				transcript: result.transcript.text || '',
+				transcript: result.transcript?.text || '',
+				actionItems: result.actionItems || [],
+				topics: result.nodes || [],
+				edges: result.edges || []
+			};
+
+			updateProject(project);
+			currentProject.set(project);
+
+			console.log('✅ Processing complete:', {
+				actionItems: result.actionItems.length,
+				topics: result.nodes.length
+			});
+		} catch (err: any) {
+			console.error('❌ Error processing audio:', err);
+			error = err.message || 'Failed to process audio';
+		} finally {
+			isProcessing = false;
+		}
+	}
+
+	async function processAudioFile(file: File) {
+		console.log('📁 Processing audio file:', file.name);
+		isProcessing = true;
+		error = '';
+
+		try {
+			const formData = new FormData();
+			formData.append('audio', file);
+			formData.append('conversationId', crypto.randomUUID());
+
+			const response = await fetch('/api/process', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to process audio');
+			}
+
+			const result = await response.json();
+
+			// Build project from result
+			const project = {
+				id: result.conversation.id,
+				title: result.conversation.title || 'Untitled Project',
+				summary: result.summary || '',
+				transcript: result.transcript?.text || '',
 				actionItems: result.actionItems || [],
 				topics: result.nodes || [],
 				edges: result.edges || []
@@ -64,9 +277,11 @@
 			// Reset form
 			audioFile = null;
 			textInput = '';
+
+			console.log('✅ File processing complete');
 		} catch (err: any) {
-			console.error('Error processing audio:', err);
-			error = err.message || 'Failed to process audio';
+			console.error('❌ Error processing file:', err);
+			error = err.message || 'Failed to process audio file';
 		} finally {
 			isProcessing = false;
 		}
@@ -123,13 +338,95 @@
 		}
 	}
 
-	function handleSubmit() {
-		if (mode === 'audio') {
-			processAudio();
-		} else {
-			processText();
+	// ===================================================================
+	// FILE HANDLING
+	// ===================================================================
+
+	function stageFile(file: File) {
+		audioFile = file;
+		textInput = '';
+		isDragActive = false;
+	}
+
+	function handleFileSelect(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (file) {
+			stageFile(file);
+			target.value = ''; // Reset input
 		}
 	}
+
+	function clearSelectedFile() {
+		audioFile = null;
+		if (fileInput) {
+			fileInput.value = '';
+		}
+	}
+
+	// ===================================================================
+	// DRAG AND DROP
+	// ===================================================================
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		if (!isRecording) {
+			isDragActive = true;
+		}
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		event.preventDefault();
+		const target = event.currentTarget as HTMLElement;
+		const related = event.relatedTarget as Node;
+		if (!target.contains(related)) {
+			isDragActive = false;
+		}
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = false;
+		if (isRecording) return;
+
+		const file = event.dataTransfer?.files?.[0];
+		if (file) {
+			stageFile(file);
+		}
+	}
+
+	// ===================================================================
+	// PRIMARY ACTION
+	// ===================================================================
+
+	async function handlePrimaryAction() {
+		if (isRecording) {
+			await stopRecording();
+			return;
+		}
+
+		if (hasText) {
+			await processText();
+			return;
+		}
+
+		if (audioFile) {
+			await processAudioFile(audioFile);
+			return;
+		}
+
+		if (!isProcessing) {
+			await startRecording();
+		}
+	}
+
+	// ===================================================================
+	// LIFECYCLE
+	// ===================================================================
+
+	onDestroy(() => {
+		cleanup();
+	});
 </script>
 
 <div class="card">
@@ -138,10 +435,7 @@
 
 		<!-- Mode toggle -->
 		<div class="card-actions">
-			<button
-				class="mode-btn {mode === 'audio' ? 'active' : ''}"
-				on:click={() => (mode = 'audio')}
-			>
+			<button class="mode-btn {mode === 'audio' ? 'active' : ''}" on:click={() => (mode = 'audio')}>
 				🎙️ Audio
 			</button>
 			<button class="mode-btn {mode === 'text' ? 'active' : ''}" on:click={() => (mode = 'text')}>
@@ -151,62 +445,141 @@
 	</div>
 
 	<div class="card-body">
-		{#if mode === 'audio'}
-			<!-- Audio upload -->
-			<div class="upload-area">
-				<input
-					type="file"
-					accept="audio/*"
-					on:change={handleFileSelect}
-					class="hidden"
-					id="audio-upload"
-				/>
-				<label for="audio-upload" class="upload-label">
-					<div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎤</div>
-					{#if audioFile}
-						<p style="font-size: var(--pm-text-sm); font-weight: 600; color: var(--pm-black);">
-							{audioFile.name}
-						</p>
-						<p style="font-size: var(--pm-text-xs); color: var(--pm-brown); margin-top: 0.25rem;">
-							{(audioFile.size / 1024 / 1024).toFixed(2)} MB
-						</p>
-					{:else}
-						<p style="font-size: var(--pm-text-sm); font-weight: 600; color: var(--pm-black);">
-							Click to upload audio
-						</p>
-						<p style="font-size: var(--pm-text-xs); color: var(--pm-brown); margin-top: 0.25rem;">
-							MP3, WAV, WEBM, M4A (max 50MB)
+		<!-- Unified Input Area -->
+		<div
+			class="unified-input"
+			class:is-drop={isDragActive}
+			class:has-file={audioFile}
+			class:is-recording={isRecording}
+			on:dragover={isRecording ? undefined : handleDragOver}
+			on:dragenter={isRecording ? undefined : handleDragOver}
+			on:dragleave={isRecording ? undefined : handleDragLeave}
+			on:drop={isRecording ? undefined : handleDrop}
+			on:click={() => !isRecording && textArea?.focus()}
+			role="button"
+			tabindex="-1"
+		>
+			{#if isRecording}
+				<!-- Recording Visual -->
+				<div class="record-visual">
+					<div class="record-visual__top">
+						<div class="record-label">Recording</div>
+						<div class="record-time">
+							{formatTime(recordingTime)}
+						</div>
+					</div>
+
+					<div class="record-bar">
+						<div
+							class="record-bar__fill"
+							style="width: {(recordingTime / MAX_RECORDING_TIME) * 100}%; background: {showTimeWarning
+								? '#EF4444'
+								: 'var(--pm-pink)'};"
+						/>
+					</div>
+
+					{#if showTimeWarning}
+						<p class="record-warning">
+							Auto-stop in {formatTime(timeRemaining)} — wrap it up.
 						</p>
 					{/if}
-				</label>
-			</div>
-		{:else}
-			<!-- Text input -->
-			<textarea
-				bind:value={textInput}
-				placeholder="Paste your conversation, notes, or transcript here..."
-				class="text-input"
-			></textarea>
-		{/if}
 
+					<div class="record-visualizer">
+						<AudioVisualizer {analyser} />
+					</div>
+				</div>
+			{:else}
+				<!-- Text Input State -->
+				<textarea
+					bind:this={textArea}
+					bind:value={textInput}
+					class="text-input"
+					rows={6}
+					placeholder="Talk it out, paste a rant, or drop a recording here."
+					on:input={() => {
+						if (audioFile) {
+							audioFile = null;
+						}
+					}}
+					on:keydown={(e) => {
+						if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && hasText) {
+							e.preventDefault();
+							processText();
+						}
+					}}
+					on:focus={() => (isDragActive = false)}
+				/>
+
+				<!-- File Chip -->
+				{#if audioFile}
+					<div class="file-chip">
+						<span>{audioFile.name}</span>
+						<button
+							type="button"
+							aria-label="Remove file"
+							on:click={(event) => {
+								event.stopPropagation();
+								clearSelectedFile();
+							}}
+						>
+							×
+						</button>
+					</div>
+				{/if}
+
+				<!-- Paperclip Button -->
+				<button
+					type="button"
+					class="clip-btn"
+					aria-label="Browse file"
+					on:click={(event) => {
+						event.stopPropagation();
+						fileInput?.click();
+					}}
+				>
+					📎
+				</button>
+			{/if}
+		</div>
+
+		<!-- Error Message -->
 		{#if error}
 			<div class="error-box">
 				{error}
 			</div>
 		{/if}
 
-		<button on:click={handleSubmit} disabled={isProcessing || (mode === 'audio' ? !audioFile : !textInput.trim())} class="btn btn-primary" style="margin-top: 1rem; width: 100%;">
-			{#if isProcessing}
+		<!-- Primary Action Button -->
+		<button
+			class="btn btn-primary"
+			style="margin-top: 1rem; width: 100%;"
+			disabled={primaryDisabled}
+			on:click={handlePrimaryAction}
+		>
+			{#if isProcessing && !isRecording}
 				<span class="inline-block animate-spin-slow" style="margin-right: 0.5rem;">⚙️</span>
 				Processing with AI...
 			{:else}
-				Process {mode === 'audio' ? 'Audio' : 'Text'}
+				{primaryLabel}
 			{/if}
 		</button>
 	</div>
 </div>
 
+<!-- Hidden file input -->
+<input
+	bind:this={fileInput}
+	type="file"
+	accept="audio/*"
+	on:change={handleFileSelect}
+	style="display: none;"
+/>
+
 <style>
+	/* ===================================================================
+	 * MODE TOGGLE
+	 * ================================================================= */
+
 	.mode-btn {
 		padding: 0.375rem 0.75rem;
 		border-radius: var(--pm-radius-sm);
@@ -228,51 +601,224 @@
 		background: var(--pm-pink);
 		color: var(--pm-cream);
 		border-color: var(--pm-pink);
+		box-shadow: var(--pm-shadow-hard);
 	}
 
-	.upload-area {
+	/* ===================================================================
+	 * UNIFIED INPUT
+	 * ================================================================= */
+
+	.unified-input {
+		position: relative;
 		border: var(--pm-border-medium) dashed rgba(30, 23, 20, 0.2);
 		border-radius: var(--pm-radius-md);
-		padding: 2rem;
-		text-align: center;
+		padding: 1rem;
+		min-height: 200px;
 		transition: all var(--pm-transition-medium);
 		background: var(--pm-cream-dark);
+		cursor: text;
 	}
 
-	.upload-area:hover {
-		border-color: var(--pm-pink);
+	.unified-input:hover {
+		border-color: rgba(30, 23, 20, 0.3);
 		background: var(--pm-cream-light);
 	}
 
-	.upload-label {
-		cursor: pointer;
-		display: block;
+	.unified-input.is-drop {
+		border-color: var(--pm-pink);
+		background: rgba(232, 131, 156, 0.05);
+		box-shadow: 0 0 0 4px rgba(232, 131, 156, 0.1);
 	}
+
+	.unified-input.is-recording {
+		border-style: solid;
+		border-color: var(--pm-pink);
+		background: var(--pm-cream-light);
+		cursor: default;
+	}
+
+	.unified-input.has-file {
+		border-color: var(--pm-mint);
+	}
+
+	/* ===================================================================
+	 * TEXT INPUT
+	 * ================================================================= */
 
 	.text-input {
 		width: 100%;
-		height: 12rem;
-		padding: 1rem;
-		border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.12);
-		border-radius: var(--pm-radius-md);
+		height: 100%;
+		padding: 0;
+		border: none;
 		font-size: var(--pm-text-sm);
 		color: var(--pm-black);
-		background: var(--pm-cream-dark);
+		background: transparent;
 		resize: none;
-		transition: all var(--pm-transition-fast);
 		font-family: var(--pm-font-sans);
-	}
-
-	.text-input:focus {
 		outline: none;
-		border-color: var(--pm-pink);
-		background: var(--pm-cream-light);
 	}
 
 	.text-input::placeholder {
 		color: var(--pm-brown);
 		opacity: 0.5;
 	}
+
+	/* ===================================================================
+	 * FILE CHIP
+	 * ================================================================= */
+
+	.file-chip {
+		position: absolute;
+		bottom: 1rem;
+		left: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.375rem 0.75rem;
+		background: var(--pm-mint);
+		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
+		border-radius: var(--pm-radius-sm);
+		font-size: var(--pm-text-xs);
+		font-weight: 600;
+		color: var(--pm-black);
+		box-shadow: var(--pm-shadow-soft);
+	}
+
+	.file-chip span {
+		max-width: 200px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.file-chip button {
+		background: none;
+		border: none;
+		color: var(--pm-black);
+		font-size: 1.25rem;
+		font-weight: bold;
+		cursor: pointer;
+		padding: 0;
+		width: 1.25rem;
+		height: 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all var(--pm-transition-fast);
+	}
+
+	.file-chip button:hover {
+		color: var(--pm-pink);
+		transform: scale(1.2);
+	}
+
+	/* ===================================================================
+	 * PAPERCLIP BUTTON
+	 * ================================================================= */
+
+	.clip-btn {
+		position: absolute;
+		bottom: 1rem;
+		right: 1rem;
+		width: 2.5rem;
+		height: 2.5rem;
+		border-radius: var(--pm-radius-sm);
+		background: var(--pm-cream);
+		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.25rem;
+		cursor: pointer;
+		transition: all var(--pm-transition-fast);
+		box-shadow: var(--pm-shadow-soft);
+	}
+
+	.clip-btn:hover {
+		background: var(--pm-pink);
+		border-color: var(--pm-pink);
+		transform: translateY(-2px);
+		box-shadow: var(--pm-shadow-hard);
+	}
+
+	/* ===================================================================
+	 * RECORDING VISUAL
+	 * ================================================================= */
+
+	.record-visual {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.record-visual__top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.record-label {
+		font-size: var(--pm-text-sm);
+		font-weight: 600;
+		color: var(--pm-pink);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.record-label::before {
+		content: '●';
+		font-size: 1.25rem;
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.4;
+		}
+	}
+
+	.record-time {
+		font-family: var(--pm-font-mono);
+		font-size: var(--pm-text-lg);
+		font-weight: 600;
+		color: var(--pm-black);
+	}
+
+	.record-bar {
+		width: 100%;
+		height: 0.5rem;
+		background: rgba(30, 23, 20, 0.1);
+		border-radius: var(--pm-radius-sm);
+		overflow: hidden;
+	}
+
+	.record-bar__fill {
+		height: 100%;
+		transition: width 0.3s ease, background 0.3s ease;
+		border-radius: var(--pm-radius-sm);
+	}
+
+	.record-warning {
+		font-size: var(--pm-text-xs);
+		color: #b91c1c;
+		font-weight: 600;
+		text-align: center;
+		margin: 0;
+		animation: pulse 1s ease-in-out infinite;
+	}
+
+	.record-visualizer {
+		margin-top: 0.5rem;
+	}
+
+	/* ===================================================================
+	 * ERROR BOX
+	 * ================================================================= */
 
 	.error-box {
 		margin-top: 1rem;
