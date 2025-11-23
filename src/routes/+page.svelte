@@ -10,6 +10,9 @@
 	import { currentProject, loadFromLocalStorage } from '$lib/stores/projectStore';
 	import Upload from '$lib/components/Upload.svelte';
 	import Dashboard from '$lib/components/Dashboard.svelte';
+	import ExportDrawer from '$lib/components/ExportDrawer.svelte';
+
+	let exportDrawerOpen = false;
 
 	// Auto-restore from localStorage on mount
 	onMount(() => {
@@ -38,8 +41,9 @@
 					</h1>
 				</div>
 				<div class="flex items-center gap-2">
-					<!-- Export button (TODO) -->
+					<!-- Export button -->
 					<button
+						on:click={() => (exportDrawerOpen = true)}
 						class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold"
 					>
 						Export
@@ -94,4 +98,10 @@
 			</div>
 		{/if}
 	</main>
+
+	<!-- Export Drawer -->
+	<ExportDrawer
+		bind:isOpen={exportDrawerOpen}
+		transcript={$currentProject?.transcript || ''}
+	/>
 </div>

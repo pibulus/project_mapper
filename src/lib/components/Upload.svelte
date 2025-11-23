@@ -190,7 +190,7 @@
 					bind:value={textInput}
 					placeholder="Paste your conversation, notes, or transcript here..."
 					class="w-full h-48 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-400 focus:outline-none resize-none"
-				/>
+				></textarea>
 			</div>
 		{/if}
 
