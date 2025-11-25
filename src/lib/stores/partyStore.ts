@@ -8,6 +8,15 @@ import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
 import { PUBLIC_PARTYKIT_HOST } from '$env/static/public';
 import PartySocket from 'partysocket';
+import { updateProject } from '$lib/stores/projectStore';
+import type {
+	Conversation,
+	Transcript,
+	Node,
+	Edge,
+	ActionItem,
+	ActionItemStatusUpdate
+} from '$lib/core/types';
 
 interface PresenceInfo {
 	count: number;
@@ -27,26 +36,22 @@ interface PartyMessage {
 export function createProjectParty(projectId: string) {
 	const connected = writable(false);
 	const presence = writable<PresenceInfo>({ count: 0, users: new Set() });
-	const messages = writable<PartyMessage[]>([]);
+
+	// Stores for our real-time analysis data
+	const conversation = writable<Partial<Conversation>>({});
+	const transcript = writable<Partial<Transcript>>({});
+	const nodes = writable<Node[]>([]);
+	const edges = writable<Edge[]>([]);
+	const actionItems = writable<ActionItem[]>([]);
+	const summary = writable<string>('');
 
 	let socket: PartySocket | null = null;
 
-	/**
-	 * Connect to project room
-	 */
 	function connect() {
-		if (!browser || !PUBLIC_PARTYKIT_HOST) {
-			console.warn('[PartyKit] Not connecting: browser or host not available');
-			return;
-		}
-
-		if (socket) {
-			console.log('[PartyKit] Already connected');
-			return;
-		}
+		if (!browser || !PUBLIC_PARTYKIT_HOST) return;
+		if (socket) return;
 
 		console.log(`[PartyKit] Connecting to project: ${projectId}`);
-
 		socket = new PartySocket({
 			host: PUBLIC_PARTYKIT_HOST,
 			room: projectId
@@ -62,25 +67,66 @@ export function createProjectParty(projectId: string) {
 				const msg: PartyMessage = JSON.parse(event.data);
 				console.log('[PartyKit] Message received:', msg.type);
 
-				// Update presence
-				if (msg.type === 'presence_count') {
-					presence.update((p) => ({ ...p, count: msg.data?.count || 0 }));
-				} else if (msg.type === 'user_joined') {
-					presence.update((p) => {
-						const users = new Set(p.users);
-						if (msg.userId) users.add(msg.userId);
-						return { count: users.size, users };
-					});
-				} else if (msg.type === 'user_left') {
-					presence.update((p) => {
-						const users = new Set(p.users);
-						if (msg.userId) users.delete(msg.userId);
-						return { count: users.size, users };
-					});
-				}
+				switch (msg.type) {
+					// Presence
+					case 'presence_count':
+						presence.update((p) => ({ ...p, count: msg.data?.count || 0 }));
+						break;
+					case 'user_joined':
+						presence.update((p) => {
+							const users = new Set(p.users);
+							if (msg.userId) users.add(msg.userId);
+							return { count: users.size, users };
+						});
+						break;
+					case 'user_left':
+						presence.update((p) => {
+							const users = new Set(p.users);
+							if (msg.userId) users.delete(msg.userId);
+							return { count: users.size, users };
+						});
+						break;
 
-				// Store message
-				messages.update((m) => [...m, msg]);
+					// Analysis updates
+					case 'transcript':
+						transcript.set(msg.data);
+						updateProject({ transcript: msg.data.text });
+						break;
+					case 'title':
+						conversation.update((c) => ({ ...c, title: msg.data }));
+						updateProject({ title: msg.data });
+						break;
+					case 'conversation':
+						conversation.set(msg.data);
+						updateProject(msg.data);
+						break;
+					case 'topics':
+						nodes.set(msg.data.nodes || []);
+						edges.set(msg.data.edges || []);
+						updateProject({ topics: msg.data.nodes, edges: msg.data.edges });
+						break;
+					case 'action-items':
+						actionItems.set(msg.data || []);
+						updateProject({ actionItems: msg.data });
+						break;
+					case 'summary':
+						summary.set(msg.data || '');
+						updateProject({ summary: msg.data });
+						break;
+					case 'status-updates':
+						actionItems.update((items) => {
+							const newItems = [...items];
+							(msg.data as ActionItemStatusUpdate[]).forEach((update) => {
+								const item = newItems.find((i) => i.id === update.id);
+								if (item) {
+									item.status = update.status;
+								}
+							});
+							updateProject({ actionItems: newItems });
+							return newItems;
+						});
+						break;
+				}
 			} catch (error) {
 				console.error('[PartyKit] Error parsing message:', error);
 			}
@@ -97,38 +143,18 @@ export function createProjectParty(projectId: string) {
 		});
 	}
 
-	/**
-	 * Disconnect from project room
-	 */
 	function disconnect() {
 		if (socket) {
 			console.log('[PartyKit] Disconnecting');
 			socket.close();
-			socket = null;
-			connected.set(false);
 		}
 	}
 
-	/**
-	 * Send a message to the room
-	 */
 	function send(type: string, data?: any) {
-		if (!socket) {
-			console.warn('[PartyKit] Cannot send: not connected');
-			return;
-		}
-
-		const message: PartyMessage = {
-			type,
-			data,
-			userId: socket.id,
-			timestamp: Date.now()
-		};
-
-		socket.send(JSON.stringify(message));
+		if (!socket) return;
+		socket.send(JSON.stringify({ type, data, userId: socket.id, timestamp: Date.now() }));
 	}
 
-	// Auto-connect when created
 	if (browser) {
 		connect();
 	}
@@ -136,9 +162,15 @@ export function createProjectParty(projectId: string) {
 	return {
 		connected: { subscribe: connected.subscribe },
 		presence: { subscribe: presence.subscribe },
-		messages: { subscribe: messages.subscribe },
+		conversation: { subscribe: conversation.subscribe },
+		transcript: { subscribe: transcript.subscribe },
+		nodes: { subscribe: nodes.subscribe },
+		edges: { subscribe: edges.subscribe },
+		actionItems: { subscribe: actionItems.subscribe },
+		summary: { subscribe: summary.subscribe },
 		send,
 		connect,
 		disconnect
 	};
 }
+

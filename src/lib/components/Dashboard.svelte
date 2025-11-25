@@ -3,20 +3,34 @@
 	 * Dashboard Component
 	 *
 	 * Simple CSS Grid layout coordinating all cards
-	 * Pattern from conversation_mapper_fresh/DashboardIsland.tsx
+	 * Subscribes to real-time updates from the partyStore
 	 */
 	import { currentProject } from '$lib/stores/projectStore';
+	import { createProjectParty } from '$lib/stores/partyStore';
 	import TranscriptCard from './TranscriptCard.svelte';
 	import SummaryCard from './SummaryCard.svelte';
 	import ActionItemsCard from './ActionItemsCard.svelte';
 	import TopicGraphCard from './TopicGraphCard.svelte';
+	import { onMount } from 'svelte';
 
-	// Extract data from current project
-	$: transcript = $currentProject?.transcript || '';
-	$: summary = $currentProject?.summary || '';
-	$: actionItems = $currentProject?.actionItems || [];
-	$: topics = $currentProject?.topics || [];
-	$: edges = $currentProject?.edges || [];
+	let party;
+
+	// When the current project changes, connect to the party if sync is enabled
+	currentProject.subscribe((project) => {
+		if (project?.id && project.syncEnabled) {
+			party = createProjectParty(project.id);
+		} else {
+			party = null;
+		}
+	});
+
+	// Data can come from the real-time party store OR the local project store
+	$: transcript = party ? party.transcript : $currentProject?.transcript;
+	$: summary = party ? party.summary : $currentProject?.summary;
+	$: actionItems = party ? party.actionItems : $currentProject?.actionItems;
+	$: topics = party ? party.nodes : $currentProject?.topics;
+	$: edges = party ? party.edges : $currentProject?.edges;
+	$: conversation = party ? party.conversation : $currentProject;
 </script>
 
 {#if !$currentProject}
@@ -35,17 +49,17 @@
 	<!-- Dashboard grid -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 		<!-- Card 1: Transcript -->
-		<TranscriptCard {transcript} />
+		<TranscriptCard transcript={$transcript || ''} />
 
 		<!-- Card 2: Summary -->
-		<SummaryCard {summary} topicsCount={topics.length} />
+		<SummaryCard summary={$summary || ''} topicsCount={$topics?.length || 0} />
 
 		<!-- Card 3: Action Items -->
-		<ActionItemsCard items={actionItems} />
+		<ActionItemsCard items={$actionItems || []} />
 
 		<!-- Card 4: Topic Graph (full width) -->
 		<div class="md:col-span-2 lg:col-span-3">
-			<TopicGraphCard {topics} {edges} />
+			<TopicGraphCard topics={$topics || []} edges={$edges || []} />
 		</div>
 	</div>
 {/if}

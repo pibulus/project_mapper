@@ -7,7 +7,7 @@
 	 */
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { currentProject, updateProject } from '$lib/stores/projectStore';
+	import { currentProject, updateProject, startNewProject } from '$lib/stores/projectStore';
 	import AudioVisualizer from './AudioVisualizer.svelte';
 	import LoadingModal from './LoadingModal.svelte';
 
@@ -197,40 +197,29 @@
 		error = '';
 
 		try {
+			// Create the project in the DB first
+			const newProject = await startNewProject({
+				/* We don't have transcript yet */
+			});
+			if (!newProject) {
+				throw new Error('Failed to create project in database');
+			}
+
 			const formData = new FormData();
 			formData.append('audio', audioBlob, 'recording.webm');
-			formData.append('conversationId', crypto.randomUUID());
+			formData.append('conversationId', newProject.id);
 
-			const response = await fetch('/api/process', {
+			const response = await fetch('/api/process-stream', {
 				method: 'POST',
 				body: formData
 			});
 
-			if (!response.ok) {
+			if (response.status !== 202) {
 				const data = await response.json();
-				throw new Error(data.error || 'Failed to process audio');
+				throw new Error(data.error || 'Failed to start audio processing');
 			}
 
-			const result = await response.json();
-
-			// Build project from result
-			const project = {
-				id: result.conversation.id,
-				title: result.conversation.title || 'Untitled Project',
-				summary: result.summary || '',
-				transcript: result.transcript?.text || '',
-				actionItems: result.actionItems || [],
-				topics: result.nodes || [],
-				edges: result.edges || []
-			};
-
-			updateProject(project);
-			currentProject.set(project);
-
-			console.log('✅ Processing complete:', {
-				actionItems: result.actionItems.length,
-				topics: result.nodes.length
-			});
+			console.log(`✅ Started processing for conversation ${newProject.id}`);
 		} catch (err: any) {
 			console.error('❌ Error processing audio:', err);
 			error = err.message || 'Failed to process audio';
@@ -245,46 +234,37 @@
 		error = '';
 
 		try {
+			// Create the project in the DB first
+			const newProject = await startNewProject({
+				/* We don't have the transcript yet */
+			});
+			if (!newProject) {
+				throw new Error('Failed to create project in database');
+			}
+
 			const formData = new FormData();
 			formData.append('audio', file);
-			formData.append('conversationId', crypto.randomUUID());
+			formData.append('conversationId', newProject.id);
 
-			const response = await fetch('/api/process', {
+			const response = await fetch('/api/process-stream', {
 				method: 'POST',
 				body: formData
 			});
 
-			if (!response.ok) {
+			if (response.status !== 202) {
 				const data = await response.json();
-				throw new Error(data.error || 'Failed to process audio');
+				throw new Error(data.error || 'Failed to start file processing');
 			}
 
-			const result = await response.json();
-
-			// Build project from result
-			const project = {
-				id: result.conversation.id,
-				title: result.conversation.title || 'Untitled Project',
-				summary: result.summary || '',
-				transcript: result.transcript?.text || '',
-				actionItems: result.actionItems || [],
-				topics: result.nodes || [],
-				edges: result.edges || []
-			};
-
-			updateProject(project);
-			currentProject.set(project);
-
-			// Reset form
-			audioFile = null;
-			textInput = '';
-
-			console.log('✅ File processing complete');
+			console.log(`✅ Started processing for conversation ${newProject.id}`);
 		} catch (err: any) {
 			console.error('❌ Error processing file:', err);
 			error = err.message || 'Failed to process audio file';
 		} finally {
 			isProcessing = false;
+			// Reset form
+			audioFile = null;
+			textInput = '';
 		}
 	}
 
@@ -298,44 +278,35 @@
 		error = '';
 
 		try {
-			const response = await fetch('/api/process', {
+			// Create the project in the DB first
+			const newProject = await startNewProject({ transcript: textInput });
+			if (!newProject) {
+				throw new Error('Failed to create project in database');
+			}
+
+			const response = await fetch('/api/process-stream', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					text: textInput,
-					conversationId: crypto.randomUUID()
+					conversationId: newProject.id
 				})
 			});
 
-			if (!response.ok) {
+			if (response.status !== 202) {
 				const data = await response.json();
-				throw new Error(data.error || 'Failed to process text');
+				throw new Error(data.error || 'Failed to start text processing');
 			}
 
-			const result = await response.json();
-
-			// Build project from result
-			const project = {
-				id: result.conversation.id,
-				title: result.conversation.title || 'Untitled Project',
-				summary: result.summary || '',
-				transcript: result.transcript?.text || textInput,
-				actionItems: result.actionItems || [],
-				topics: result.nodes || [],
-				edges: result.edges || []
-			};
-
-			updateProject(project);
-			currentProject.set(project);
-
-			// Reset form
-			audioFile = null;
-			textInput = '';
+			console.log(`✅ Started processing for conversation ${newProject.id}`);
 		} catch (err: any) {
 			console.error('Error processing text:', err);
 			error = err.message || 'Failed to process text';
 		} finally {
 			isProcessing = false;
+			// Reset form after processing starts
+			audioFile = null;
+			textInput = '';
 		}
 	}
 
