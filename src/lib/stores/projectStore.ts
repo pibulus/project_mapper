@@ -64,6 +64,11 @@ export function saveToLocalStorage(project: ConversationData) {
  * Save project to Supabase (persistent, collaborative)
  */
 export async function saveToSupabase(project: ConversationData): Promise<boolean> {
+	if (!project.syncEnabled) {
+		console.log('[ProjectStore] Sync not enabled, skipping cloud save');
+		return true; // Not an error, just a skipped operation
+	}
+
 	if (!isSupabaseConfigured()) {
 		console.warn('[ProjectStore] Supabase not configured, skipping cloud save');
 		return false;
@@ -151,23 +156,44 @@ export async function loadFromSupabase(projectId: string): Promise<ConversationD
 }
 
 /**
- * Create a new project
+ * Create a new project locally
  */
-export function createNewProject() {
+export function startNewProject(initialData: Partial<ConversationData>): ConversationData {
 	const project: ConversationData = {
 		id: crypto.randomUUID(),
-		title: 'Untitled Project',
-		summary: '',
-		transcript: '',
+		title: initialData.title || 'Processing...',
+		summary: initialData.summary || '',
+		transcript: initialData.transcript || '',
 		actionItems: [],
 		topics: [],
-		edges: []
+		edges: [],
+		syncEnabled: false // Default to local-only
 	};
 
 	currentProject.set(project);
 	saveToLocalStorage(project);
 
+	console.log('[ProjectStore] ✨ Started new local project', project.id);
 	return project;
+}
+
+/**
+ * Upgrade a local project to be synced with Supabase
+ */
+export async function enableSync(project: ConversationData) {
+	console.log(`[ProjectStore] 🚀 Enabling sync for project ${project.id}`);
+	const syncedProject = { ...project, syncEnabled: true };
+
+	// Perform the first save to Supabase
+	const success = await saveToSupabase(syncedProject);
+
+	if (success) {
+		// Update the local state to reflect sync is enabled
+		updateProject({ syncEnabled: true });
+		console.log(`[ProjectStore] ✅ Sync enabled for project ${project.id}`);
+	} else {
+		console.error(`[ProjectStore] ❌ Failed to enable sync for project ${project.id}`);
+	}
 }
 
 /**
