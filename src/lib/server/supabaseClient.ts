@@ -7,11 +7,12 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { env } from "$env/dynamic/private";
-import { PUBLIC_SUPABASE_URL } from "$env/static/public";
+import { env as publicEnv } from "$env/dynamic/public";
 
-const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = publicEnv.PUBLIC_SUPABASE_URL || "";
+const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-if (!PUBLIC_SUPABASE_URL) {
+if (!SUPABASE_URL) {
   console.warn("⚠️ PUBLIC_SUPABASE_URL not set");
 }
 
@@ -26,7 +27,7 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
  * Use this for admin operations that bypass RLS
  */
 export const supabaseAdmin = createClient(
-  PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_URL || "https://placeholder.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY || "placeholder",
   {
     auth: {
@@ -40,5 +41,5 @@ export const supabaseAdmin = createClient(
  * Check if Supabase is configured
  */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(PUBLIC_SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 }

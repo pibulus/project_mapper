@@ -6,16 +6,17 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import {
-  PUBLIC_SUPABASE_URL,
-  PUBLIC_SUPABASE_ANON_KEY,
-} from "$env/static/public";
+import { env } from "$env/dynamic/public";
 
-if (!PUBLIC_SUPABASE_URL) {
+// Use dynamic imports to allow missing env vars
+const SUPABASE_URL = env.PUBLIC_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = env.PUBLIC_SUPABASE_ANON_KEY || "";
+
+if (!SUPABASE_URL) {
   console.warn("⚠️ PUBLIC_SUPABASE_URL not set");
 }
 
-if (!PUBLIC_SUPABASE_ANON_KEY) {
+if (!SUPABASE_ANON_KEY) {
   console.warn(
     "⚠️ PUBLIC_SUPABASE_ANON_KEY not set - database features disabled",
   );
@@ -26,13 +27,13 @@ if (!PUBLIC_SUPABASE_ANON_KEY) {
  * Respects Row Level Security policies
  */
 export const supabase = createClient(
-  PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-  PUBLIC_SUPABASE_ANON_KEY || "placeholder",
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_ANON_KEY || "placeholder",
 );
 
 /**
  * Check if Supabase is configured
  */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(PUBLIC_SUPABASE_URL && PUBLIC_SUPABASE_ANON_KEY);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }

@@ -6,8 +6,10 @@
 
 import { writable, derived } from "svelte/store";
 import { browser } from "$app/environment";
-import { PUBLIC_PARTYKIT_HOST } from "$env/static/public";
+import { env } from "$env/dynamic/public";
 import PartySocket from "partysocket";
+
+const PUBLIC_PARTYKIT_HOST = env.PUBLIC_PARTYKIT_HOST || "";
 import { updateProject } from "$lib/stores/projectStore";
 import type {
   Conversation,

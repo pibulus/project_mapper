@@ -26,6 +26,10 @@
 	let sortingStyle = 'manual'; // 'manual', 'assignee', 'updated_at'
 	let draggedItemId: string | null = null;
 	let hoveredItemId: string | null = null;
+	let selectedItemIndex: number = -1; // For keyboard navigation
+	let listContainerRef: HTMLDivElement;
+	let modalRef: HTMLDivElement;
+	let newItemTextarea: HTMLTextAreaElement;
 
 	// Derived state from the store
 	$: completedCount = $actionItems.filter((i) => i.status === 'completed').length;
@@ -95,6 +99,67 @@
 		return 'sort';
 	}
 
+	// Keyboard navigation handler
+	function handleKeyDown(event: KeyboardEvent) {
+		// Ignore if typing in input/textarea
+		const target = event.target as HTMLElement;
+		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+		if (target.contentEditable === 'true') return;
+
+		if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			selectedItemIndex = Math.min(selectedItemIndex + 1, sortedItems.length - 1);
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			selectedItemIndex = Math.max(selectedItemIndex - 1, 0);
+		} else if (event.key === 'Enter' && selectedItemIndex >= 0) {
+			event.preventDefault();
+			const item = sortedItems[selectedItemIndex];
+			if (item) toggleItem(item.id);
+		}
+	}
+
+	// Focus trap for modal
+	function handleModalKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			isAdding = false;
+			newItemDescription = '';
+			return;
+		}
+
+		if (event.key === 'Tab' && modalRef) {
+			const focusableElements = modalRef.querySelectorAll<HTMLElement>(
+				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			);
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+
+			if (event.shiftKey) {
+				if (document.activeElement === firstElement) {
+					event.preventDefault();
+					lastElement?.focus();
+				}
+			} else {
+				if (document.activeElement === lastElement) {
+					event.preventDefault();
+					firstElement?.focus();
+				}
+			}
+		}
+	}
+
+	// Focus modal when it opens
+	$: if (isAdding && newItemTextarea) {
+		setTimeout(() => newItemTextarea?.focus(), 100);
+	}
+
+	// Delete with confirmation
+	function handleDelete(itemId: string) {
+		if (confirm('Delete this action item?')) {
+			deleteItem(itemId);
+		}
+	}
+
 	// Drag and Drop handlers
 	function handleDragStart(itemId: string) {
 		if (sortingStyle !== 'manual') return;
@@ -153,7 +218,15 @@
 		{/if}
 	</svelte:fragment>
 
-	<div style="max-height: 400px; overflow-y: auto;">
+	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+	<div
+		bind:this={listContainerRef}
+		on:keydown={handleKeyDown}
+		tabindex="0"
+		role="list"
+		aria-label="Action items list"
+		style="max-height: 400px; overflow-y: auto; outline: none;"
+	>
 		{#if showSearch}
 			<div class="search-form">
 				<input type="text" bind:value={searchQuery} placeholder="Search items..." />
@@ -161,8 +234,16 @@
 		{/if}
 
 		{#if isAdding}
-			<div class="add-form">
+			<!-- svelte-ignore a11y-interactive-supports-focus -->
+			<div
+				bind:this={modalRef}
+				class="add-form"
+				on:keydown={handleModalKeyDown}
+				role="dialog"
+				aria-label="Add new action item"
+			>
 				<textarea
+					bind:this={newItemTextarea}
 					bind:value={newItemDescription}
 					placeholder="Enter new action item..."
 					rows="3"
@@ -182,17 +263,27 @@
 			</p>
 		{:else}
 			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
-				{#each sortedItems as item (item.id)}
+				{#each sortedItems as item, index (item.id)}
+					<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 					<div
 						class="action-item-wrapper"
 						class:dragging={draggedItemId === item.id}
 						class:drag-over={hoveredItemId === item.id && draggedItemId !== item.id}
+						class:selected={selectedItemIndex === index}
 						draggable={sortingStyle === 'manual'}
+						role="listitem"
 						on:dragstart={() => handleDragStart(item.id)}
 						on:dragover={handleDragOver}
 						on:drop={() => handleDrop(item.id)}
 						on:mouseenter={() => (hoveredItemId = item.id)}
 						on:mouseleave={() => (hoveredItemId = null)}
+						on:click={() => (selectedItemIndex = index)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								selectedItemIndex = index;
+							}
+						}}
 					>
 						<label class="action-item {item.status === 'completed' ? 'completed' : ''}">
 							<input
@@ -201,9 +292,12 @@
 								on:change={() => toggleItem(item.id)}
 							/>
 							<div style="flex: 1; min-width: 0;">
+								<!-- svelte-ignore a11y-interactive-supports-focus -->
 								<div
 									class="action-text"
 									contenteditable="true"
+									role="textbox"
+									aria-label="Edit action item description"
 									on:blur={(e) => handleDescriptionUpdate(e, item.id)}
 									on:keydown={handleDescriptionKeyDown}
 									on:click|stopPropagation
@@ -231,7 +325,7 @@
 						<button
 							class="delete-btn"
 							aria-label="Delete item"
-							on:click|stopPropagation={() => deleteItem(item.id)}
+							on:click|stopPropagation={() => handleDelete(item.id)}
 						>
 							×
 						</button>
@@ -299,6 +393,12 @@
 
 	.action-item-wrapper.drag-over {
 		border-top: 2px solid var(--pm-pink);
+	}
+
+	.action-item-wrapper.selected .action-item {
+		outline: 2px solid var(--pm-mint);
+		outline-offset: 2px;
+		box-shadow: 0 0 0 4px rgba(168, 216, 234, 0.15);
 	}
 
 	.delete-btn {
