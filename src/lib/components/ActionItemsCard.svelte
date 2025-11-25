@@ -93,13 +93,6 @@
 		sortingStyle = sortingModes[nextIndex];
 	}
 
-	function getSortIcon() {
-		if (sortingStyle === 'manual') return '✋';
-		if (sortingStyle === 'assignee') return '👤';
-		if (sortingStyle === 'updated_at') return '🕒';
-		return 'sort';
-	}
-
 	// Keyboard navigation handler
 	function handleKeyDown(event: KeyboardEvent) {
 		// Ignore if typing in input/textarea
@@ -252,12 +245,14 @@
 		{#if sortedItems.length === 0 && !isAdding}
 			<div class="empty-state-container">
 				<div class="empty-state-icon">
-					{searchQuery ? '🔍' : '✓'}
+					{searchQuery ? '🔎' : '✓'}
 				</div>
 				<p class="empty-state-text">
-					{searchQuery ? 'No matching items' : 'All clear!'}
+					{searchQuery ? 'Search is clear!' : 'All clear!'}
 				</p>
-				{#if !searchQuery}
+				{#if searchQuery}
+					<p class="empty-state-hint">Try another keyword or clear search to see everything</p>
+				{:else}
 					<p class="empty-state-hint">Add your first action item to get started</p>
 				{/if}
 			</div>
@@ -501,6 +496,8 @@
 	.action-item:hover {
 		background: var(--pm-cream-light);
 		border-color: rgba(30, 23, 20, 0.18);
+		border-width: 3px;
+		padding: calc(0.75rem - 1px);
 		transform: translateY(-1px);
 		box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.12);
 	}
@@ -509,6 +506,13 @@
 		background: rgba(168, 216, 234, 0.15);
 		border: 2px solid var(--pm-mint);
 		box-shadow: 2px 2px 0 rgba(168, 216, 234, 0.2);
+	}
+
+	.action-item.completed:hover {
+		border-color: var(--pm-mint);
+		border-width: 3px;
+		padding: calc(0.75rem - 1px);
+		box-shadow: 3px 3px 0 rgba(168, 216, 234, 0.25);
 	}
 
 	.action-item input[type='checkbox'] {
