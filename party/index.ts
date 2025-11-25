@@ -8,101 +8,104 @@
  * - Cursor positions (optional, for future collaboration features)
  */
 
-import type * as Party from 'partykit/server';
+import type * as Party from "partykit/server";
 
 interface ProjectMessage {
-	type: 'presence' | 'action_item_update' | 'transcript_update' | 'cursor';
-	data: any;
-	userId: string;
-	timestamp: number;
+  type: "presence" | "action_item_update" | "transcript_update" | "cursor";
+  data: any;
+  userId: string;
+  timestamp: number;
 }
 
 export default class ProjectRoom implements Party.Server {
-	constructor(readonly room: Party.Room) {}
+  constructor(readonly room: Party.Room) {}
 
-	/**
-	 * When a user connects to the project room
-	 */
-	onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-		const userId = conn.id;
-		console.log(`[PartyKit] User ${userId} joined project ${this.room.id}`);
+  /**
+   * When a user connects to the project room
+   */
+  onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    const userId = conn.id;
+    console.log(`[PartyKit] User ${userId} joined project ${this.room.id}`);
 
-		// Broadcast presence update to all connected users
-		this.room.broadcast(
-			JSON.stringify({
-				type: 'user_joined',
-				userId,
-				timestamp: Date.now()
-			}),
-			[conn.id] // Exclude the connecting user from this broadcast
-		);
+    // Broadcast presence update to all connected users
+    this.room.broadcast(
+      JSON.stringify({
+        type: "user_joined",
+        userId,
+        timestamp: Date.now(),
+      }),
+      [conn.id], // Exclude the connecting user from this broadcast
+    );
 
-		// Send current presence count to the new user
-		const connections = [...this.room.getConnections()];
-		conn.send(
-			JSON.stringify({
-				type: 'presence_count',
-				count: connections.length,
-				timestamp: Date.now()
-			})
-		);
-	}
+    // Send current presence count to the new user
+    const connections = [...this.room.getConnections()];
+    conn.send(
+      JSON.stringify({
+        type: "presence_count",
+        count: connections.length,
+        timestamp: Date.now(),
+      }),
+    );
+  }
 
-	/**
-	 * Handle HTTP requests to the room
-	 * Used by the backend to post analysis updates.
-	 */
-	async onRequest(req: Party.Request) {
-		if (req.method === 'POST') {
-			try {
-				const update = await req.json();
-				console.log(`[PartyKit] Received update for project ${this.room.id}:`, update.type);
+  /**
+   * Handle HTTP requests to the room
+   * Used by the backend to post analysis updates.
+   */
+  async onRequest(req: Party.Request) {
+    if (req.method === "POST") {
+      try {
+        const update = await req.json();
+        console.log(
+          `[PartyKit] Received update for project ${this.room.id}:`,
+          update.type,
+        );
 
-				// Broadcast the update to all connected clients
-				this.room.broadcast(JSON.stringify(update));
+        // Broadcast the update to all connected clients
+        this.room.broadcast(JSON.stringify(update));
 
-				return new Response('OK', { status: 200 });
-			} catch (error) {
-				console.error('[PartyKit] Error processing POST request:', error);
-				return new Response('Bad Request', { status: 400 });
-			}
-		}
+        return new Response("OK", { status: 200 });
+      } catch (error) {
+        console.error("[PartyKit] Error processing POST request:", error);
+        return new Response("Bad Request", { status: 400 });
+      }
+    }
 
-		return new Response('Not Found', { status: 404 });
-	}
+    return new Response("Not Found", { status: 404 });
+  }
 
-	/**
-	 * When a user sends a message
-	 */
-	onMessage(message: string, sender: Party.Connection) {
-		try {
-			const msg: ProjectMessage = JSON.parse(message);
+  /**
+   * When a user sends a message
+   */
+  onMessage(message: string, sender: Party.Connection) {
+    try {
+      const msg: ProjectMessage = JSON.parse(message);
 
-			console.log(`[PartyKit] Message from ${sender.id}:`, msg.type);
+      console.log(`[PartyKit] Message from ${sender.id}:`, msg.type);
 
-			// Broadcast to all other users
-			this.room.broadcast(message, [sender.id]);
-		} catch (error) {
-			console.error('[PartyKit] Error parsing message:', error);
-		}
-	}
+      // Broadcast to all other users
+      this.room.broadcast(message, [sender.id]);
+    } catch (error) {
+      console.error("[PartyKit] Error parsing message:", error);
+    }
+  }
 
-	/**
-	 * When a user disconnects
-	 */
-	onClose(conn: Party.Connection) {
-		const userId = conn.id;
-		console.log(`[PartyKit] User ${userId} left project ${this.room.id}`);
+  /**
+   * When a user disconnects
+   */
+  onClose(conn: Party.Connection) {
+    const userId = conn.id;
+    console.log(`[PartyKit] User ${userId} left project ${this.room.id}`);
 
-		// Broadcast user left event
-		this.room.broadcast(
-			JSON.stringify({
-				type: 'user_left',
-				userId,
-				timestamp: Date.now()
-			})
-		);
-	}
+    // Broadcast user left event
+    this.room.broadcast(
+      JSON.stringify({
+        type: "user_left",
+        userId,
+        timestamp: Date.now(),
+      }),
+    );
+  }
 }
 
 ProjectRoom satisfies Party.Worker;

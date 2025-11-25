@@ -26,11 +26,11 @@ import {
 
 export type GeminiAudioPart =
   | {
-    inlineData: { data: string; mimeType: string };
-  }
+      inlineData: { data: string; mimeType: string };
+    }
   | {
-    fileData: { fileUri: string; mimeType: string };
-  };
+      fileData: { fileUri: string; mimeType: string };
+    };
 
 // ===================================================================
 // UTILITIES
@@ -156,7 +156,8 @@ export function createGeminiService(model: any): AIService {
         try {
           const actionItems = JSON.parse(cleanedText);
           return actionItems.map((item: any) => ({
-            description: item.description.charAt(0).toUpperCase() +
+            description:
+              item.description.charAt(0).toUpperCase() +
               item.description.slice(1),
             assignee: item.assignee === "null" ? null : item.assignee,
             due_date: item.due_date === "null" ? null : item.due_date,

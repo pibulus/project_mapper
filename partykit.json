@@ -1,5 +1,5 @@
 {
-	"name": "project-mapper",
-	"main": "party/index.ts",
-	"serve": "static"
+  "name": "project-mapper",
+  "main": "party/index.ts",
+  "serve": "static"
 }

@@ -5,15 +5,15 @@
  * Pattern inspired by TalkType's implementation
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { env } from '$env/dynamic/private';
-import { createGeminiService, type AIService } from '$lib/core/ai/gemini';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { env } from "$env/dynamic/private";
+import { createGeminiService, type AIService } from "$lib/core/ai/gemini";
 
 const GEMINI_API_KEY = env.GEMINI_API_KEY;
-const GEMINI_MODEL = env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 
 if (!GEMINI_API_KEY) {
-	console.warn('⚠️ GEMINI_API_KEY not set - AI features will not work');
+  console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");
 }
 
 let cachedModel: any = null;
@@ -23,17 +23,17 @@ let cachedService: AIService | null = null;
  * Get Gemini model instance (cached)
  */
 export function getGeminiModel() {
-	if (!GEMINI_API_KEY) {
-		throw new Error('GEMINI_API_KEY not configured');
-	}
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY not configured");
+  }
 
-	if (!cachedModel) {
-		const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-		cachedModel = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-		console.log(`[Gemini] Initialized model: ${GEMINI_MODEL}`);
-	}
+  if (!cachedModel) {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    cachedModel = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    console.log(`[Gemini] Initialized model: ${GEMINI_MODEL}`);
+  }
 
-	return cachedModel;
+  return cachedModel;
 }
 
 /**
@@ -43,13 +43,13 @@ export function getGeminiModel() {
  * which provides all the conversation processing methods
  */
 export function getAIService(): AIService {
-	if (!cachedService) {
-		const model = getGeminiModel();
-		cachedService = createGeminiService(model);
-		console.log('[Gemini] AI Service initialized');
-	}
+  if (!cachedService) {
+    const model = getGeminiModel();
+    cachedService = createGeminiService(model);
+    console.log("[Gemini] AI Service initialized");
+  }
 
-	return cachedService;
+  return cachedService;
 }
 
 /**
@@ -58,51 +58,53 @@ export function getAIService(): AIService {
  * Simplified pattern from talktype - uploads file, transcribes, cleans up
  * Much simpler than manual HTTP multipart uploads!
  */
-export async function transcribeAudio(file: File): Promise<{ text: string; speakers: string[] }> {
-	if (!GEMINI_API_KEY) {
-		throw new Error('GEMINI_API_KEY not configured');
-	}
+export async function transcribeAudio(
+  file: File,
+): Promise<{ text: string; speakers: string[] }> {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY not configured");
+  }
 
-	const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-	const mimeType = file.type || 'audio/webm';
-	const displayName = file.name || `recording-${Date.now()}`;
-	let uploadedFileName: string | null = null;
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const mimeType = file.type || "audio/webm";
+  const displayName = file.name || `recording-${Date.now()}`;
+  let uploadedFileName: string | null = null;
 
-	try {
-		// Upload audio file to Gemini
-		const uploadResult = await genAI.files.upload({
-			file,
-			config: { mimeType, displayName }
-		});
+  try {
+    // Upload audio file to Gemini
+    const uploadResult = await genAI.files.upload({
+      file,
+      config: { mimeType, displayName },
+    });
 
-		if (!uploadResult?.uri) {
-			throw new Error('File upload to Gemini failed');
-		}
+    if (!uploadResult?.uri) {
+      throw new Error("File upload to Gemini failed");
+    }
 
-		uploadedFileName = uploadResult?.name ?? null;
-		console.log('[Gemini] Uploaded audio file');
+    uploadedFileName = uploadResult?.name ?? null;
+    console.log("[Gemini] Uploaded audio file");
 
-		// Get AI service and transcribe
-		const aiService = getAIService();
-		const audioPart = {
-			fileData: {
-				fileUri: uploadResult.uri,
-				mimeType: uploadResult.mimeType || mimeType
-			}
-		};
+    // Get AI service and transcribe
+    const aiService = getAIService();
+    const audioPart = {
+      fileData: {
+        fileUri: uploadResult.uri,
+        mimeType: uploadResult.mimeType || mimeType,
+      },
+    };
 
-		const result = await aiService.transcribeAudio(audioPart);
-		console.log('[Gemini] ✅ Transcription complete');
+    const result = await aiService.transcribeAudio(audioPart);
+    console.log("[Gemini] ✅ Transcription complete");
 
-		return result;
-	} finally {
-		// Clean up uploaded file
-		if (uploadedFileName) {
-			try {
-				await genAI.files.delete(uploadedFileName);
-			} catch (cleanupError) {
-				console.warn('⚠️ Failed to delete Gemini file:', cleanupError);
-			}
-		}
-	}
+    return result;
+  } finally {
+    // Clean up uploaded file
+    if (uploadedFileName) {
+      try {
+        await genAI.files.delete(uploadedFileName);
+      } catch (cleanupError) {
+        console.warn("⚠️ Failed to delete Gemini file:", cleanupError);
+      }
+    }
+  }
 }

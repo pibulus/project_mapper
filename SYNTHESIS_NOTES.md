@@ -1,6 +1,6 @@
 # Project Mapper (ProMap) - Synthesis Notes
 
-*Reference document for building a modular AI workspace platform*
+_Reference document for building a modular AI workspace platform_
 
 ---
 
@@ -20,6 +20,7 @@ Use this as reference material, not rigid requirements.
 **Actually:** A living, collaborative workspace where projects evolve through AI
 
 **Core concept:**
+
 - Start a project space
 - Append audio/notes/artifacts over time
 - AI continuously updates action items, knowledge graph, summaries
@@ -34,12 +35,15 @@ Use this as reference material, not rigid requirements.
 ## The Two Reference Codebases
 
 ### `~/Projects/active/apps/conversation_mapper/` - SvelteKit v1
+
 **What worked:**
+
 - Card aesthetics felt good (subjective, but note what you like)
 - Svelte's reactivity patterns for complex state
 - Some feature implementations are solid bones
 
 **What didn't:**
+
 - Drag-and-drop library caused glitches
 - No clear architecture (services calling services calling services)
 - 373-line components doing too much
@@ -47,6 +51,7 @@ Use this as reference material, not rigid requirements.
 - Tech debt accumulated
 
 **Useful for:**
+
 - Reference implementations of features
 - Seeing what Svelte patterns felt natural
 - UI interactions that worked
@@ -54,7 +59,9 @@ Use this as reference material, not rigid requirements.
 ---
 
 ### `~/Projects/active/apps/conversation_mapper_fresh/` - Fresh/Deno v2
+
 **What worked:**
+
 - `/core/` nervous system (1,903 lines of portable TypeScript)
 - Clean component separation (DashboardIsland = 66 lines, just coordinates)
 - Mobile-first layout using CSS Grid (no drag-drop library)
@@ -63,11 +70,13 @@ Use this as reference material, not rigid requirements.
 - Clear boundaries between business logic and UI
 
 **What's framework-specific:**
+
 - Manual HTTP multipart for Gemini (454 lines) - unnecessary in Node/SvelteKit
 - Preact signals for state - SvelteKit has built-in reactivity
 - TSX components - would be more concise as Svelte
 
 **Useful for:**
+
 - The entire `/core/` folder (copy as-is)
 - Component structure patterns
 - Documentation standards
@@ -78,6 +87,7 @@ Use this as reference material, not rigid requirements.
 ## The Golden Path: SvelteKit for Modular Platform
 
 **Why SvelteKit:**
+
 - Official `@google/generative-ai` SDK works perfectly (proven in TalkType)
 - Svelte's reactivity is cleaner than signals for this use case
 - **Perfect for plugin architecture** - community can write Svelte components easily
@@ -87,6 +97,7 @@ Use this as reference material, not rigid requirements.
 - Rich ecosystem for D3, audio, collaborative editing, etc.
 
 **What to carry forward:**
+
 - `/core/` nervous system (framework-agnostic, just works)
 - Clean component separation (< 150 lines per file ideal)
 - Mobile-first CSS Grid layout (no drag-drop library)
@@ -94,6 +105,7 @@ Use this as reference material, not rigid requirements.
 - Documentation as you build
 
 **New for modular platform:**
+
 - Plugin/module registry system
 - PartyKit integration for real-time multiplayer
 - Persistent project spaces (not one-shot processing)
@@ -104,7 +116,9 @@ Use this as reference material, not rigid requirements.
 ## Core Principles (Not Rules)
 
 ### 1. The Nervous System Pattern
+
 Business logic lives in `/src/lib/core/` with zero framework dependencies:
+
 ```
 /src/lib/core/
 ├── ai/          # Gemini prompts and service wrapper
@@ -118,28 +132,33 @@ Business logic lives in `/src/lib/core/` with zero framework dependencies:
 This folder can be copied to any framework (React, Vue, CLI) and just work.
 
 **For modular platform:**
+
 - Core provides APIs that modules consume
 - Modules are self-contained Svelte components
 - Communication via stores/events (loosely coupled)
 
 ### 2. Components Do One Thing
+
 - Cards present data, don't fetch it
 - Islands/pages coordinate and fetch
 - Services live in `/core/`, not scattered through components
 - If a component hits 200 lines, consider splitting
 
 ### 3. Avoid Library Bloat
+
 - CSS Grid > drag-drop library (it glitched anyway)
 - Vanilla JS > heavy abstractions when possible
 - TailwindCSS? DaisyUI? Only if it actually helps
 - Question every dependency
 
 ### 4. Server-Side API Pattern
+
 Learn from TalkType:
+
 ```javascript
 // src/routes/api/transcribe/+server.js
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GEMINI_API_KEY } from '$env/static/private';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_API_KEY } from "$env/static/private";
 
 export async function POST({ request }) {
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -150,7 +169,9 @@ export async function POST({ request }) {
 No manual HTTP multipart needed. The SDK just works in Node.
 
 ### 5. State Management
+
 Svelte's reactivity + stores are enough:
+
 ```svelte
 <script>
   import { writable } from 'svelte/store';
@@ -168,6 +189,7 @@ No signals library needed. Keep it simple.
 ## Known Pain Points to Avoid
 
 ### From SvelteKit v1:
+
 - **Drag-drop glitching**: Just use CSS Grid with `grid-template-areas` for card layout
 - **Mega components**: ConversationView.svelte was 373 lines doing everything
 - **Service sprawl**: 7 different services importing each other
@@ -175,6 +197,7 @@ No signals library needed. Keep it simple.
 - **DaisyUI confusion?**: Added components but maybe created more questions than answers
 
 ### From Fresh/Deno v2:
+
 - **Manual HTTP**: Handcrafted multipart is 134 lines that can be deleted with official SDK
 - **Over-engineering**: 454 lines for Gemini integration vs 20 with SDK
 - **Framework lock-in**: TSX is more verbose than Svelte for stateful UI
@@ -216,6 +239,7 @@ No signals library needed. Keep it simple.
     - Whatever people build
 
 **Look at both implementations to see:**
+
 - What code is essential vs accidental complexity
 - Where Fresh/Deno simplified things
 - Where SvelteKit patterns felt more natural
@@ -228,6 +252,7 @@ No signals library needed. Keep it simple.
 **Old approach:** Drag-drop library (glitchy, complex)
 
 **Fresh approach:** CSS Grid with fixed layout
+
 ```css
 .dashboard-grid {
   display: grid;
@@ -237,6 +262,7 @@ No signals library needed. Keep it simple.
 ```
 
 **Consider for v3:**
+
 - Start with simple CSS Grid
 - Make cards responsive (mobile → tablet → desktop)
 - Only add drag-drop if it's genuinely needed and can be done cleanly
@@ -249,6 +275,7 @@ No signals library needed. Keep it simple.
 **Don't be dogmatic about recreating old designs.**
 
 Things to consider:
+
 - Cards should feel cohesive but not identical
 - Whitespace and breathing room matter
 - Dark mode vs light mode (or both?)
@@ -256,6 +283,7 @@ Things to consider:
 - Clean typography hierarchy
 
 **Look at both versions for inspiration**, but design fresh. What matters:
+
 - Visual clarity
 - Information hierarchy
 - Responsive on mobile
@@ -268,6 +296,7 @@ Things to consider:
 ## What Success Looks Like
 
 **For Project Mapper, success is:**
+
 - Works beautifully on desktop and mobile
 - Core platform < 3,000 lines (down from 6,000+)
 - Official SDK eliminates manual HTTP
@@ -279,12 +308,14 @@ Things to consider:
 - You can hand it off to any developer and they get it quickly
 
 **Not success:**
+
 - Perfect drag-drop (nice to have, not essential)
 - Pixel-perfect recreation of old designs (evolve, don't copy)
 - Every possible module shipped day one (build core, enable community)
 - Complexity theatre (using libraries because they exist)
 
 **The vision:**
+
 - Modular AI workspace people want to use daily
 - Plugin ecosystem emerges (community builds modules)
 - Multiplayer collaboration feels natural
@@ -295,28 +326,30 @@ Things to consider:
 ## Gemini Integration Pattern
 
 **The official SDK way (from TalkType):**
+
 ```javascript
 // Server-side only
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 // For text + audio
 const result = await model.generateContent([
   { text: prompt },
-  { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
+  { inlineData: { data: base64Audio, mimeType: "audio/webm" } },
 ]);
 ```
 
 That's it. No multipart boundaries, no manual HTTP, no 134-line upload functions.
 
 **For audio files:**
+
 ```javascript
 const formData = await request.formData();
-const audioFile = formData.get('audio');
+const audioFile = formData.get("audio");
 const arrayBuffer = await audioFile.arrayBuffer();
-const base64 = Buffer.from(arrayBuffer).toString('base64');
+const base64 = Buffer.from(arrayBuffer).toString("base64");
 ```
 
 Simple. Works. Proven.
@@ -326,12 +359,14 @@ Simple. Works. Proven.
 ## TypeScript Strategy
 
 **Use TypeScript for:**
+
 - `/core/` modules (already done)
 - Component props
 - API request/response shapes
 - Store types
 
 **Don't overthink it:**
+
 - `any` is fine when prototyping
 - Add types when patterns emerge
 - Type errors shouldn't block progress
@@ -343,6 +378,7 @@ The Fresh/Deno version has excellent type definitions in `/core/types/`. Use tho
 ## Documentation as Code
 
 **Keep these files updated:**
+
 - `ARCHITECTURE.md` - High-level patterns
 - `GLOSSARY.md` - Component/route reference
 - `README.md` - Setup and usage
@@ -354,12 +390,14 @@ Good documentation makes handoff easier (even if handoff is to future-you).
 ## Build Strategy
 
 **Phase 1: Foundation**
+
 1. Create SvelteKit project
 2. Copy `/core/` from Fresh version (it's portable)
 3. Set up API routes with official SDK
 4. Basic page structure with module slots
 
 **Phase 2: Core Modules**
+
 1. Port audio upload → transcription
 2. Action items card with AI checkoff
 3. Topic graph visualization
@@ -367,18 +405,21 @@ Good documentation makes handoff easier (even if handoff is to future-you).
 5. Test each module works independently
 
 **Phase 3: Module System**
+
 1. Create module registry
 2. Build radio module (simple audio streaming)
 3. Build notes module (rich text with AI context)
 4. Define plugin API for community modules
 
 **Phase 4: Multiplayer**
+
 1. Integrate PartyKit
 2. Real-time presence indicators
 3. Collaborative editing in notes
 4. Sync action item updates
 
 **Phase 5: Polish**
+
 1. Component aesthetics
 2. Mobile responsiveness
 3. Edge case handling
@@ -393,21 +434,25 @@ Good documentation makes handoff easier (even if handoff is to future-you).
 When an LLM reads this document to build v3, here are good questions to think about:
 
 **Architecture:**
+
 - Does each component have a single clear purpose?
 - Is business logic in `/core/` or leaking into components?
 - Are API routes thin coordinators or bloated?
 
 **Complexity:**
+
 - Am I adding a library that's heavier than hand-rolling the feature?
 - Would vanilla CSS/JS work here?
 - Is this solving a real problem or complexity theatre?
 
 **Code Quality:**
+
 - Can another developer understand this file in < 5 minutes?
 - Are the types helping or just ceremony?
 - Would I be proud to show this code?
 
 **User Experience:**
+
 - Does this work on mobile?
 - Is the happy path obvious?
 - Do error states make sense?
@@ -417,6 +462,7 @@ When an LLM reads this document to build v3, here are good questions to think ab
 ## Key Files to Reference
 
 **From Fresh/Deno:**
+
 - `/core/` - entire folder (port as-is)
 - `ARCHITECTURE.md` - nervous system explanation
 - `GLOSSARY.md` - feature map
@@ -425,11 +471,13 @@ When an LLM reads this document to build v3, here are good questions to think ab
 - `components/*.tsx` - component separation pattern
 
 **From SvelteKit v1:**
+
 - `src/lib/features/conversation/components/` - UI implementations
 - `src/lib/features/conversation/services/geminiService.js` - simple SDK usage
 - Look at what features exist and how they were built
 
 **From TalkType (SvelteKit reference):**
+
 - `src/routes/api/transcribe/+server.js` - clean API pattern
 - `src/lib/services/` - service organization
 - Overall project structure
@@ -443,12 +491,14 @@ When an LLM reads this document to build v3, here are good questions to think ab
 You have two implementations that work. Both have strengths. Both have cruft.
 
 The goal isn't to merge them literally - it's to synthesize what you learned:
+
 - Nervous system architecture (from Fresh)
 - Svelte ergonomics (from experience)
 - Official SDK simplicity (from TalkType)
 - Less complexity theatre (from both painful experiences)
 
 **Plus evolve the vision:**
+
 - One-shot processing → living project workspace
 - Solo tool → real-time multiplayer
 - Fixed features → modular plugin system
@@ -463,6 +513,7 @@ The goal isn't to merge them literally - it's to synthesize what you learned:
 ## Quick Module Architecture Reference
 
 **How modules work:**
+
 ```svelte
 <!-- src/lib/modules/RadioModule.svelte -->
 <script>
@@ -482,17 +533,19 @@ The goal isn't to merge them literally - it's to synthesize what you learned:
 ```
 
 **Module registration:**
+
 ```javascript
 // src/lib/core/modules/registry.js
 export const modules = {
-  'radio': RadioModule,
-  'notes': NotesModule,
-  'transcript': TranscriptCard,
+  radio: RadioModule,
+  notes: NotesModule,
+  transcript: TranscriptCard,
   // Community modules can register here
 };
 ```
 
 **PartyKit integration:**
+
 ```typescript
 // src/lib/party/projectRoom.ts
 export default class ProjectRoom implements Party.Server {
@@ -507,6 +560,6 @@ Simple patterns. Loosely coupled. Easy to extend.
 
 ---
 
-*Reference material compiled by Claude Code on 2025-11-23*
-*Evolved from conversation_mapper to project_mapper (ProMap)*
-*Good luck, future AI (or Pablo). Build something alive. 🦕 → 🎸*
+_Reference material compiled by Claude Code on 2025-11-23_
+_Evolved from conversation_mapper to project_mapper (ProMap)_
+_Good luck, future AI (or Pablo). Build something alive. 🦕 → 🎸_

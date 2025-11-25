@@ -2,42 +2,42 @@
 	/**
 	 * SummaryCard Component
 	 *
-	 * Displays AI-generated summary
+	 * Displays AI-generated summary. Gets data from the projectStore.
 	 */
-	export let summary: string;
-	export let topicsCount: number = 0;
+	import { currentProject } from '$lib/stores/projectStore';
+	import Card from './ui/Card.svelte';
+
+	$: summary = $currentProject?.summary || '';
+	$: topicsCount = $currentProject?.topics?.length || 0;
 </script>
 
-<div class="card">
-	<div class="card-header">
-		<h3>✨ Summary</h3>
-	</div>
-	<div class="card-body">
-		{#if !summary}
-			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No summary yet</p>
-		{:else}
-			<p style="
+<Card title="✨ Summary">
+	{#if !summary}
+		<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No summary yet</p>
+	{:else}
+		<p
+			style="
 				font-size: var(--pm-text-sm);
 				line-height: 1.7;
 				color: var(--pm-black);
 				margin-bottom: 1rem;
-			">
-				{summary}
-			</p>
-			{#if topicsCount > 0}
-				<div style="
+			"
+		>
+			{summary}
+		</p>
+		{#if topicsCount > 0}
+			<div
+				style="
 					margin-top: 1rem;
 					padding-top: 1rem;
 					border-top: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
-				">
-					<p style="
-						font-size: var(--pm-text-xs);
-						color: var(--pm-brown);
-					">
-						<span style="font-weight: 700; color: var(--pm-pink);">{topicsCount}</span> topics identified
-					</p>
-				</div>
-			{/if}
+				"
+			>
+				<p style="font-size: var(--pm-text-xs); color: var(--pm-brown);">
+					<span style="font-weight: 700; color: var(--pm-pink);">{topicsCount}</span> topics
+					identified
+				</p>
+			</div>
 		{/if}
-	</div>
-</div>
+	{/if}
+</Card>

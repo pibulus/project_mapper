@@ -9,92 +9,102 @@
    ================================================================ */
 
 :root {
-	/* ===================================================================
+  /* ===================================================================
 	   CORE NEUTRALS - Warm, never cold
 	   ================================================================ */
-	--pm-black: #1e1714; /* Soft black - use for text, borders, buttons */
-	--pm-brown: #3a2a22; /* Warm dark - use for secondary text */
-	--pm-cream: #fff7ef; /* Main background - NOT pure white */
-	--pm-cream-dark: #faf3e9; /* Darker cream for inset areas */
-	--pm-cream-light: #fffef7; /* Lightest cream for highlights */
+  --pm-black: #1e1714; /* Soft black - use for text, borders, buttons */
+  --pm-brown: #3a2a22; /* Warm dark - use for secondary text */
+  --pm-cream: #fff7ef; /* Main background - NOT pure white */
+  --pm-cream-dark: #faf3e9; /* Darker cream for inset areas */
+  --pm-cream-light: #fffef7; /* Lightest cream for highlights */
 
-	/* ===================================================================
+  /* ===================================================================
 	   PASTEL PALETTE - Playful accents
 	   ================================================================ */
-	--pm-pink: #e8839c; /* Primary accent */
-	--pm-peach: #ffd9b8; /* Secondary warm */
-	--pm-mint: #a8d8ea; /* Cool accent */
-	--pm-lavender: #d4b5f7; /* Purple accent */
-	--pm-yellow: #fff44f; /* Energy accent */
+  --pm-pink: #e8839c; /* Primary accent */
+  --pm-peach: #ffd9b8; /* Secondary warm */
+  --pm-mint: #a8d8ea; /* Cool accent */
+  --pm-lavender: #d4b5f7; /* Purple accent */
+  --pm-yellow: #fff44f; /* Energy accent */
 
-	/* ===================================================================
+  /* ===================================================================
 	   SHADOWS - Warm and hard
 	   ================================================================ */
-	--pm-shadow-soft: 0 2px 8px rgba(30, 23, 20, 0.08);
-	--pm-shadow-lifted: 0 4px 12px rgba(30, 23, 20, 0.12);
-	--pm-shadow-slab: 4px 4px 0 rgba(30, 23, 20, 0.25); /* Neo-brutalist hard shadow */
-	--pm-shadow-slab-lg: 8px 8px 0 rgba(30, 23, 20, 0.3); /* Bigger slab */
+  --pm-shadow-soft: 0 2px 8px rgba(30, 23, 20, 0.08);
+  --pm-shadow-lifted: 0 4px 12px rgba(30, 23, 20, 0.12);
+  --pm-shadow-slab: 4px 4px 0 rgba(30, 23, 20, 0.25); /* Neo-brutalist hard shadow */
+  --pm-shadow-slab-lg: 8px 8px 0 rgba(30, 23, 20, 0.3); /* Bigger slab */
 
-	/* ===================================================================
+  /* ===================================================================
 	   GLASSMORPHISM - Warm cream tints
 	   ================================================================ */
-	--pm-glass-bg: rgba(255, 247, 239, 0.65);
-	--pm-glass-border: rgba(255, 247, 239, 0.3);
-	--pm-glass-blur: 20px;
+  --pm-glass-bg: rgba(255, 247, 239, 0.65);
+  --pm-glass-border: rgba(255, 247, 239, 0.3);
+  --pm-glass-blur: 20px;
 
-	/* ===================================================================
+  /* ===================================================================
 	   SPACING - Responsive and consistent
 	   ================================================================ */
-	--pm-space-xs: 0.5rem; /* 8px */
-	--pm-space-sm: 0.75rem; /* 12px */
-	--pm-space-md: 1rem; /* 16px */
-	--pm-space-lg: 1.25rem; /* 20px */
-	--pm-space-xl: 1.5rem; /* 24px */
-	--pm-space-2xl: 2rem; /* 32px */
-	--pm-card-padding: clamp(1rem, 2vw, 1.25rem);
-	--pm-card-gap: clamp(1rem, 2vw, 1.25rem);
+  --pm-space-xs: 0.5rem; /* 8px */
+  --pm-space-sm: 0.75rem; /* 12px */
+  --pm-space-md: 1rem; /* 16px */
+  --pm-space-lg: 1.25rem; /* 20px */
+  --pm-space-xl: 1.5rem; /* 24px */
+  --pm-space-2xl: 2rem; /* 32px */
+  --pm-card-padding: clamp(1rem, 2vw, 1.25rem);
+  --pm-card-gap: clamp(1rem, 2vw, 1.25rem);
 
-	/* ===================================================================
+  /* ===================================================================
 	   BORDERS & CORNERS - Chunky and friendly
 	   ================================================================ */
-	--pm-border-thin: 1px;
-	--pm-border-medium: 2px;
-	--pm-border-thick: 3px;
-	--pm-border-chunky: 4px;
-	--pm-radius-sm: 8px;
-	--pm-radius-md: 12px;
-	--pm-radius-lg: 16px;
-	--pm-radius-xl: 24px;
+  --pm-border-thin: 1px;
+  --pm-border-medium: 2px;
+  --pm-border-thick: 3px;
+  --pm-border-chunky: 4px;
+  --pm-radius-sm: 8px;
+  --pm-radius-md: 12px;
+  --pm-radius-lg: 16px;
+  --pm-radius-xl: 24px;
 
-	/* ===================================================================
+  /* ===================================================================
 	   TYPOGRAPHY - Clean and readable
 	   ================================================================ */
-	--pm-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	--pm-font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
-	--pm-text-xs: 0.75rem; /* 12px */
-	--pm-text-sm: 0.875rem; /* 14px */
-	--pm-text-base: 0.9375rem; /* 15px */
-	--pm-text-md: 1rem; /* 16px */
-	--pm-text-lg: 1.125rem; /* 18px */
-	--pm-text-xl: 1.25rem; /* 20px */
-	--pm-text-2xl: 1.5rem; /* 24px */
-	--pm-text-3xl: 2rem; /* 32px */
-	--pm-text-4xl: 2.5rem; /* 40px */
+  --pm-font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --pm-font-mono: "SF Mono", "Monaco", "Cascadia Code", monospace;
+  --pm-text-xs: 0.75rem; /* 12px */
+  --pm-text-sm: 0.875rem; /* 14px */
+  --pm-text-base: 0.9375rem; /* 15px */
+  --pm-text-md: 1rem; /* 16px */
+  --pm-text-lg: 1.125rem; /* 18px */
+  --pm-text-xl: 1.25rem; /* 20px */
+  --pm-text-2xl: 1.5rem; /* 24px */
+  --pm-text-3xl: 2rem; /* 32px */
+  --pm-text-4xl: 2.5rem; /* 40px */
 
-	/* ===================================================================
+  /* ===================================================================
 	   TRANSITIONS - Smooth and snappy
 	   ================================================================ */
-	--pm-transition-fast: 150ms ease;
-	--pm-transition-medium: 200ms ease;
-	--pm-transition-slow: 300ms ease;
+  --pm-transition-fast: 150ms ease;
+  --pm-transition-medium: 200ms ease;
+  --pm-transition-slow: 300ms ease;
 
-	/* ===================================================================
+  /* ===================================================================
 	   GRADIENTS - Warm background washes
 	   ================================================================ */
-	--pm-gradient-warm: linear-gradient(135deg, #ffebd4 0%, #ffd9b8 100%);
-	--pm-gradient-hero: radial-gradient(circle at 20% 20%, rgba(255, 138, 170, 0.16), transparent 45%),
-		radial-gradient(circle at 80% 10%, rgba(255, 198, 114, 0.14), transparent 50%),
-		linear-gradient(125deg, #fff8f1 0%, #f8f2ff 50%, #f1fbf4 100%);
+  --pm-gradient-warm: linear-gradient(135deg, #ffebd4 0%, #ffd9b8 100%);
+  --pm-gradient-hero:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 138, 170, 0.16),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 80% 10%,
+      rgba(255, 198, 114, 0.14),
+      transparent 50%
+    ),
+    linear-gradient(125deg, #fff8f1 0%, #f8f2ff 50%, #f1fbf4 100%);
 }
 
 /* ===================================================================
@@ -102,16 +112,16 @@
    ================================================================ */
 
 * {
-	box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 body {
-	font-family: var(--pm-font-sans);
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	color: var(--pm-black);
-	background: var(--pm-gradient-hero);
-	min-height: 100vh;
+  font-family: var(--pm-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--pm-black);
+  background: var(--pm-gradient-hero);
+  min-height: 100vh;
 }
 
 /* ===================================================================
@@ -119,44 +129,46 @@ body {
    ================================================================ */
 
 .card {
-	background: var(--pm-cream);
-	border: var(--pm-border-medium) solid var(--pm-black);
-	border-radius: var(--pm-radius-lg);
-	box-shadow: var(--pm-shadow-slab);
-	overflow: hidden;
-	transition: transform var(--pm-transition-fast), box-shadow var(--pm-transition-fast);
+  background: var(--pm-cream);
+  border: var(--pm-border-medium) solid var(--pm-black);
+  border-radius: var(--pm-radius-lg);
+  box-shadow: var(--pm-shadow-slab);
+  overflow: hidden;
+  transition:
+    transform var(--pm-transition-fast),
+    box-shadow var(--pm-transition-fast);
 }
 
 .card:hover {
-	transform: translateY(-2px);
-	box-shadow: 6px 6px 0 rgba(30, 23, 20, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 rgba(30, 23, 20, 0.3);
 }
 
 .card-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: var(--pm-space-md) var(--pm-space-lg);
-	border-bottom: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
-	background: var(--pm-cream-dark);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--pm-space-md) var(--pm-space-lg);
+  border-bottom: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
+  background: var(--pm-cream-dark);
 }
 
 .card-header h3,
 .card-header h2 {
-	font-size: var(--pm-text-lg);
-	font-weight: 700;
-	margin: 0;
-	color: var(--pm-black);
+  font-size: var(--pm-text-lg);
+  font-weight: 700;
+  margin: 0;
+  color: var(--pm-black);
 }
 
 .card-actions {
-	display: flex;
-	gap: var(--pm-space-sm);
-	align-items: center;
+  display: flex;
+  gap: var(--pm-space-sm);
+  align-items: center;
 }
 
 .card-body {
-	padding: var(--pm-space-lg);
+  padding: var(--pm-space-lg);
 }
 
 /* ===================================================================
@@ -164,64 +176,64 @@ body {
    ================================================================ */
 
 .btn {
-	padding: 0.5rem 1rem;
-	border-radius: var(--pm-radius-sm);
-	font-weight: 600;
-	font-size: var(--pm-text-sm);
-	transition: all var(--pm-transition-fast);
-	cursor: pointer;
-	border: none;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--pm-radius-sm);
+  font-weight: 600;
+  font-size: var(--pm-text-sm);
+  transition: all var(--pm-transition-fast);
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-primary {
-	background: var(--pm-black);
-	color: var(--pm-cream);
-	border: var(--pm-border-medium) solid var(--pm-black);
+  background: var(--pm-black);
+  color: var(--pm-cream);
+  border: var(--pm-border-medium) solid var(--pm-black);
 }
 
 .btn-primary:hover:not(:disabled) {
-	background: var(--pm-brown);
-	transform: translateY(-1px);
-	box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.3);
+  background: var(--pm-brown);
+  transform: translateY(-1px);
+  box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.3);
 }
 
 .btn-primary:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-ghost {
-	background: transparent;
-	color: var(--pm-black);
-	border: var(--pm-border-thin) solid transparent;
+  background: transparent;
+  color: var(--pm-black);
+  border: var(--pm-border-thin) solid transparent;
 }
 
 .btn-ghost:hover {
-	background: rgba(30, 23, 20, 0.05);
-	border-color: rgba(30, 23, 20, 0.1);
+  background: rgba(30, 23, 20, 0.05);
+  border-color: rgba(30, 23, 20, 0.1);
 }
 
 .btn-icon {
-	width: 2rem;
-	height: 2rem;
-	padding: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: var(--pm-radius-sm);
-	background: transparent;
-	border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
-	color: var(--pm-black);
-	cursor: pointer;
-	transition: all var(--pm-transition-fast);
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pm-radius-sm);
+  background: transparent;
+  border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
+  color: var(--pm-black);
+  cursor: pointer;
+  transition: all var(--pm-transition-fast);
 }
 
 .btn-icon:hover {
-	background: rgba(30, 23, 20, 0.05);
-	border-color: rgba(30, 23, 20, 0.2);
+  background: rgba(30, 23, 20, 0.05);
+  border-color: rgba(30, 23, 20, 0.2);
 }
 
 /* ===================================================================
@@ -229,38 +241,53 @@ body {
    ================================================================ */
 
 .glass-card {
-	position: relative;
-	background: var(--pm-glass-bg);
-	backdrop-filter: blur(var(--pm-glass-blur));
-	-webkit-backdrop-filter: blur(var(--pm-glass-blur));
-	border: 3px solid var(--pm-black);
-	border-radius: 26px;
-	/* Confident slab shadow with pink glow layer for zest */
-	box-shadow: 0 18px 45px rgba(30, 23, 20, 0.28), 0 6px 12px rgba(30, 23, 20, 0.12),
-		0 0 60px rgba(255, 92, 141, 0.12);
-	overflow: visible;
-	isolation: isolate;
-	transition: transform 220ms ease, box-shadow 220ms ease;
+  position: relative;
+  background: var(--pm-glass-bg);
+  backdrop-filter: blur(var(--pm-glass-blur));
+  -webkit-backdrop-filter: blur(var(--pm-glass-blur));
+  border: 3px solid var(--pm-black);
+  border-radius: 26px;
+  /* Confident slab shadow with pink glow layer for zest */
+  box-shadow:
+    0 18px 45px rgba(30, 23, 20, 0.28),
+    0 6px 12px rgba(30, 23, 20, 0.12),
+    0 0 60px rgba(255, 92, 141, 0.12);
+  overflow: visible;
+  isolation: isolate;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .glass-card::after {
-	content: '';
-	position: absolute;
-	inset: -16px;
-	border-radius: 32px;
-	/* Hero underglow - pink + peach gradient for warm pastel punk magic */
-	background: radial-gradient(circle at 35% 0%, rgba(255, 160, 196, 0.32), transparent 55%),
-		radial-gradient(circle at 80% 85%, rgba(255, 209, 148, 0.28), transparent 60%);
-	filter: blur(50px);
-	opacity: 0.85;
-	pointer-events: none;
-	z-index: -1;
+  content: "";
+  position: absolute;
+  inset: -16px;
+  border-radius: 32px;
+  /* Hero underglow - pink + peach gradient for warm pastel punk magic */
+  background:
+    radial-gradient(
+      circle at 35% 0%,
+      rgba(255, 160, 196, 0.32),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 85%,
+      rgba(255, 209, 148, 0.28),
+      transparent 60%
+    );
+  filter: blur(50px);
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .glass-card:hover {
-	transform: translate(-1px, -2px);
-	box-shadow: 0 22px 55px rgba(30, 23, 20, 0.26), 0 8px 16px rgba(30, 23, 20, 0.15),
-		0 0 70px rgba(255, 92, 141, 0.15);
+  transform: translate(-1px, -2px);
+  box-shadow:
+    0 22px 55px rgba(30, 23, 20, 0.26),
+    0 8px 16px rgba(30, 23, 20, 0.15),
+    0 0 70px rgba(255, 92, 141, 0.15);
 }
 
 /* ===================================================================
@@ -268,21 +295,21 @@ body {
    ================================================================ */
 
 ::-webkit-scrollbar {
-	width: 8px;
-	height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-	background: transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-	background: rgba(30, 23, 20, 0.1);
-	border-radius: 4px;
+  background: rgba(30, 23, 20, 0.1);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: rgba(30, 23, 20, 0.15);
+  background: rgba(30, 23, 20, 0.15);
 }
 
 /* ===================================================================
@@ -290,14 +317,14 @@ body {
    ================================================================ */
 
 .animate-spin-slow {
-	animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

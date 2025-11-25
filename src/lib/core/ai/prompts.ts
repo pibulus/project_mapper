@@ -11,8 +11,7 @@ import type { ActionItem, NodeInput } from "../types/index.ts";
 // TRANSCRIPTION
 // ===================================================================
 
-export const TRANSCRIPTION_PROMPT =
-  `Transcribe this audio file accurately and completely,
+export const TRANSCRIPTION_PROMPT = `Transcribe this audio file accurately and completely,
 removing any redundant 'ums,' 'likes, 'uhs', and similar filler words.
 Return only the cleaned-up transcription, with no additional text.
 
@@ -42,19 +41,23 @@ export const buildActionItemsPrompt = (
   existingActionItems: ActionItem[] = [],
 ): string => {
   // Build existing items context to avoid duplicates
-  const existingItemsContext = existingActionItems.length > 0
-    ? `\n\nEXISTING ACTION ITEMS (do not duplicate these):\n${
-      existingActionItems.map((item) => `- ${item.description}`).join("\n")
-    }\n\nIMPORTANT: Only extract NEW action items that are NOT already in the existing list above. If a new item is semantically the same as an existing one (even if worded differently), DO NOT include it.`
-    : "";
+  const existingItemsContext =
+    existingActionItems.length > 0
+      ? `\n\nEXISTING ACTION ITEMS (do not duplicate these):\n${existingActionItems
+          .map((item) => `- ${item.description}`)
+          .join(
+            "\n",
+          )}\n\nIMPORTANT: Only extract NEW action items that are NOT already in the existing list above. If a new item is semantically the same as an existing one (even if worded differently), DO NOT include it.`
+      : "";
 
   if (typeof input !== "string") {
     return `Listen to this audio and ${ACTION_ITEMS_BASE_PROMPT}${existingItemsContext}`;
   }
 
-  const speakerPrompt = speakers && speakers.length
-    ? `\nAvailable speakers for assignment: ${speakers.join(", ")}`
-    : "";
+  const speakerPrompt =
+    speakers && speakers.length
+      ? `\nAvailable speakers for assignment: ${speakers.join(", ")}`
+      : "";
 
   return `Analyze this text and ${ACTION_ITEMS_BASE_PROMPT}${speakerPrompt}${existingItemsContext}\n\nText: ${input}`;
 };
@@ -114,13 +117,14 @@ export const buildTopicExtractionPrompt = (
   existingNodes: NodeInput[] = [],
 ): string => {
   // Build existing nodes context to reuse them
-  const existingNodesContext = existingNodes.length > 0
-    ? `\n\nEXISTING TOPICS (reuse these if applicable):\n${
-      existingNodes.map((node) =>
-        `- ID: "${node.id}" | ${node.emoji} ${node.label}`
-      ).join("\n")
-    }\n\nIMPORTANT: If you identify a topic that is the same as or very similar to an existing topic above, REUSE the existing node ID instead of creating a new one. Only create NEW node IDs for genuinely new topics that don't match any existing ones.`
-    : "";
+  const existingNodesContext =
+    existingNodes.length > 0
+      ? `\n\nEXISTING TOPICS (reuse these if applicable):\n${existingNodes
+          .map((node) => `- ID: "${node.id}" | ${node.emoji} ${node.label}`)
+          .join(
+            "\n",
+          )}\n\nIMPORTANT: If you identify a topic that is the same as or very similar to an existing topic above, REUSE the existing node ID instead of creating a new one. Only create NEW node IDs for genuinely new topics that don't match any existing ones.`
+      : "";
 
   return `Analyze the following conversation and extract the main topics and their relationships.
 I want a you to break down the conversation into the topics covered and how they are related.

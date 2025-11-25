@@ -11,17 +11,21 @@ The framework is just bones. The nervous system is where the electricity happens
 ## Core Features
 
 ### ✨ AI Self-Checkoff
+
 The magic feature: AI listens to new audio/text and automatically updates existing action item statuses.
 
-*"I just finished that task!"* → ✓ Automatically marked as completed
+_"I just finished that task!"_ → ✓ Automatically marked as completed
 
 ### 🕸️ Conversation Graph
+
 Non-chronological topic extraction with emojis, colors, and relationships. Prevents speaker interruptions by visualizing all topics so participants can circle back later.
 
 ### ⚡ Parallel Processing
+
 Topics, action items, and status checks run simultaneously for fast analysis and efficient API usage.
 
 ### 📤 Flexible Export
+
 Same conversation, many formats: blog posts, technical manuals, haikus, meeting summaries, etc.
 
 ## Structure
@@ -55,24 +59,24 @@ Same conversation, many formats: blog posts, technical manuals, haikus, meeting 
 ### 1. Setup AI Service
 
 ```typescript
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createGeminiService } from './core';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createGeminiService } from "./core";
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 const aiService = createGeminiService(model);
 ```
 
 ### 2. Process Audio Input
 
 ```typescript
-import { processAudio } from './core';
+import { processAudio } from "./core";
 
 const result = await processAudio(
   aiService,
   audioBlob,
   conversationId,
-  existingActionItems // Optional - for AI self-checkoff
+  existingActionItems, // Optional - for AI self-checkoff
 );
 
 // Result contains:
@@ -87,21 +91,21 @@ const result = await processAudio(
 ### 3. Process Text Input
 
 ```typescript
-import { processText } from './core';
+import { processText } from "./core";
 
 const result = await processText(
   aiService,
   text,
   conversationId,
   speakers, // Optional
-  existingActionItems // Optional - for AI self-checkoff
+  existingActionItems, // Optional - for AI self-checkoff
 );
 ```
 
 ### 4. Generate Summary
 
 ```typescript
-import { generateSummary } from './core';
+import { generateSummary } from "./core";
 
 const summary = await generateSummary(aiService, conversationText);
 ```
@@ -109,22 +113,22 @@ const summary = await generateSummary(aiService, conversationText);
 ### 5. Export Conversation
 
 ```typescript
-import { transformConversation, EXPORT_FORMATS } from './core';
+import { transformConversation, EXPORT_FORMATS } from "./core";
 
 // Use predefined format
 const blogPost = await transformConversation(
   aiService,
-  'BLOG',
-  conversationText
+  "BLOG",
+  conversationText,
 );
 
 // Or use custom prompt
-import { transformWithCustomPrompt } from './core';
+import { transformWithCustomPrompt } from "./core";
 
 const custom = await transformWithCustomPrompt(
   aiService,
-  'Turn this into a pirate shanty',
-  conversationText
+  "Turn this into a pirate shanty",
+  conversationText,
 );
 ```
 
@@ -155,8 +159,8 @@ import type {
   ActionItem,
   Transcript,
   ConversationGraph,
-  AIService
-} from './core';
+  AIService,
+} from "./core";
 ```
 
 ## The Flow
@@ -180,28 +184,32 @@ Audio/Text Input
 ## Integration Examples
 
 ### Fresh (Deno)
+
 ```typescript
-import { processAudio } from '@/core/index.ts';
+import { processAudio } from "@/core/index.ts";
 // Use in route handlers or islands
 ```
 
 ### SvelteKit
+
 ```typescript
-import { processAudio } from '$lib/core';
+import { processAudio } from "$lib/core";
 // Use in load functions or server endpoints
 ```
 
 ### React/Next.js
+
 ```typescript
-import { processAudio } from '@/core';
+import { processAudio } from "@/core";
 // Use in API routes or server components
 ```
 
 ## Why Extract the Nervous System?
 
-The SvelteKit version was a prototype that proved the concept. But the real value isn't the framework - it's the AI orchestration, the prompts, the timing, the *feel*.
+The SvelteKit version was a prototype that proved the concept. But the real value isn't the framework - it's the AI orchestration, the prompts, the timing, the _feel_.
 
 This extraction means:
+
 - ✅ Use in any framework
 - ✅ Test the logic independently
 - ✅ Reuse in other meeting/conversation tools
@@ -214,4 +222,4 @@ Quartz is quartz in granite or sandstone. This AI orchestration doesn't care if 
 
 ---
 
-*The nervous system is the value. The framework is just bones.*
+_The nervous system is the value. The framework is just bones._

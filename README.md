@@ -7,6 +7,7 @@ Living, collaborative workspace where AI maintains project intelligence.
 An evolution from one-shot conversation processing to persistent, collaborative project spaces where AI continuously updates action items, knowledge graphs, and summaries as you work.
 
 **Core Features:**
+
 - Audio/text upload and transcription
 - AI-powered action items with auto-checkoff
 - Topic knowledge graphs with multiple visualizations
@@ -26,6 +27,7 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 ## Architecture
 
 Built on a "nervous system" pattern:
+
 - `/src/lib/core/` - Framework-agnostic TypeScript (portable)
 - `/src/routes/` - SvelteKit pages and API routes
 - `/src/lib/components/` - Svelte UI components

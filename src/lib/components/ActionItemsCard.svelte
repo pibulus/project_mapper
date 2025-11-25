@@ -16,6 +16,7 @@
 		updateItem,
 		reorderItems
 	} from '$lib/stores/actionItemsStore';
+	import Card from './ui/Card.svelte';
 
 	// Local UI state
 	let isAdding = false;
@@ -129,32 +130,30 @@
 	}
 </script>
 
-<div class="card">
-	<div class="card-header">
-		<h3>✅ Action Items</h3>
-		<div class="card-actions">
-			<button
-				class="icon-btn"
-				on:click={cycleSortMode}
-				aria-label="Cycle sort mode"
-				title={`Sort by ${sortingStyle}`}
-			>
-				{getSortIcon()}
-			</button>
-			<button class="icon-btn" on:click={() => (showSearch = !showSearch)} aria-label="Search items">
-				🔎
-			</button>
-			<button class="add-btn" on:click={() => (isAdding = !isAdding)} aria-label="Add new item">
-				{isAdding ? 'Cancel' : '+ Add'}
-			</button>
-			{#if $actionItems.length > 0}
-				<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
-					{completedCount}/{$actionItems.length} done
-				</span>
-			{/if}
-		</div>
-	</div>
-	<div class="card-body" style="max-height: 400px; overflow-y: auto;">
+<Card title="✅ Action Items">
+	<svelte:fragment slot="actions">
+		<button
+			class="btn-icon"
+			on:click={cycleSortMode}
+			aria-label="Cycle sort mode"
+			title={`Sort by ${sortingStyle}`}
+		>
+			{getSortIcon()}
+		</button>
+		<button class="btn-icon" on:click={() => (showSearch = !showSearch)} aria-label="Search items">
+			🔎
+		</button>
+		<button class="btn-ghost" on:click={() => (isAdding = !isAdding)} aria-label="Add new item">
+			{isAdding ? 'Cancel' : '+ Add'}
+		</button>
+		{#if $actionItems.length > 0}
+			<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
+				{completedCount}/{$actionItems.length} done
+			</span>
+		{/if}
+	</svelte:fragment>
+
+	<div style="max-height: 400px; overflow-y: auto;">
 		{#if showSearch}
 			<div class="search-form">
 				<input type="text" bind:value={searchQuery} placeholder="Search items..." />
@@ -241,16 +240,9 @@
 			</div>
 		{/if}
 	</div>
-</div>
+</Card>
 
 <style>
-	.icon-btn {
-		background: none;
-		border: none;
-		cursor: pointer;
-		font-size: 1.2rem;
-		padding: 4px;
-	}
 	.search-form {
 		margin-bottom: 1rem;
 	}
@@ -275,15 +267,6 @@
 	.meta-input:focus {
 		outline: 1px solid var(--pm-mint);
 		border-color: var(--pm-mint);
-	}
-	.add-btn {
-		background: none;
-		border: 1px solid var(--pm-mint);
-		color: var(--pm-mint);
-		padding: 2px 8px;
-		border-radius: var(--pm-radius-sm);
-		font-size: var(--pm-text-xs);
-		cursor: pointer;
 	}
 	.add-form {
 		display: flex;

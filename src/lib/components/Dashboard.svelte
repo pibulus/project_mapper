@@ -49,17 +49,17 @@
 	<!-- Dashboard grid -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 		<!-- Card 1: Transcript -->
-		<TranscriptCard transcript={$transcript || ''} />
+		<TranscriptCard />
 
 		<!-- Card 2: Summary -->
-		<SummaryCard summary={$summary || ''} topicsCount={$topics?.length || 0} />
+		<SummaryCard />
 
 		<!-- Card 3: Action Items -->
-		<ActionItemsCard items={$actionItems || []} />
+		<ActionItemsCard />
 
 		<!-- Card 4: Topic Graph (full width) -->
 		<div class="md:col-span-2 lg:col-span-3">
-			<TopicGraphCard topics={$topics || []} edges={$edges || []} />
+			<TopicGraphCard />
 		</div>
 	</div>
 {/if}
