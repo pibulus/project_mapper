@@ -1,134 +1,174 @@
 # 🎨 Project Mapper - Session Catchup
 
-**Current session:** Nov 24, 2025 - Upload panel + loading modal polish
+**Current session:** Nov 25, 2025 - Audio processing simplification + API fix
 
 ## ✅ What We Built This Session
 
-### Upload Panel - Unified Interface (Commits: 4ca6d82, 7cefbbb, 677a738)
-**Complete synthesis of all 3 versions with best features:**
+### Major Code Simplification (Commit: beaac94)
+**Removed 180 lines of complex code by using SDK methods:**
 
-- **AudioVisualizer.svelte** - Real-time frequency visualization
-  - 48 rounded gradient bars (pink → peach)
-  - Warm cream container with subtle shadows
-  - Compact 56px canvas height
-  - Perfect fit within fixed upload panel
+The core insight: **SvelteKit chose us because we can use Google's SDK directly** - no need for manual HTTP multipart uploads like the Deno version required.
 
-- **Enhanced Upload.svelte** - Unified input handling
-  - ✅ Text input, file upload, OR audio recording (all in one)
-  - ✅ Drag-and-drop with pink glow feedback
-  - ✅ Live audio recording with MediaRecorder API
-  - ✅ 10-minute timer with 30-second warning
-  - ✅ File staging with mint-colored chip display
-  - ✅ Paperclip button for file browsing
-  - ✅ **Fixed 240px height** - zero layout shifts!
-  - ✅ Recording shows: timer + progress bar + visualizer
-  - ✅ Cmd/Ctrl+Enter to submit text
-  - ✅ Clean resource cleanup
+#### What Changed:
 
-- **Hero Card Aesthetics** - Pink underglow magic
-  - ✨ Radial gradients (pink + peach) with 50px blur
-  - ✨ Confident slab shadows (3 layers of depth)
-  - ✨ 3px border, 26px border-radius
-  - ✨ Subtle hover lift with intensified glow
-  - 🎨 Removed card-within-card pattern
-  - 🎨 Clean container structure
+1. **Deleted `src/lib/server/audio.ts`** (180 lines gone!)
+   - Manual HTTP multipart upload implementation
+   - Custom boundary generation
+   - Base64 fallback logic
+   - Complex retry cleanup logic
+   - This was a Deno workaround we didn't need!
 
-### Loading Modal (Commit: b3cf199)
-**Cute animated loading with warm pastel punk magic:**
+2. **Simplified `geminiService.ts`** (40 lines vs 180)
+   - Now uses SDK's `genAI.files.upload()` method
+   - Auto-cleanup with `genAI.files.delete()`
+   - Proper TypeScript types from SDK
+   - Pattern copied from talktype (proven working)
 
-- **LoadingModal.svelte** - Delightful processing feedback
-  - 🪩 Random emoji animations (pulse & glow)
-  - ✨ 10 vibey loading messages
-  - 💫 Letter-by-letter bounce animation
-  - 🔮 Floating glassmorphism card
-  - 🌟 Animated pink→peach gradient border
-  - ⚡ Prevents body scroll when active
-  - 🌊 Fullscreen dark overlay with blur
-  - 📱 Responsive (380px → 300px on mobile)
+3. **API Route Down to 3 Lines** (`+server.ts`)
+   ```typescript
+   const { text, speakers } = await transcribeAudio(audioFile);
+   const aiService = getAIService();
+   const result = await processText(aiService, text, conversationId, speakers);
+   ```
+
+4. **Fixed Server-Side FileReader Bug** (`gemini.ts`)
+   - Removed `toAudioPart()` function (used browser-only FileReader)
+   - Removed `AudioInput` type union
+   - Now expects pre-converted `GeminiAudioPart`
+   - Fixed canvas self-closing tag warning
+
+5. **Better AudioVisualizer** (from talktype)
+   - 48 history bars (shows audio over time, not just current level)
+   - Platform calibration (Mac/iPhone/Android/PC specific settings)
+   - Safari/iOS fallback with speech-like patterns (peaks, silences, breathing)
+   - Way more satisfying visual feedback!
+
+6. **API Configuration**
+   - Updated to `gemini-2.5-flash-lite` (more stable quota)
+   - New API key configured in `.env`
+
+## 📊 Before & After Comparison
+
+| Aspect | Deno/Fresh | SvelteKit (Now) |
+|--------|-----------|-----------------|
+| **Upload Logic** | Manual HTTP multipart (50+ lines) | SDK `genAI.files.upload()` (3 lines) |
+| **Base64 Fallback** | Custom Buffer encoding (30+ lines) | Not needed |
+| **File Cleanup** | Manual retry with timeouts (40+ lines) | SDK `files.delete()` (3 lines) |
+| **Total Code** | ~180 lines | ~40 lines |
+| **Maintainability** | We own all the code | Google maintains it |
 
 ## 📦 Current State
 
-- Design tokens: ✅ Complete
-- Hero layout: ✅ Complete with pink underglow
-- Upload panel: ✅ Complete unified interface
-- Audio recording: ✅ Complete with visualizer
-- Loading states: ✅ Complete with cute modal
-- Fixed sizing: ✅ Zero layout shifts
-- Warm color palette: ✅ Complete
-- Component details: 🔄 Upload complete, others pending
-- Interactions: ✅ Upload/recording complete
-- Transitions: ✅ Loading modal complete
-- Theme system: ❌ Not started
+**Infrastructure:**
+- ✅ Audio processing fully simplified (SDK-based)
+- ✅ Model updated to `gemini-2.5-flash-lite`
+- ✅ New API key configured
+- ✅ Better AudioVisualizer with history bars
+- ⚠️ Supabase not connected (localStorage only)
+- ⚠️ No error retry logic yet
 
-## 🎯 Next: Continue Component-by-Component Polish
-
-**Completed:**
+**Components:**
 - ✅ Upload Panel (text/file/record unified)
-- ✅ Audio Visualizer (warm rounded bars)
+- ✅ Audio Visualizer (talktype pattern, 48 bars)
 - ✅ Loading Modal (cute animations)
+- 🔄 Action Items Card (needs inline editing polish)
+- 🔄 Topic Graph Card (needs interaction polish)
+- 🔄 Summary Card (needs animation polish)
+- 🔄 Transcript Card (needs speaker highlighting)
 
-**Next up:**
-- Action Items List (inline editing, animations)
-- Topic Graph (node interactions, warm styling)
-- Summary Card (transitions, metric displays)
-- Dashboard layout (smooth data loading)
+**Design & Feel:**
+- ✅ Pastel punk aesthetic applied
+- ✅ Pink underglow on hero card
+- ✅ Fixed layout (no jumps)
+- ✅ Warm color palette throughout
 
-**Reference projects:**
-- `/conversation_mapper` (Svelte v1)
-- `/conversation_mapper_fresh` (Fresh/Deno v2)
+## 🎯 Next Session Priorities
 
-**Dev server:** Running on :8010
-**Latest commit:** b3cf199 - feat: 🪩 Add cute loading modal
+### Option A: Get Full Flow Working (Recommended)
+The pragmatic path - get real data flowing before polishing:
 
----
+1. **Test audio recording end-to-end** with new API
+   - Verify transcription works
+   - Check all parallel analysis (topics, actions, summary)
+   - Ensure dashboard displays correctly
+
+2. **Add Supabase persistence**
+   - Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` in `.env`
+   - Wire up database layer for real persistence
+   - Enable multiplayer features
+
+3. **Add error handling & retries**
+   - Graceful quota limit handling
+   - Retry logic for transient failures
+   - Better user-facing error messages
+
+### Option B: Polish Components First (Design-First)
+Make one component perfect as a template:
+
+1. **ActionItemsCard** - Most interactive component
+   - Inline editing (not just toggle)
+   - Add/delete animations (Svelte fly/fade)
+   - Warm hover states
+   - Mint completed backgrounds
+
+2. **Use as template** for other cards
+   - Topic Graph interactions
+   - Summary Card animations
+   - Transcript speaker highlighting
+
+**Recommendation:** Option A - Hard to polish when you can't test with real data. Get the flow working, then iterate on polish.
 
 ## 🎸 Handoff Notes for Next Session
 
-**What's Ready to Rock:**
-The upload/capture flow is COMPLETE and polished:
-- Hero card has the pink underglow magic ✨
-- Upload panel is unified (text/file/record in one interface)
-- Fixed 240px height - no layout jumps when switching modes
-- Audio recording with real-time visualizer (pink→peach bars)
-- Cute loading modal with bouncing letters and random emojis
-- All warm pastel punk styling applied consistently
+### What's Working:
+✅ **Audio upload flow is clean and simple**
+- SDK-based upload (talktype pattern)
+- 80% less code than Deno version
+- Proper cleanup and error handling
+- Better visualizer with 48 bars
 
-**What to Polish Next:**
-Continue the component-by-component approach. Suggested order:
+✅ **Frontend is polished**
+- Upload panel unified and stable
+- Loading modal with cute animations
+- Fixed layout (no jumps)
+- Pastel punk aesthetic
 
-1. **Action Items List** - Check both reference versions for:
-   - Inline editing UI (not just toggle)
-   - Add/delete animations (Svelte fly/fade?)
-   - Warm hover states
-   - Mint completed background
+### What Needs Work:
+⚠️ **Not tested end-to-end yet** - API quota was limiting, need fresh test
+⚠️ **No persistence** - Everything in localStorage, no Supabase connection
+⚠️ **Component polish incomplete** - Cards need interactions/animations
 
-2. **Topic Graph** - Compare visualizations:
-   - Node interactions (hover, click)
-   - Color mapping (use warm palette)
-   - Force layout styling
-   - Responsive behavior
+### Testing Checklist:
+- [ ] Record audio → verify new API key works
+- [ ] Check transcription appears correctly
+- [ ] Verify topics/actions/summary all generate
+- [ ] Test dashboard displays all data
+- [ ] Try text input path (not just audio)
 
-3. **Summary Card** - Polish display:
-   - Loading transitions
-   - Metric animations
-   - Empty states
+### Code Locations:
+- Audio processing: `src/lib/server/geminiService.ts`
+- API route: `src/routes/api/process/+server.ts`
+- Core AI: `src/lib/core/ai/gemini.ts`
+- Visualizer: `src/lib/components/AudioVisualizer.svelte`
 
-4. **Dashboard Layout** - Data loading flow:
-   - Smooth transition from loading modal to cards
-   - Staggered card animations?
-   - Empty state when no data
+### Reference Projects:
+- `~/Projects/active/apps/talktype` - Proven working audio pattern
+- `~/Projects/active/apps/conversation_mapper` - Svelte v1 components
+- `~/Projects/active/apps/conversation_mapper_fresh` - Deno v2 (complex workarounds)
 
-**Testing Checklist:**
-- [ ] Record audio → watch visualizer dance
-- [ ] See loading modal with random message/emoji
-- [ ] Dashboard loads with all components visible
-- [ ] No layout shifts anywhere
-- [ ] Drag-drop file → mint chip appears
-- [ ] Type text → button changes label
+### Key Files Changed This Session:
+```
+beaac94 - refactor: 🎸 Simplify audio processing to use SDK methods
+  src/lib/components/AudioVisualizer.svelte
+  src/lib/core/ai/gemini.ts
+  src/lib/server/geminiService.ts
+  src/routes/api/process/+server.ts
 
-**Reference Locations:**
-- Svelte v1: `/conversation_mapper/src/lib/features/`
-- Fresh v2: `/conversation_mapper_fresh/islands/`
-- Current: `/project_mapper/src/lib/components/`
+  DELETED: src/lib/server/audio.ts (180 lines removed)
+```
 
-*Upload capture experience is now unified, stable, and magical! Ready for next component.* 🎸
+**Latest commit:** beaac94
+**Dev server:** Running on :8010
+**Model:** gemini-2.5-flash-lite
+
+*This is why we moved to SvelteKit - way simpler than Deno! 🎸*
