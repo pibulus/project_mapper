@@ -32,39 +32,9 @@ export type GeminiAudioPart =
     fileData: { fileUri: string; mimeType: string };
   };
 
-type AudioInput = Blob | GeminiAudioPart;
-
 // ===================================================================
 // UTILITIES
 // ===================================================================
-
-function isAudioPart(input: AudioInput): input is GeminiAudioPart {
-  return (
-    typeof input === "object" &&
-    input !== null &&
-    ("inlineData" in input || "fileData" in input)
-  );
-}
-
-async function toAudioPart(input: AudioInput): Promise<GeminiAudioPart> {
-  if (isAudioPart(input)) {
-    return input;
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64data = (reader.result as string).split(",")[1];
-      resolve({
-        inlineData: {
-          data: base64data,
-          mimeType: input.type,
-        },
-      });
-    };
-    reader.readAsDataURL(input);
-  });
-}
 
 /**
  * Extract speaker names from transcript
@@ -96,15 +66,15 @@ function cleanJsonResponse(text: string): string {
 // ===================================================================
 
 export interface AIService {
-  transcribeAudio(audioInput: AudioInput): Promise<TranscriptionResult>;
+  transcribeAudio(audioInput: GeminiAudioPart): Promise<TranscriptionResult>;
   generateTitle(transcript: string): Promise<string>;
   extractActionItems(
-    input: string | AudioInput,
+    input: string | GeminiAudioPart,
     speakers?: string[],
     existingActionItems?: ActionItem[],
   ): Promise<ActionItemInput[]>;
   checkActionItemStatus(
-    input: string | AudioInput,
+    input: string | GeminiAudioPart,
     existingActionItems: ActionItem[],
   ): Promise<ActionItemStatusUpdate[]>;
   extractTopics(
@@ -125,13 +95,12 @@ export function createGeminiService(model: any): AIService {
     // ===============================================================
 
     async transcribeAudio(
-      audioInput: AudioInput,
+      audioInput: GeminiAudioPart,
     ): Promise<TranscriptionResult> {
       try {
-        const audioPart = await toAudioPart(audioInput);
         const result = await model.generateContent([
           TRANSCRIPTION_PROMPT,
-          audioPart,
+          audioInput,
         ]);
         const transcriptText = result.response.text().trim();
         const speakers = extractSpeakers(transcriptText);
@@ -163,7 +132,7 @@ export function createGeminiService(model: any): AIService {
     // ===============================================================
 
     async extractActionItems(
-      input: string | AudioInput,
+      input: string | GeminiAudioPart,
       speakers: string[] = [],
       existingActionItems: ActionItem[] = [],
     ): Promise<ActionItemInput[]> {
@@ -176,8 +145,7 @@ export function createGeminiService(model: any): AIService {
 
         let result;
         if (typeof input !== "string") {
-          const audioPart = await toAudioPart(input);
-          result = await model.generateContent([prompt, audioPart]);
+          result = await model.generateContent([prompt, input]);
         } else {
           result = await model.generateContent(prompt);
         }
@@ -209,7 +177,7 @@ export function createGeminiService(model: any): AIService {
     // ===============================================================
 
     async checkActionItemStatus(
-      input: string | AudioInput,
+      input: string | GeminiAudioPart,
       existingActionItems: ActionItem[],
     ): Promise<ActionItemStatusUpdate[]> {
       try {
@@ -221,8 +189,7 @@ export function createGeminiService(model: any): AIService {
 
         let result;
         if (typeof input !== "string") {
-          const audioPart = await toAudioPart(input);
-          result = await model.generateContent([prompt, audioPart]);
+          result = await model.generateContent([prompt, input]);
         } else {
           result = await model.generateContent(`${prompt}\n\nText: ${input}`);
         }

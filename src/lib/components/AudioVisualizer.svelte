@@ -1,117 +1,284 @@
-<script lang="ts">
-	/**
-	 * AudioVisualizer - Real-time frequency visualization
-	 * Warm pastel punk aesthetic with rounded bars
-	 */
+<script>
 	import { onMount, onDestroy } from 'svelte';
 
-	export let analyser: AnalyserNode | null = null;
+	// Audio visualization configuration
+	let audioDataArray;
+	let animationFrameId;
+	let audioLevel = 0;
+	let history = []; // Array to store audio level history
+	const historyLength = 48; // More bars for project_mapper (talktype uses 30)
+	let analyser;
+	let audioContext;
+	let recording = false;
 
-	let canvas: HTMLCanvasElement;
-	let animationFrameId: number | null = null;
-	let dataArray: Uint8Array | null = null;
+	// Safari/iOS detection
+	const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+	const isAndroid = /Android/i.test(userAgent);
+	const isiPhone = /iPhone|iPad/i.test(userAgent);
+	const isMac = /Macintosh/i.test(userAgent);
+	const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
 
-	// Warm pastel punk colors
-	const accentColor = 'rgba(232, 131, 156, 0.9)'; // Pink
-	const accentLight = 'rgba(255, 209, 163, 0.7)'; // Peach
+	// Use fallback visualizer for Safari or iOS
+	const useFallbackVisualizer = isiPhone || isSafari;
 
-	onMount(() => {
-		if (!analyser || !canvas) {
-			console.warn('AudioVisualizer: No analyser or canvas available');
-			return;
+	// Platform-specific calibration
+	let scalingFactor;
+	let offset;
+	let exponent;
+
+	if (isAndroid) {
+		scalingFactor = 40;
+		offset = 80;
+		exponent = 0.5;
+	} else if (isiPhone) {
+		scalingFactor = 40;
+		offset = 80;
+		exponent = 0.2;
+	} else if (isMac) {
+		scalingFactor = 20;
+		offset = 100;
+		exponent = 0.5;
+	} else {
+		// PC default
+		scalingFactor = 2000;
+		offset = 80;
+		exponent = 0.5;
+	}
+
+	// ===== STANDARD AUDIO VISUALIZER =====
+	async function initStandardVisualizer() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+			// Handle Safari audio context suspension
+			if (typeof window !== 'undefined' && window.document) {
+				window.document.addEventListener(
+					'click',
+					() => {
+						if (audioContext && audioContext.state === 'suspended') {
+							audioContext.resume();
+						}
+					},
+					{ once: true }
+				);
+			}
+
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			analyser = audioContext.createAnalyser();
+			const source = audioContext.createMediaStreamSource(stream);
+			source.connect(analyser);
+			analyser.fftSize = 256;
+
+			recording = true;
+			startVisualizer();
+		} catch (error) {
+			console.error('Error accessing microphone:', error);
+			recording = false;
+			initFallbackVisualizer();
 		}
+	}
 
-		console.log('🎵 Initializing audio visualizer');
-		const canvasCtx = canvas.getContext('2d');
-		if (!canvasCtx) {
-			console.error('Failed to get canvas context');
-			return;
-		}
+	// ===== FALLBACK VISUALIZER (Safari/iOS) =====
+	let fallbackAnimating = false;
+	let lastLevel = 20;
+	let trend = 0;
+	let peakCountdown = 0;
+	let silenceCountdown = 0;
 
-		// Initialize data array for frequency data
-		dataArray = new Uint8Array(analyser.frequencyBinCount);
-		console.log(`🎵 Visualizer ready (${analyser.frequencyBinCount} frequency bins)`);
+	function initFallbackVisualizer() {
+		console.log('🎨 Using fallback visualizer (Safari/iOS)');
+		history = Array(historyLength).fill(0);
+		fallbackAnimating = true;
+		recording = true;
+		lastLevel = 20;
+		trend = 0;
+		peakCountdown = 0;
+		silenceCountdown = 0;
+		updateFallbackVisualizer();
+	}
 
-		// Animation draw function - ELEGANT ROUNDED BARS
-		function draw() {
-			if (!analyser || !canvasCtx || !canvas || !dataArray) return;
+	function updateFallbackVisualizer() {
+		if (!fallbackAnimating) return;
 
-			const WIDTH = canvas.width;
-			const HEIGHT = canvas.height;
+		if (recording) {
+			// Speech-like pattern with peaks and silences
+			if (peakCountdown <= 0) {
+				if (Math.random() < 0.1) {
+					// Big peak (60-90%)
+					lastLevel = 60 + Math.random() * 30;
+					peakCountdown = 5 + Math.floor(Math.random() * 5);
+					silenceCountdown = 0;
+				} else if (Math.random() < 0.3) {
+					// Medium peak (40-65%)
+					lastLevel = 40 + Math.random() * 25;
+					peakCountdown = 3 + Math.floor(Math.random() * 3);
+					silenceCountdown = 0;
+				} else if (Math.random() < 0.4) {
+					// Silence/pause (5-15%)
+					lastLevel = 5 + Math.random() * 10;
+					silenceCountdown = 4 + Math.floor(Math.random() * 4);
+				} else {
+					// Regular speech (20-45%)
+					lastLevel = 20 + Math.random() * 25;
+					peakCountdown = 2 + Math.floor(Math.random() * 2);
+				}
+				trend = Math.random() < 0.5 ? -1 : 1;
+			}
 
-			animationFrameId = requestAnimationFrame(draw);
+			// Handle silence periods
+			if (silenceCountdown > 0) {
+				lastLevel = Math.max(5, lastLevel * 0.8);
+				silenceCountdown--;
+			}
 
-			// Get frequency data from analyser
-			analyser.getByteFrequencyData(dataArray);
+			// Breathing effect
+			let breathEffect = Math.sin(Date.now() / 400) * 5;
+			lastLevel += trend * (Math.random() * 4 - 1);
+			lastLevel = Math.max(5, Math.min(90, lastLevel));
+			peakCountdown--;
 
-			// Clear with subtle warm background
-			canvasCtx.fillStyle = 'rgba(254, 252, 247, 0.15)'; // Soft cream
-			canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+			let finalLevel = lastLevel + breathEffect + (Math.random() * 6 - 3);
+			finalLevel = Math.max(5, Math.min(90, finalLevel));
 
-			// Sample fewer bars for cleaner look
-			const barCount = 48;
-			const barWidth = Math.floor(WIDTH / barCount) - 4;
-			const sampleStep = Math.floor(dataArray.length / barCount);
-
-			for (let i = 0; i < barCount; i++) {
-				const dataIndex = i * sampleStep;
-				const value = dataArray[dataIndex];
-				const barHeight = (value / 255) * HEIGHT * 0.85; // 85% max height
-
-				const x = i * (barWidth + 4) + 2;
-				const y = HEIGHT - barHeight;
-
-				// Warm gradient from pink to peach
-				const gradient = canvasCtx.createLinearGradient(x, y, x, HEIGHT);
-				gradient.addColorStop(0, accentColor);
-				gradient.addColorStop(0.6, accentColor);
-				gradient.addColorStop(1, accentLight);
-
-				canvasCtx.fillStyle = gradient;
-
-				// Rounded bars
-				canvasCtx.beginPath();
-				const radius = Math.min(barWidth / 2, 3);
-				canvasCtx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
-				canvasCtx.fill();
+			history = [finalLevel, ...history];
+			if (history.length > historyLength) {
+				history.pop();
+			}
+		} else {
+			// Fade out when not recording
+			history = history.map((level) => level * 0.8);
+			let maxLevel = Math.max(...history);
+			if (maxLevel < 2) {
+				fallbackAnimating = false;
+				history = Array(historyLength).fill(0);
+				return;
 			}
 		}
 
-		// Start animation
-		draw();
+		animationFrameId = requestAnimationFrame(updateFallbackVisualizer);
+	}
+
+	// ===== STANDARD VISUALIZER =====
+	let frameSkipCounter = 0;
+	const frameSkipRate = 2;
+
+	function updateStandardVisualizer() {
+		if (!recording || !analyser) return;
+
+		// Slow down animation
+		if (frameSkipCounter < frameSkipRate) {
+			frameSkipCounter++;
+			animationFrameId = requestAnimationFrame(updateStandardVisualizer);
+			return;
+		}
+		frameSkipCounter = 0;
+
+		const bufferLength = analyser.frequencyBinCount;
+		audioDataArray = new Float32Array(bufferLength);
+		analyser.getFloatFrequencyData(audioDataArray);
+
+		let sum = 0;
+		for (let i = 0; i < bufferLength; i++) {
+			sum += audioDataArray[i];
+		}
+
+		let linearLevel = Math.max(0, sum / bufferLength + offset);
+		let nonLinearLevel = Math.pow(linearLevel, exponent);
+		audioLevel = Math.max(0, Math.min(100, nonLinearLevel * (100 / Math.pow(scalingFactor, exponent))));
+
+		history = [audioLevel, ...history];
+		if (history.length > historyLength) {
+			history.pop();
+		}
+
+		animationFrameId = requestAnimationFrame(updateStandardVisualizer);
+	}
+
+	// ===== CONTROL FUNCTIONS =====
+	function startVisualizer() {
+		if (useFallbackVisualizer) {
+			if (!fallbackAnimating) {
+				fallbackAnimating = true;
+				updateFallbackVisualizer();
+			}
+		} else if (recording && analyser) {
+			history = Array(historyLength).fill(0);
+			updateStandardVisualizer();
+		}
+	}
+
+	function stopVisualizer() {
+		recording = false;
+
+		if (useFallbackVisualizer) {
+			// Let it fade out naturally
+		} else {
+			if (animationFrameId) {
+				cancelAnimationFrame(animationFrameId);
+			}
+			audioLevel = 0;
+			history = [];
+			if (audioContext) {
+				audioContext.close();
+				audioContext = null;
+				analyser = null;
+			}
+		}
+	}
+
+	// ===== LIFECYCLE =====
+	onMount(() => {
+		if (useFallbackVisualizer) {
+			initFallbackVisualizer();
+		} else {
+			initStandardVisualizer();
+		}
 	});
 
 	onDestroy(() => {
+		fallbackAnimating = false;
+		stopVisualizer();
 		if (animationFrameId) {
 			cancelAnimationFrame(animationFrameId);
-			animationFrameId = null;
 		}
-		console.log('🎵 Audio visualizer cleaned up');
 	});
 </script>
 
 <div class="visualizer-container">
-	<canvas bind:this={canvas} width="1024" height="120" class="visualizer-canvas" />
+	{#each history as level, index (index)}
+		<div
+			class="history-bar"
+			style="height: {level}%; width: {100 / historyLength}%; left: {index *
+				(100 / historyLength)}%"
+		></div>
+	{/each}
 </div>
 
 <style>
 	.visualizer-container {
+		position: relative;
 		width: 100%;
-		flex: 1; /* Fill available space from parent */
-		min-height: 0; /* Allow flexbox to shrink */
-		background: rgba(30, 23, 20, 0.03);
-		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.1);
-		border-radius: var(--pm-radius-md);
-		padding: 0.75rem;
-		box-shadow: inset 0 1px 3px rgba(30, 23, 20, 0.06);
+		height: 56px;
 		display: flex;
-		align-items: center;
+		flex-direction: row-reverse;
+		border-radius: 12px;
+		overflow: hidden;
+		background: linear-gradient(to bottom, rgba(255, 251, 245, 0.95), rgba(254, 240, 230, 0.85));
+		box-shadow: inset 0 0 12px rgba(255, 200, 180, 0.15);
+		contain: content;
 	}
 
-	.visualizer-canvas {
-		display: block;
-		width: 100%;
-		height: 56px; /* Slightly smaller to fit better */
-		border-radius: var(--pm-radius-sm);
+	.history-bar {
+		position: absolute;
+		bottom: 0;
+		background: linear-gradient(to top, #ffa573, #ff9f9a, #ff7fcd, #ffb6f3);
+		transition: height 0.15s ease-in-out;
+		border-radius: 3px 3px 0 0;
+		margin-right: 1px;
+		box-shadow: 0 0 6px rgba(255, 180, 200, 0.25);
+		opacity: 0.95;
+		will-change: transform;
+		transform: translateZ(0);
+		backface-visibility: hidden;
 	}
 </style>

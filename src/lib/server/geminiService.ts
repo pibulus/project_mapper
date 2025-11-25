@@ -10,7 +10,7 @@ import { env } from '$env/dynamic/private';
 import { createGeminiService, type AIService } from '$lib/core/ai/gemini';
 
 const GEMINI_API_KEY = env.GEMINI_API_KEY;
-const GEMINI_MODEL = env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+const GEMINI_MODEL = env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
 if (!GEMINI_API_KEY) {
 	console.warn('⚠️ GEMINI_API_KEY not set - AI features will not work');
@@ -53,34 +53,56 @@ export function getAIService(): AIService {
 }
 
 /**
- * Upload audio file to Gemini and get file reference
+ * Transcribe audio file directly using Gemini SDK
  *
- * This is used for the official SDK's file-based upload pattern
- * (cleaner than manual base64 encoding for large files)
+ * Simplified pattern from talktype - uploads file, transcribes, cleans up
+ * Much simpler than manual HTTP multipart uploads!
  */
-export async function uploadAudioFile(file: File): Promise<{ uri: string; mimeType: string }> {
+export async function transcribeAudio(file: File): Promise<{ text: string; speakers: string[] }> {
 	if (!GEMINI_API_KEY) {
 		throw new Error('GEMINI_API_KEY not configured');
 	}
 
 	const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+	const mimeType = file.type || 'audio/webm';
+	const displayName = file.name || `recording-${Date.now()}`;
+	let uploadedFileName: string | null = null;
 
-	const uploadResult = await genAI.files.upload({
-		file,
-		config: {
-			mimeType: file.type || 'audio/webm',
-			displayName: file.name || `recording-${Date.now()}`
+	try {
+		// Upload audio file to Gemini
+		const uploadResult = await genAI.files.upload({
+			file,
+			config: { mimeType, displayName }
+		});
+
+		if (!uploadResult?.uri) {
+			throw new Error('File upload to Gemini failed');
 		}
-	});
 
-	if (!uploadResult?.uri) {
-		throw new Error('File upload to Gemini failed');
+		uploadedFileName = uploadResult?.name ?? null;
+		console.log('[Gemini] Uploaded audio file');
+
+		// Get AI service and transcribe
+		const aiService = getAIService();
+		const audioPart = {
+			fileData: {
+				fileUri: uploadResult.uri,
+				mimeType: uploadResult.mimeType || mimeType
+			}
+		};
+
+		const result = await aiService.transcribeAudio(audioPart);
+		console.log('[Gemini] ✅ Transcription complete');
+
+		return result;
+	} finally {
+		// Clean up uploaded file
+		if (uploadedFileName) {
+			try {
+				await genAI.files.delete(uploadedFileName);
+			} catch (cleanupError) {
+				console.warn('⚠️ Failed to delete Gemini file:', cleanupError);
+			}
+		}
 	}
-
-	console.log(`[Gemini] Uploaded audio file: ${uploadResult.uri}`);
-
-	return {
-		uri: uploadResult.uri,
-		mimeType: uploadResult.mimeType || file.type || 'audio/webm'
-	};
 }

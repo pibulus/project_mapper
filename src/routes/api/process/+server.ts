@@ -13,8 +13,8 @@
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getAIService } from '$lib/server/geminiService';
-import { processAudio, processText } from '$lib/core/orchestration/conversation-flow';
+import { getAIService, transcribeAudio } from '$lib/server/geminiService';
+import { processText } from '$lib/core/orchestration/conversation-flow';
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
 
@@ -42,13 +42,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			console.log(`[API /process] Processing ${(audioFile.size / 1024).toFixed(2)}KB audio`);
 
+			// Transcribe audio (uploads, transcribes, cleans up automatically)
+			const { text, speakers } = await transcribeAudio(audioFile);
+
+			// Process the transcribed text (topics, action items, summary)
 			const aiService = getAIService();
-
-			// Convert File to Blob for core processing
-			const audioBlob = new Blob([await audioFile.arrayBuffer()], { type: audioFile.type });
-
-			// Use core orchestration
-			const result = await processAudio(aiService, audioBlob, conversationId);
+			const result = await processText(aiService, text, conversationId, speakers);
 
 			console.log('[API /process] ✅ Audio processed successfully');
 
