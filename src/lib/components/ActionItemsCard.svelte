@@ -17,6 +17,7 @@
 		reorderItems
 	} from '$lib/stores/actionItemsStore';
 	import Card from './ui/Card.svelte';
+	import ActionItemsHeader from './ActionItemsHeader.svelte';
 
 	// Local UI state
 	let isAdding = false;
@@ -197,25 +198,16 @@
 
 <Card title="✅ Action Items">
 	<svelte:fragment slot="actions">
-		<button
-			class="btn-icon"
-			on:click={cycleSortMode}
-			aria-label="Cycle sort mode"
-			title={`Sort by ${sortingStyle}`}
-		>
-			{getSortIcon()}
-		</button>
-		<button class="btn-icon" on:click={() => (showSearch = !showSearch)} aria-label="Search items">
-			🔎
-		</button>
-		<button class="btn-ghost" on:click={() => (isAdding = !isAdding)} aria-label="Add new item">
-			{isAdding ? 'Cancel' : '+ Add'}
-		</button>
-		{#if $actionItems.length > 0}
-			<span class="card-meta">
-				{completedCount}/{$actionItems.length} done
-			</span>
-		{/if}
+		<ActionItemsHeader
+			{sortingStyle}
+			{showSearch}
+			{isAdding}
+			completedCount={completedCount}
+			totalCount={$actionItems.length}
+			on:cycleSortMode={cycleSortMode}
+			on:toggleSearch={() => (showSearch = !showSearch)}
+			on:toggleAdding={() => (isAdding = !isAdding)}
+		/>
 	</svelte:fragment>
 
 	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -258,9 +250,17 @@
 		{/if}
 
 		{#if sortedItems.length === 0 && !isAdding}
-			<p class="empty-state">
-				{searchQuery ? 'No matching items' : 'No action items yet'}
-			</p>
+			<div class="empty-state-container">
+				<div class="empty-state-icon">
+					{searchQuery ? '🔍' : '✓'}
+				</div>
+				<p class="empty-state-text">
+					{searchQuery ? 'No matching items' : 'All clear!'}
+				</p>
+				{#if !searchQuery}
+					<p class="empty-state-hint">Add your first action item to get started</p>
+				{/if}
+			</div>
 		{:else}
 			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
 				{#each sortedItems as item, index (item.id)}
@@ -344,23 +344,64 @@
 		width: 100%;
 		padding: 0.5rem;
 		border-radius: var(--pm-radius-sm);
-		border: 1px solid rgba(0, 0, 0, 0.1);
+		border: 2px solid rgba(0, 0, 0, 0.1);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.05);
+	}
+
+	.empty-state-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 3rem 1rem;
+		text-align: center;
+	}
+
+	.empty-state-icon {
+		width: 4rem;
+		height: 4rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 2rem;
+		background: rgba(168, 216, 234, 0.2);
+		border: 3px solid var(--pm-mint);
+		border-radius: 50%;
+		margin-bottom: 1rem;
+		box-shadow: 3px 3px 0 rgba(168, 216, 234, 0.3);
+	}
+
+	.empty-state-text {
+		font-size: var(--pm-text-base);
+		font-weight: 600;
+		color: var(--pm-black);
+		margin-bottom: 0.5rem;
+	}
+
+	.empty-state-hint {
+		font-size: var(--pm-text-sm);
+		color: var(--pm-brown);
+		opacity: 0.7;
+		font-style: italic;
 	}
 	.meta-input {
 		background: none;
-		border: 1px solid transparent;
+		border: 2px solid transparent;
 		border-radius: var(--pm-radius-sm);
 		padding: 2px 4px;
 		font-size: var(--pm-text-xs);
 		color: var(--pm-brown);
 		width: 100px;
+		transition: all var(--pm-transition-fast);
 	}
 	.meta-input:hover {
-		border-color: rgba(0, 0, 0, 0.1);
+		border-color: rgba(0, 0, 0, 0.15);
+		box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.05);
 	}
 	.meta-input:focus {
-		outline: 1px solid var(--pm-mint);
-		border-color: var(--pm-mint);
+		outline: none;
+		border: 2px solid var(--pm-mint);
+		box-shadow: 2px 2px 0 rgba(168, 216, 234, 0.2);
 	}
 	.add-form {
 		display: flex;
@@ -371,17 +412,28 @@
 	.add-form textarea {
 		width: 100%;
 		border-radius: var(--pm-radius-sm);
-		border: 1px solid rgba(0, 0, 0, 0.1);
+		border: 2px solid rgba(0, 0, 0, 0.15);
 		padding: 0.5rem;
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.05);
 	}
 	.add-form .btn-primary {
 		align-self: flex-start;
 		background: var(--pm-pink);
 		color: white;
-		border: none;
+		border: 2px solid var(--pm-pink);
 		padding: 6px 12px;
 		border-radius: var(--pm-radius-sm);
 		cursor: pointer;
+		box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.1);
+		transition: all var(--pm-transition-fast);
+	}
+	.add-form .btn-primary:hover {
+		transform: translateY(-1px);
+		box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.15);
+	}
+	.add-form .btn-primary:active {
+		transform: translateY(0);
+		box-shadow: 1px 1px 0 rgba(30, 23, 20, 0.1);
 	}
 	.action-item-wrapper {
 		position: relative;
@@ -405,12 +457,12 @@
 		position: absolute;
 		top: 4px;
 		right: 4px;
-		width: 20px;
-		height: 20px;
+		width: 22px;
+		height: 22px;
 		border-radius: 50%;
-		background: rgba(0, 0, 0, 0.1);
-		color: white;
-		border: none;
+		background: white;
+		color: var(--pm-brown);
+		border: 2px solid rgba(0, 0, 0, 0.15);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -418,7 +470,8 @@
 		font-size: 14px;
 		line-height: 20px;
 		opacity: 0;
-		transition: opacity 0.2s;
+		transition: all var(--pm-transition-fast);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
 	}
 
 	.action-item-wrapper:hover .delete-btn {
@@ -426,7 +479,11 @@
 	}
 
 	.delete-btn:hover {
-		background: rgba(0, 0, 0, 0.3);
+		background: #ff6b9d;
+		border-color: #ff6b9d;
+		color: white;
+		transform: scale(1.1);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
 	}
 	.action-item {
 		display: flex;
@@ -435,20 +492,23 @@
 		padding: 0.75rem;
 		border-radius: var(--pm-radius-sm);
 		background: var(--pm-cream-dark);
-		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.08);
+		border: 2px solid rgba(30, 23, 20, 0.12);
 		cursor: pointer;
 		transition: all var(--pm-transition-fast);
+		box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.08);
 	}
 
 	.action-item:hover {
 		background: var(--pm-cream-light);
-		border-color: rgba(30, 23, 20, 0.12);
+		border-color: rgba(30, 23, 20, 0.18);
 		transform: translateY(-1px);
+		box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.12);
 	}
 
 	.action-item.completed {
 		background: rgba(168, 216, 234, 0.15);
-		border-color: var(--pm-mint);
+		border: 2px solid var(--pm-mint);
+		box-shadow: 2px 2px 0 rgba(168, 216, 234, 0.2);
 	}
 
 	.action-item input[type='checkbox'] {
