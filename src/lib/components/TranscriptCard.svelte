@@ -14,7 +14,7 @@
 <Card title="📝 Transcript">
 	<div style="max-height: 400px; overflow-y: auto;">
 		{#if lines.length === 0}
-			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No transcript yet</p>
+			<p class="empty-state">No transcript yet</p>
 		{:else}
 			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
 				{#each lines as line}

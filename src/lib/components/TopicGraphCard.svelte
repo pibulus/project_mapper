@@ -86,14 +86,14 @@
 <Card title="🕸️ Topic Graph">
 	<svelte:fragment slot="actions">
 		{#if topics.length > 0}
-			<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
+			<span class="card-meta">
 				{topics.length} topics, {edges.length} connections
 			</span>
 		{/if}
 	</svelte:fragment>
 
 	{#if topics.length === 0}
-		<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No topics identified yet</p>
+		<p class="empty-state">No topics identified yet</p>
 	{:else}
 		<!-- D3 Force-Directed Graph Container -->
 		<div
@@ -108,37 +108,18 @@
 		></div>
 
 		<!-- Simple topic badges below graph -->
-		<div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+		<div class="badge-row">
 			{#each topics.slice(0, 6) as topic}
 				<div
-					style="
-						padding: 0.375rem 0.75rem;
-						border-radius: var(--pm-radius-sm);
-						border: var(--pm-border-medium) solid {topic.color};
-						background-color: {topic.color}20;
-						display: flex;
-						align-items: center;
-						gap: 0.5rem;
-						font-size: var(--pm-text-sm);
-						font-weight: 600;
-						color: var(--pm-black);
-					"
+					class="badge"
+					style="border: var(--pm-border-medium) solid {topic.color}; background-color: {topic.color}20;"
 				>
 					<span style="font-size: 1.125rem;">{topic.emoji}</span>
 					<span>{topic.label}</span>
 				</div>
 			{/each}
 			{#if topics.length > 6}
-				<div
-					style="
-						padding: 0.375rem 0.75rem;
-						font-size: var(--pm-text-sm);
-						color: var(--pm-brown);
-						opacity: 0.6;
-					"
-				>
-					+{topics.length - 6} more
-				</div>
+				<div class="badge-overflow">+{topics.length - 6} more</div>
 			{/if}
 		</div>
 	{/if}

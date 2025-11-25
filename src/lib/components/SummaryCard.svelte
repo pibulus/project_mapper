@@ -13,7 +13,7 @@
 
 <Card title="✨ Summary">
 	{#if !summary}
-		<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No summary yet</p>
+		<p class="empty-state">No summary yet</p>
 	{:else}
 		<p
 			style="

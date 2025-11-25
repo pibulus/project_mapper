@@ -147,7 +147,7 @@
 			{isAdding ? 'Cancel' : '+ Add'}
 		</button>
 		{#if $actionItems.length > 0}
-			<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
+			<span class="card-meta">
 				{completedCount}/{$actionItems.length} done
 			</span>
 		{/if}
@@ -177,7 +177,7 @@
 		{/if}
 
 		{#if sortedItems.length === 0 && !isAdding}
-			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">
+			<p class="empty-state">
 				{searchQuery ? 'No matching items' : 'No action items yet'}
 			</p>
 		{:else}

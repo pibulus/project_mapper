@@ -316,6 +316,46 @@ body {
    UTILITIES
    ================================================================ */
 
+/* Empty state text (used across all cards) */
+.empty-state {
+  color: var(--pm-brown);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Card metadata/stats text */
+.card-meta {
+  font-size: var(--pm-text-xs);
+  color: var(--pm-brown);
+  opacity: 0.7;
+}
+
+/* Badge/tag system */
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.badge {
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--pm-radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--pm-text-sm);
+  font-weight: 600;
+  color: var(--pm-black);
+}
+
+.badge-overflow {
+  padding: 0.375rem 0.75rem;
+  font-size: var(--pm-text-sm);
+  color: var(--pm-brown);
+  opacity: 0.6;
+}
+
 .animate-spin-slow {
   animation: spin 2s linear infinite;
 }
