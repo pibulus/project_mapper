@@ -49,6 +49,29 @@ export default class ProjectRoom implements Party.Server {
 	}
 
 	/**
+	 * Handle HTTP requests to the room
+	 * Used by the backend to post analysis updates.
+	 */
+	async onRequest(req: Party.Request) {
+		if (req.method === 'POST') {
+			try {
+				const update = await req.json();
+				console.log(`[PartyKit] Received update for project ${this.room.id}:`, update.type);
+
+				// Broadcast the update to all connected clients
+				this.room.broadcast(JSON.stringify(update));
+
+				return new Response('OK', { status: 200 });
+			} catch (error) {
+				console.error('[PartyKit] Error processing POST request:', error);
+				return new Response('Bad Request', { status: 400 });
+			}
+		}
+
+		return new Response('Not Found', { status: 404 });
+	}
+
+	/**
 	 * When a user sends a message
 	 */
 	onMessage(message: string, sender: Party.Connection) {
