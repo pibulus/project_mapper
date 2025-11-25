@@ -2,22 +2,130 @@
 	/**
 	 * ActionItemsCard Component
 	 *
-	 * Displays action items with checkboxes
-	 * TODO: Add AI auto-checkoff feature
+	 * Displays action items with full CRUD functionality.
+	 * This is a "dumb" component that gets its state and logic
+	 * from the dedicated actionItemsStore.
 	 */
 	import type { ActionItem } from '$lib/core/types';
-	import { currentProject, updateProject } from '$lib/stores/projectStore';
+	import { marked } from 'marked';
+	import {
+		actionItems,
+		toggleItem,
+		deleteItem,
+		addItem,
+		updateItem,
+		reorderItems
+	} from '$lib/stores/actionItemsStore';
 
-	export let items: ActionItem[] = [];
+	// Local UI state
+	let isAdding = false;
+	let newItemDescription = '';
+	let showSearch = false;
+	let searchQuery = '';
+	let sortingStyle = 'manual'; // 'manual', 'assignee', 'updated_at'
+	let draggedItemId: string | null = null;
+	let hoveredItemId: string | null = null;
 
-	$: completedCount = items.filter((i) => i.status === 'completed').length;
+	// Derived state from the store
+	$: completedCount = $actionItems.filter((i) => i.status === 'completed').length;
 
-	function toggleItem(item: ActionItem) {
-		const updated = items.map((i) =>
-			i.id === item.id ? { ...i, status: i.status === 'completed' ? 'pending' : 'completed' } : i
+	$: filteredItems = $actionItems.filter((item) => {
+		const query = searchQuery.toLowerCase();
+		if (!query) return true;
+		return (
+			item.description.toLowerCase().includes(query) ||
+			(item.assignee && item.assignee.toLowerCase().includes(query)) ||
+			(item.due_date && item.due_date.toLowerCase().includes(query))
 		);
+	});
 
-		updateProject({ actionItems: updated });
+	$: sortedItems = (() => {
+		const itemsToSort = [...filteredItems];
+		const completed = itemsToSort.filter((i) => i.status === 'completed');
+		const uncompleted = itemsToSort.filter((i) => i.status !== 'completed');
+
+		const sortGroup = (group: ActionItem[]) => {
+			if (sortingStyle === 'assignee') {
+				return group.sort((a, b) => (a.assignee || '').localeCompare(b.assignee || ''));
+			} else if (sortingStyle === 'updated_at') {
+				return group.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+			}
+			// Use the persisted sort_order for manual sorting
+			return group.sort((a, b) => a.sort_order - b.sort_order);
+		};
+
+		return [...sortGroup(uncompleted), ...sortGroup(completed)];
+	})();
+
+	// UI-only functions
+	function handleSaveNewItem() {
+		addItem(newItemDescription);
+		newItemDescription = '';
+		isAdding = false;
+	}
+
+	function handleDescriptionUpdate(event: Event, itemId: string) {
+		const target = event.target as HTMLElement;
+		const newDescription = target.innerText.trim();
+		updateItem(itemId, { description: newDescription });
+	}
+
+	function handleDescriptionKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+			event.preventDefault();
+			(event.target as HTMLElement).blur();
+		}
+		if (event.key === 'Escape') {
+			(event.target as HTMLElement).blur();
+		}
+	}
+
+	const sortingModes = ['manual', 'assignee', 'updated_at'];
+	function cycleSortMode() {
+		const currentIndex = sortingModes.indexOf(sortingStyle);
+		const nextIndex = (currentIndex + 1) % sortingModes.length;
+		sortingStyle = sortingModes[nextIndex];
+	}
+
+	function getSortIcon() {
+		if (sortingStyle === 'manual') return '✋';
+		if (sortingStyle === 'assignee') return '👤';
+		if (sortingStyle === 'updated_at') return '🕒';
+		return 'sort';
+	}
+
+	// Drag and Drop handlers
+	function handleDragStart(itemId: string) {
+		if (sortingStyle !== 'manual') return;
+		draggedItemId = itemId;
+	}
+
+	function handleDragOver(event: DragEvent) {
+		if (sortingStyle !== 'manual') return;
+		event.preventDefault();
+	}
+
+	function handleDrop(targetItemId: string) {
+		if (!draggedItemId || draggedItemId === targetItemId || sortingStyle !== 'manual') {
+			draggedItemId = null;
+			return;
+		}
+
+		const currentItems = [...sortedItems];
+		const draggedIndex = currentItems.findIndex((i) => i.id === draggedItemId);
+		const targetIndex = currentItems.findIndex((i) => i.id === targetItemId);
+
+		if (draggedIndex === -1 || targetIndex === -1) {
+			draggedItemId = null;
+			return;
+		}
+
+		const newItems = [...currentItems];
+		const [draggedItem] = newItems.splice(draggedIndex, 1);
+		newItems.splice(targetIndex, 0, draggedItem);
+
+		reorderItems(newItems);
+		draggedItemId = null;
 	}
 </script>
 
@@ -25,41 +133,110 @@
 	<div class="card-header">
 		<h3>✅ Action Items</h3>
 		<div class="card-actions">
-			{#if items.length > 0}
+			<button
+				class="icon-btn"
+				on:click={cycleSortMode}
+				aria-label="Cycle sort mode"
+				title={`Sort by ${sortingStyle}`}
+			>
+				{getSortIcon()}
+			</button>
+			<button class="icon-btn" on:click={() => (showSearch = !showSearch)} aria-label="Search items">
+				🔎
+			</button>
+			<button class="add-btn" on:click={() => (isAdding = !isAdding)} aria-label="Add new item">
+				{isAdding ? 'Cancel' : '+ Add'}
+			</button>
+			{#if $actionItems.length > 0}
 				<span style="font-size: var(--pm-text-xs); color: var(--pm-brown); opacity: 0.7;">
-					{completedCount}/{items.length} done
+					{completedCount}/{$actionItems.length} done
 				</span>
 			{/if}
 		</div>
 	</div>
 	<div class="card-body" style="max-height: 400px; overflow-y: auto;">
-		{#if items.length === 0}
-			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">No action items yet</p>
+		{#if showSearch}
+			<div class="search-form">
+				<input type="text" bind:value={searchQuery} placeholder="Search items..." />
+			</div>
+		{/if}
+
+		{#if isAdding}
+			<div class="add-form">
+				<textarea
+					bind:value={newItemDescription}
+					placeholder="Enter new action item..."
+					rows="3"
+					on:keydown={(e) => {
+						if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+							handleSaveNewItem();
+						}
+					}}
+				></textarea>
+				<button class="btn-primary" on:click={handleSaveNewItem}>Save Item</button>
+			</div>
+		{/if}
+
+		{#if sortedItems.length === 0 && !isAdding}
+			<p style="color: var(--pm-brown); opacity: 0.6; font-style: italic;">
+				{searchQuery ? 'No matching items' : 'No action items yet'}
+			</p>
 		{:else}
 			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
-				{#each items as item (item.id)}
-					<label class="action-item {item.status === 'completed' ? 'completed' : ''}">
-						<input
-							type="checkbox"
-							checked={item.status === 'completed'}
-							on:change={() => toggleItem(item)}
-						/>
-						<div style="flex: 1; min-width: 0;">
-							<p class="action-text">
-								{item.description}
-							</p>
-							{#if item.assignee || item.deadline}
-								<div class="action-meta">
-									{#if item.assignee}
-										<span>👤 {item.assignee}</span>
-									{/if}
-									{#if item.deadline}
-										<span>📅 {item.deadline}</span>
-									{/if}
+				{#each sortedItems as item (item.id)}
+					<div
+						class="action-item-wrapper"
+						class:dragging={draggedItemId === item.id}
+						class:drag-over={hoveredItemId === item.id && draggedItemId !== item.id}
+						draggable={sortingStyle === 'manual'}
+						on:dragstart={() => handleDragStart(item.id)}
+						on:dragover={handleDragOver}
+						on:drop={() => handleDrop(item.id)}
+						on:mouseenter={() => (hoveredItemId = item.id)}
+						on:mouseleave={() => (hoveredItemId = null)}
+					>
+						<label class="action-item {item.status === 'completed' ? 'completed' : ''}">
+							<input
+								type="checkbox"
+								checked={item.status === 'completed'}
+								on:change={() => toggleItem(item.id)}
+							/>
+							<div style="flex: 1; min-width: 0;">
+								<div
+									class="action-text"
+									contenteditable="true"
+									on:blur={(e) => handleDescriptionUpdate(e, item.id)}
+									on:keydown={handleDescriptionKeyDown}
+									on:click|stopPropagation
+								>
+									{@html marked(item.description)}
 								</div>
-							{/if}
-						</div>
-					</label>
+
+								<div class="action-meta">
+									<input
+										type="text"
+										placeholder="Assignee"
+										class="meta-input"
+										value={item.assignee}
+										on:blur={(e) => updateItem(item.id, { assignee: e.currentTarget.value })}
+									/>
+									<input
+										type="date"
+										class="meta-input"
+										value={item.due_date}
+										on:blur={(e) => updateItem(item.id, { due_date: e.currentTarget.value })}
+									/>
+								</div>
+							</div>
+						</label>
+						<button
+							class="delete-btn"
+							aria-label="Delete item"
+							on:click|stopPropagation={() => deleteItem(item.id)}
+						>
+							×
+						</button>
+					</div>
 				{/each}
 			</div>
 		{/if}
@@ -67,6 +244,107 @@
 </div>
 
 <style>
+	.icon-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-size: 1.2rem;
+		padding: 4px;
+	}
+	.search-form {
+		margin-bottom: 1rem;
+	}
+	.search-form input {
+		width: 100%;
+		padding: 0.5rem;
+		border-radius: var(--pm-radius-sm);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+	}
+	.meta-input {
+		background: none;
+		border: 1px solid transparent;
+		border-radius: var(--pm-radius-sm);
+		padding: 2px 4px;
+		font-size: var(--pm-text-xs);
+		color: var(--pm-brown);
+		width: 100px;
+	}
+	.meta-input:hover {
+		border-color: rgba(0, 0, 0, 0.1);
+	}
+	.meta-input:focus {
+		outline: 1px solid var(--pm-mint);
+		border-color: var(--pm-mint);
+	}
+	.add-btn {
+		background: none;
+		border: 1px solid var(--pm-mint);
+		color: var(--pm-mint);
+		padding: 2px 8px;
+		border-radius: var(--pm-radius-sm);
+		font-size: var(--pm-text-xs);
+		cursor: pointer;
+	}
+	.add-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.add-form textarea {
+		width: 100%;
+		border-radius: var(--pm-radius-sm);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		padding: 0.5rem;
+	}
+	.add-form .btn-primary {
+		align-self: flex-start;
+		background: var(--pm-pink);
+		color: white;
+		border: none;
+		padding: 6px 12px;
+		border-radius: var(--pm-radius-sm);
+		cursor: pointer;
+	}
+	.action-item-wrapper {
+		position: relative;
+	}
+
+	.action-item-wrapper.dragging {
+		opacity: 0.5;
+	}
+
+	.action-item-wrapper.drag-over {
+		border-top: 2px solid var(--pm-pink);
+	}
+
+	.delete-btn {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.1);
+		color: white;
+		border: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 14px;
+		line-height: 20px;
+		opacity: 0;
+		transition: opacity 0.2s;
+	}
+
+	.action-item-wrapper:hover .delete-btn {
+		opacity: 1;
+	}
+
+	.delete-btn:hover {
+		background: rgba(0, 0, 0, 0.3);
+	}
 	.action-item {
 		display: flex;
 		align-items: flex-start;
@@ -101,6 +379,12 @@
 		font-size: var(--pm-text-sm);
 		color: var(--pm-black);
 		line-height: 1.5;
+		cursor: text;
+	}
+
+	.action-text:focus {
+		outline: 1px solid var(--pm-mint);
+		border-radius: var(--pm-radius-sm);
 	}
 
 	.completed .action-text {

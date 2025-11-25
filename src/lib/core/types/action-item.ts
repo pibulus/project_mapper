@@ -11,6 +11,7 @@ export interface ActionItem {
 	status: 'pending' | 'completed';
 	created_at: string;
 	updated_at: string;
+	sort_order: number; // For manual sorting
 	ai_checked?: boolean; // Was this updated by AI?
 	checked_reason?: string; // Why AI updated it
 }
