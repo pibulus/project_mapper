@@ -26,16 +26,14 @@ import { textMatchesTopic } from '$lib/utils/topicUtils';
 	let newItemDescription = '';
 	let showSearch = false;
 	let searchQuery = '';
-	let sortingStyle = 'manual'; // 'manual', 'assignee', 'updated_at'
+	let sortingStyle: 'manual' | 'assignee' | 'updated_at' = 'manual';
 	let draggedItemId: string | null = null;
 	let hoveredItemId: string | null = null;
 	let selectedItemIndex: number = -1; // For keyboard navigation
-	let listContainerRef: HTMLDivElement;
 	let modalRef: HTMLDivElement;
 let newItemTextarea: HTMLTextAreaElement;
 const { hoveredTopic, selectedTopic } = topicSelection;
-$
-: activeTopic = $hoveredTopic || $selectedTopic;
+$: activeTopic = $hoveredTopic || $selectedTopic;
 
 	// Derived state from the store
 	$: completedCount = $actionItems.filter((i) => i.status === 'completed').length;
@@ -91,7 +89,7 @@ $
 		}
 	}
 
-	const sortingModes = ['manual', 'assignee', 'updated_at'];
+	const sortingModes = ['manual', 'assignee', 'updated_at'] as const;
 	function cycleSortMode() {
 		const currentIndex = sortingModes.indexOf(sortingStyle);
 		const nextIndex = (currentIndex + 1) % sortingModes.length;
@@ -210,12 +208,11 @@ $
 
 	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 	<div
-		bind:this={listContainerRef}
 		on:keydown={handleKeyDown}
 		tabindex="0"
 		role="list"
 		aria-label="Action items list"
-		style="max-height: 400px; overflow-y: auto; outline: none;"
+		class="action-items-list"
 	>
 		{#if showSearch}
 			<div class="search-form">
@@ -262,7 +259,7 @@ $
 				{/if}
 			</div>
 		{:else}
-			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+			<div class="items-container">
 				{#each sortedItems as item, index (item.id)}
 					<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 					<div
@@ -557,5 +554,17 @@ $
 		font-size: var(--pm-text-xs);
 		color: var(--pm-brown);
 		opacity: 0.7;
+	}
+
+	.action-items-list {
+		max-height: 400px;
+		overflow-y: auto;
+		outline: none;
+	}
+
+	.items-container {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 </style>
