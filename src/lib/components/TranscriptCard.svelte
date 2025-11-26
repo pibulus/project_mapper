@@ -7,6 +7,7 @@
 	import { currentProject } from '$lib/stores/projectStore';
 	import Card from './ui/Card.svelte';
 	import { topicSelection } from '$lib/stores/topicSelection';
+	import { textMatchesTopic } from '$lib/utils/topicUtils';
 
 	const { hoveredTopic, selectedTopic } = topicSelection;
 
@@ -14,9 +15,25 @@
 	$: lines = transcript.split('\n').filter((line) => line.trim());
 	$: activeTopic = $hoveredTopic || $selectedTopic;
 
+	let lineRefs: HTMLParagraphElement[] = [];
+
 	function lineMatchesTopic(line: string): boolean {
-		if (!activeTopic?.label) return false;
-		return line.toLowerCase().includes(activeTopic.label.toLowerCase());
+		return textMatchesTopic(line, activeTopic);
+	}
+
+	function scrollToLine(index: number) {
+		const el = lineRefs[index];
+		if (!el) return;
+		el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		el.classList.add('line-pulse');
+		setTimeout(() => el.classList.remove('line-pulse'), 900);
+	}
+
+	$: if (activeTopic) {
+		const targetIndex = lines.findIndex((line) => lineMatchesTopic(line));
+		if (targetIndex >= 0) {
+			scrollToLine(targetIndex);
+		}
 	}
 </script>
 
@@ -26,8 +43,9 @@
 			<p class="empty-state">No transcript yet</p>
 		{:else}
 			<div style="display: flex; flex-direction: column; gap: 0.5rem;">
-				{#each lines as line}
+				{#each lines as line, index}
 					<p
+						bind:this={lineRefs[index]}
 						class:line-highlight={lineMatchesTopic(line)}
 						style="
 							font-size: var(--pm-text-sm);
@@ -50,5 +68,18 @@
 	.line-highlight {
 		background: rgba(255, 105, 180, 0.15);
 		box-shadow: inset 0 0 0 1px rgba(255, 105, 180, 0.4);
+	}
+
+	.line-pulse {
+		animation: pulse 0.9s ease-out;
+	}
+
+	@keyframes pulse {
+		0% {
+			box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.45);
+		}
+		100% {
+			box-shadow: 0 0 0 24px rgba(255, 105, 180, 0);
+		}
 	}
 </style>

@@ -8,10 +8,11 @@
 	 */
 	import { onMount } from 'svelte';
 	import { currentProject, loadFromLocalStorage } from '$lib/stores/projectStore';
-import Upload from '$lib/components/Upload.svelte';
-import Dashboard from '$lib/components/Dashboard.svelte';
-import ExportDrawer from '$lib/components/ExportDrawer.svelte';
-import AppendButton from '$lib/components/AppendButton.svelte';
+	import Upload from '$lib/components/Upload.svelte';
+	import Dashboard from '$lib/components/Dashboard.svelte';
+	import ExportDrawer from '$lib/components/ExportDrawer.svelte';
+import TopicTooltip from '$lib/components/TopicTooltip.svelte';
+import ProjectHeader from '$lib/components/ProjectHeader.svelte';
 
 	let exportDrawerOpen = false;
 
@@ -22,67 +23,25 @@ import AppendButton from '$lib/components/AppendButton.svelte';
 </script>
 
 <div class="min-h-screen">
-	<!-- Header - Sticky glass -->
-	<header style="
-		background: var(--pm-glass-bg);
-		backdrop-filter: blur(var(--pm-glass-blur));
-		-webkit-backdrop-filter: blur(var(--pm-glass-blur));
-		border-bottom: var(--pm-border-medium) solid rgba(30, 23, 20, 0.08);
-		box-shadow: var(--pm-shadow-soft);
-		height: 80px;
-		position: sticky;
-		top: 0;
-		z-index: 50;
-	">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-			{#if $currentProject}
-				<!-- Project header -->
-				<div class="flex items-center gap-3 flex-1 min-w-0">
-					<button
-						on:click={() => ($currentProject = null)}
-						class="btn-icon"
-						title="Back to home"
-					>
-						←
-					</button>
-					<h1 style="
-						font-size: var(--pm-text-2xl);
-						font-weight: 800;
-						color: var(--pm-black);
-						letter-spacing: -0.03em;
-					">
-						{$currentProject.title || 'Untitled Project'}
-					</h1>
-				</div>
-				<div class="flex items-center gap-2">
-					<AppendButton />
-					<!-- Export button -->
-					<button
-						on:click={() => (exportDrawerOpen = true)}
-						class="btn btn-primary"
-					>
-						Export
-					</button>
-				</div>
-			{:else}
-				<!-- App header -->
-				<h1 style="
-					font-size: var(--pm-text-2xl);
-					font-weight: 800;
-					color: var(--pm-black);
-					letter-spacing: -0.03em;
-				">
-					Project Mapper
-				</h1>
-			{/if}
-		</div>
-	</header>
+	<!-- Header -->
+	{#if $currentProject}
+		<ProjectHeader
+			project={$currentProject}
+			on:back={() => ($currentProject = null)}
+			on:export={() => (exportDrawerOpen = true)}
+		/>
+	{:else}
+		<header class="app-header">
+			<h1>Project Mapper</h1>
+		</header>
+	{/if}
 
 	<!-- Main content -->
 	<main class="max-w-7xl mx-auto px-4 sm:px-6" style="padding-top: clamp(2rem, 4vh, 3rem);">
 		{#if $currentProject}
 			<!-- Show dashboard when project exists -->
 			<Dashboard />
+			<TopicTooltip />
 		{:else}
 			<!-- Hero section - Glass card with upload inside -->
 			<div class="max-w-4xl mx-auto">
@@ -187,5 +146,21 @@ import AppendButton from '$lib/components/AppendButton.svelte';
 			grid-template-columns: 1fr !important;
 			gap: 2rem !important;
 		}
+	}
+
+	.app-header {
+		background: var(--pm-glass-bg);
+		border-bottom: var(--pm-border-medium) solid rgba(30, 23, 20, 0.08);
+		box-shadow: var(--pm-shadow-soft);
+		padding: 1.5rem 1rem;
+		text-align: center;
+	}
+
+	.app-header h1 {
+		font-size: var(--pm-text-2xl);
+		font-weight: 800;
+		color: var(--pm-black);
+		letter-spacing: -0.03em;
+		margin: 0;
 	}
 </style>

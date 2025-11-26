@@ -6,9 +6,15 @@
 	 */
 	import { currentProject } from '$lib/stores/projectStore';
 	import Card from './ui/Card.svelte';
+	import { topicSelection } from '$lib/stores/topicSelection';
+	import { highlightTextForTopic } from '$lib/utils/topicUtils';
+
+	const { hoveredTopic, selectedTopic } = topicSelection;
 
 	$: summary = $currentProject?.summary || '';
 	$: topicsCount = $currentProject?.topics?.length || 0;
+	$: activeTopic = $hoveredTopic || $selectedTopic;
+	$: highlightedSummary = highlightTextForTopic(summary, activeTopic);
 </script>
 
 <Card title="✨ Summary">
@@ -16,6 +22,7 @@
 		<p class="empty-state">No summary yet</p>
 	{:else}
 		<p
+			class:summary-highlighted={!!activeTopic}
 			style="
 				font-size: var(--pm-text-sm);
 				line-height: 1.7;
@@ -23,7 +30,7 @@
 				margin-bottom: 1rem;
 			"
 		>
-			{summary}
+			{@html highlightedSummary}
 		</p>
 		{#if topicsCount > 0}
 			<div
@@ -41,3 +48,15 @@
 		{/if}
 	{/if}
 </Card>
+
+<style>
+	.topic-highlight {
+		background: rgba(255, 105, 180, 0.2);
+		padding: 0 0.15rem;
+		border-radius: var(--pm-radius-sm);
+	}
+
+	.summary-highlighted {
+		transition: background-color var(--pm-transition-fast);
+	}
+</style>

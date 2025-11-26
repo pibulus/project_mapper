@@ -6,8 +6,8 @@
 	 * This is a "dumb" component that gets its state and logic
 	 * from the dedicated actionItemsStore.
 	 */
-	import type { ActionItem } from '$lib/core/types';
-	import { marked } from 'marked';
+import type { ActionItem } from '$lib/core/types';
+import { marked } from 'marked';
 	import {
 		actionItems,
 		toggleItem,
@@ -16,8 +16,10 @@
 		updateItem,
 		reorderItems
 	} from '$lib/stores/actionItemsStore';
-	import Card from './ui/Card.svelte';
-	import ActionItemsHeader from './ActionItemsHeader.svelte';
+import Card from './ui/Card.svelte';
+import ActionItemsHeader from './ActionItemsHeader.svelte';
+import { topicSelection } from '$lib/stores/topicSelection';
+import { textMatchesTopic } from '$lib/utils/topicUtils';
 
 	// Local UI state
 	let isAdding = false;
@@ -30,7 +32,10 @@
 	let selectedItemIndex: number = -1; // For keyboard navigation
 	let listContainerRef: HTMLDivElement;
 	let modalRef: HTMLDivElement;
-	let newItemTextarea: HTMLTextAreaElement;
+let newItemTextarea: HTMLTextAreaElement;
+const { hoveredTopic, selectedTopic } = topicSelection;
+$
+: activeTopic = $hoveredTopic || $selectedTopic;
 
 	// Derived state from the store
 	$: completedCount = $actionItems.filter((i) => i.status === 'completed').length;
@@ -265,6 +270,7 @@
 						class:dragging={draggedItemId === item.id}
 						class:drag-over={hoveredItemId === item.id && draggedItemId !== item.id}
 						class:selected={selectedItemIndex === index}
+						class:topic-match={activeTopic && textMatchesTopic(item.description, activeTopic)}
 						draggable={sortingStyle === 'manual'}
 						role="listitem"
 						on:dragstart={() => handleDragStart(item.id)}
@@ -446,6 +452,11 @@
 		outline: 2px solid var(--pm-mint);
 		outline-offset: 2px;
 		box-shadow: 0 0 0 4px rgba(168, 216, 234, 0.15);
+	}
+
+	.action-item-wrapper.topic-match .action-item {
+		border-color: rgba(255, 105, 180, 0.6);
+		box-shadow: 3px 3px 0 rgba(255, 105, 180, 0.2);
 	}
 
 	.delete-btn {

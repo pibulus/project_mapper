@@ -34,32 +34,80 @@
 </script>
 
 {#if !$currentProject}
-	<!-- Loading skeleton -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+	<div class="dashboard-grid loading">
 		{#each Array(4) as _, i}
 			<div class="card card-body animate-pulse">
-				<div class="h-4 bg-gray-200 rounded mb-3 w-3/4"></div>
-				<div class="h-3 bg-gray-200 rounded mb-2 w-full"></div>
-				<div class="h-3 bg-gray-200 rounded mb-2 w-5/6"></div>
-				<div class="h-3 bg-gray-200 rounded w-4/6"></div>
+				<div class="skeleton-line w-3/4"></div>
+				<div class="skeleton-line w-full"></div>
+				<div class="skeleton-line w-5/6"></div>
+				<div class="skeleton-line w-4/6"></div>
 			</div>
 		{/each}
 	</div>
 {:else}
-	<!-- Dashboard grid -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-		<!-- Card 1: Transcript -->
-		<TranscriptCard />
-
-		<!-- Card 2: Summary -->
-		<SummaryCard />
-
-		<!-- Card 3: Action Items -->
-		<ActionItemsCard />
-
-		<!-- Card 4: Topic Graph (full width) -->
-		<div class="md:col-span-2 lg:col-span-3">
-			<TopicGraphCard />
-		</div>
+	<div class="dashboard-grid">
+		<section class="panel transcript">
+			<TranscriptCard />
+		</section>
+		<section class="panel summary">
+			<SummaryCard />
+		</section>
+		<section class="panel action-items">
+			<ActionItemsCard />
+		</section>
+		<section class="panel graph">
+			<TopicGraphCard partySend={party ? party.send : null} />
+		</section>
 	</div>
 {/if}
+
+<style>
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: repeat(12, minmax(0, 1fr));
+		gap: clamp(1rem, 2vw, 1.5rem);
+	}
+
+	.panel {
+		grid-column: span 12;
+	}
+
+	@media (min-width: 768px) {
+		.panel.transcript {
+			grid-column: span 12;
+		}
+		.panel.summary {
+			grid-column: span 12;
+		}
+		.panel.action-items {
+			grid-column: span 12;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.panel.transcript {
+			grid-column: span 8;
+		}
+		.panel.summary {
+			grid-column: span 4;
+		}
+		.panel.action-items {
+			grid-column: span 12;
+		}
+	}
+
+	.panel.graph {
+		grid-column: span 12;
+	}
+
+	.dashboard-grid.loading .card {
+		min-height: 160px;
+	}
+
+	.skeleton-line {
+		height: 0.75rem;
+		background: rgba(30, 23, 20, 0.08);
+		border-radius: 999px;
+		margin-bottom: 0.5rem;
+	}
+</style>

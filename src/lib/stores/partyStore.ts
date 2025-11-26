@@ -19,6 +19,7 @@ import type {
   ActionItem,
   ActionItemStatusUpdate,
 } from "$lib/core/types";
+import { topicSelection } from "$lib/stores/topicSelection";
 
 interface PresenceInfo {
   count: number;
@@ -81,13 +82,16 @@ export function createProjectParty(projectId: string) {
               return { count: users.size, users };
             });
             break;
-          case "user_left":
-            presence.update((p) => {
-              const users = new Set(p.users);
-              if (msg.userId) users.delete(msg.userId);
-              return { count: users.size, users };
-            });
-            break;
+      case "user_left":
+        presence.update((p) => {
+          const users = new Set(p.users);
+          if (msg.userId) users.delete(msg.userId);
+          return { count: users.size, users };
+        });
+        if (msg.userId) {
+          topicSelection.clearRemoteUser(msg.userId);
+        }
+        break;
 
           // Analysis updates
           case "transcript":
@@ -127,6 +131,16 @@ export function createProjectParty(projectId: string) {
               updateProject({ actionItems: newItems });
               return newItems;
             });
+            break;
+          case "topic-hover":
+            if (msg.userId) {
+              topicSelection.setRemoteHover(msg.userId, msg.data?.topic ?? null);
+            }
+            break;
+          case "topic-selection":
+            if (msg.userId) {
+              topicSelection.setRemoteSelection(msg.userId, msg.data?.topic ?? null);
+            }
             break;
         }
       } catch (error) {
