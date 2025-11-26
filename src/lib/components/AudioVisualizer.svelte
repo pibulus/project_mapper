@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 
 	// Audio visualization configuration
-	let audioDataArray;
-	let animationFrameId;
+	let audioDataArray: Float32Array;
+	let animationFrameId: number;
 	let audioLevel = 0;
-	let history = []; // Array to store audio level history
+	let history: number[] = []; // Array to store audio level history
 	const historyLength = 48; // More bars for project_mapper (talktype uses 30)
-	let analyser;
-	let audioContext;
+	let analyser: AnalyserNode | null;
+	let audioContext: AudioContext | null;
 	let recording = false;
 
 	// Safari/iOS detection
@@ -22,9 +22,9 @@
 	const useFallbackVisualizer = isiPhone || isSafari;
 
 	// Platform-specific calibration
-	let scalingFactor;
-	let offset;
-	let exponent;
+	let scalingFactor: number;
+	let offset: number;
+	let exponent: number;
 
 	if (isAndroid) {
 		scalingFactor = 40;
@@ -63,7 +63,8 @@
 				);
 			}
 
-			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+			audioContext = new AudioContextClass();
 			analyser = audioContext.createAnalyser();
 			const source = audioContext.createMediaStreamSource(stream);
 			source.connect(analyser);
@@ -175,7 +176,7 @@
 
 		const bufferLength = analyser.frequencyBinCount;
 		audioDataArray = new Float32Array(bufferLength);
-		analyser.getFloatFrequencyData(audioDataArray);
+		analyser.getFloatFrequencyData(audioDataArray as any);
 
 		let sum = 0;
 		for (let i = 0; i < bufferLength; i++) {

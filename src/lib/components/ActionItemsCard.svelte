@@ -207,6 +207,7 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 	</svelte:fragment>
 
 	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+	<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 	<div
 		on:keydown={handleKeyDown}
 		tabindex="0"

@@ -40,6 +40,7 @@ interface NodeData {
   fy?: number | null;
   vx?: number;
   vy?: number;
+  [key: string]: any;
 }
 
 interface EdgeData {
@@ -469,16 +470,27 @@ export function forceDirectedEmojimap(
   node: HTMLElement,
   params: { nodes?: NodeData[]; edges?: EdgeData[]; config?: Partial<Config> },
 ): EmojimapHandle {
-  // Validate node
-  if (!node) {
-    console.error("No DOM node provided to forceDirectedEmojimap");
-    return {
-      update: () => {},
-      resetVisualization: () => {},
-      updateLayout: () => {},
-      destroy: () => {},
-    };
-  }
+	// Validate node
+	if (!node) {
+		console.error("No DOM node provided to forceDirectedEmojimap");
+		return {
+			update: () => {},
+			resetVisualization: () => {},
+			updateLayout: () => {},
+			destroy: () => {},
+		};
+	}
+
+	// Validate D3
+	if (!d3) {
+		console.error("[Emojimap] D3 library is not available");
+		return {
+			update: () => {},
+			resetVisualization: () => {},
+			updateLayout: () => {},
+			destroy: () => {},
+		};
+	}
 
   let { nodes = [], edges = [], config = {} } = params || {};
 

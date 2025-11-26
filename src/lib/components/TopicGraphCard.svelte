@@ -8,10 +8,18 @@
 	import { tick, onDestroy } from 'svelte';
 	import type { Node, Edge } from '$lib/core/types';
 	import { currentProject } from '$lib/stores/projectStore';
-import Card from './ui/Card.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
 	import { emojimap } from '$lib/actions/emojimap';
 	import type { EmojimapHandle } from '$lib/utils/forceDirectedEmojimap';
-import { topicSelection } from '$lib/stores/topicSelection';
+	import { topicSelection } from '$lib/stores/topicSelection';
+
+	// Debug imports
+	console.log('[TopicGraphCard] Imports check:', { 
+		Card: !!Card, 
+		emojimap: !!emojimap, 
+		topicSelection: !!topicSelection,
+		currentProject: !!currentProject 
+	});
 
 	export let partySend: ((type: string, data?: any) => void) | null = null;
 
@@ -127,9 +135,9 @@ $: if (projectId && projectId !== lastSelectionProjectId) {
 		return { ...topic };
 	});
 
-	function handlePositionsChange(nodesData: GraphNode[]) {
+	function handlePositionsChange(nodesData: any[]) {
 		if (!projectId) return;
-		const positions = nodesData.reduce<PositionMap>((acc, node) => {
+		const positions = (nodesData as GraphNode[]).reduce<PositionMap>((acc, node) => {
 			if (!node.id) return acc;
 			acc[node.id] = {
 				x: Number.isFinite(node.x) ? (node.x as number) : 0,
@@ -214,14 +222,14 @@ onDestroy(() => {
 		onPositionsChange: handlePositionsChange
 	};
 
-	const handleNodeHover = (_event: unknown, node: GraphNode) => {
-		topicSelection.setHoveredTopic(node);
-		broadcastHover(node);
+	const handleNodeHover = (_event: unknown, node: any) => {
+		topicSelection.setHoveredTopic(node as GraphNode);
+		broadcastHover(node as GraphNode);
 	};
 
-	const handleNodeSelect = (_event: unknown, node: GraphNode) => {
-		topicSelection.setSelectedTopic(node);
-		broadcastSelection(node);
+	const handleNodeSelect = (_event: unknown, node: any) => {
+		topicSelection.setSelectedTopic(node as GraphNode);
+		broadcastSelection(node as GraphNode);
 	};
 
 	const clearHover = () => {
@@ -261,12 +269,16 @@ onDestroy(() => {
 	{:else}
 		<div class:fullscreen-wrapper={isFullscreen}>
 			{#if isFullscreen}
+				<!-- svelte-ignore a11y-click-events-have-key-events -->
+				<!-- svelte-ignore a11y-no-static-element-interactions -->
 				<div class="fullscreen-backdrop" on:click={closeFullscreen}></div>
 			{/if}
 			<div
 				class="graph-surface"
 				class:fullscreen={isFullscreen}
 				bind:this={graphContainer}
+				role="figure"
+				aria-label="Topic Graph Visualization"
 				use:emojimap={{ nodes: graphNodes, edges, config: graphConfig }}
 				on:emojimapready={handleGraphReady}
 				on:emojimapdestroyed={() => (graphHandle = null)}
@@ -283,7 +295,8 @@ onDestroy(() => {
 		<!-- Simple topic badges below graph -->
 		<div class="badge-row">
 			{#each graphNodes.slice(0, 6) as topic}
-				<div
+				<button
+					type="button"
 					class="badge"
 					class:badge-active={selectedTopic?.id === topic.id}
 					class:badge-hover={hoveredTopic?.id === topic.id}
@@ -294,7 +307,7 @@ onDestroy(() => {
 				>
 					<span style="font-size: 1.125rem;">{topic.emoji}</span>
 					<span>{topic.label}</span>
-				</div>
+				</button>
 			{/each}
 			{#if topics.length > 6}
 				<div class="badge-overflow">+{topics.length - 6} more</div>
@@ -327,7 +340,7 @@ onDestroy(() => {
 					</div>
 				{/if}
 			</div>
-		</div>
+	{/if}
 	{/if}
 </Card>
 
