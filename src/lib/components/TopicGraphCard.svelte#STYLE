@@ -1,0 +1,64 @@
+<style>
+	.graph-toolbar {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	.graph-controls {
+		display: inline-flex;
+		gap: 0.35rem;
+	}
+
+	.graph-btn {
+		border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+		border-radius: var(--pm-radius-sm);
+		background: white;
+		padding: 0.15rem 0.6rem;
+		font-size: var(--pm-text-xs);
+		font-weight: 600;
+		color: var(--pm-brown);
+		cursor: pointer;
+		transition: all var(--pm-transition-fast);
+		box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.08);
+	}
+
+	.graph-btn:hover {
+		border-color: var(--pm-pink);
+		color: var(--pm-pink);
+		transform: translateY(-1px);
+		box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.12);
+	}
+
+	.badge-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 1rem;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		border-radius: var(--pm-radius-full);
+		padding: 0.3rem 0.75rem;
+		font-size: var(--pm-text-sm);
+		background: var(--pm-cream-light);
+	}
+
+	.badge-overflow {
+		font-size: var(--pm-text-sm);
+		color: var(--pm-brown);
+		opacity: 0.7;
+	}
+
+	.empty-state {
+		padding: 1rem 0;
+		color: var(--pm-brown);
+		opacity: 0.7;
+		text-align: center;
+	}
+</style>

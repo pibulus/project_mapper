@@ -2,30 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getAIService } from "$lib/server/geminiService";
 import { processText } from "$lib/core/orchestration/conversation-flow";
-import type { PartyKitRoom } from "$lib/types";
-
-const PARTYKIT_HOST = "http://127.0.0.1:1999";
-
-async function postUpdateToParty(roomId: string, update: any) {
-  const url = `${PARTYKIT_HOST}/parties/project/${roomId}`;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(update),
-    });
-    if (!response.ok) {
-      console.error(
-        `[API /process-stream] Failed to send update to party: ${response.statusText}`,
-      );
-    }
-  } catch (error) {
-    console.error(
-      "[API /process-stream] Error sending update to party:",
-      error,
-    );
-  }
-}
+import { postUpdateToParty } from "$lib/server/partyUpdates";
 
 export const POST: RequestHandler = async ({ request }) => {
   try {

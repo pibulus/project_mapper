@@ -5,18 +5,28 @@
  * This is the nervous system in action
  */
 
-import type { AIService, GeminiAudioPart } from "../ai/gemini.ts";
-import { analyzeAudio, analyzeText } from "./parallel-analysis.ts";
+import type { AIService } from "../ai/gemini.ts";
+import { analyzeText, type AnalysisResult } from "./parallel-analysis.ts";
 import type {
   ActionItem,
+  ActionItemInput,
+  ActionItemStatusUpdate,
   Conversation,
-  Edge,
-  Node,
+  ConversationGraph,
   NodeInput,
   Transcript,
 } from "../types/index.ts";
 
 export type AnalysisUpdateCallback = (type: string, data: any) => void;
+
+export interface ProcessTextResult {
+  transcript: Transcript;
+  conversation: Conversation;
+  topics: ConversationGraph;
+  actionItems: ActionItemInput[];
+  summary: string;
+  statusUpdates: ActionItemStatusUpdate[];
+}
 
 /**
  * Process new text input and stream results
@@ -29,8 +39,8 @@ export async function processText(
   existingActionItems: ActionItem[] = [],
   existingNodes: NodeInput[] = [],
   onUpdate?: AnalysisUpdateCallback,
-): Promise<void> {
-  const initialTranscript = {
+): Promise<ProcessTextResult> {
+  const initialTranscript: Transcript = {
     id: crypto.randomUUID(),
     conversation_id: conversationId,
     text,
@@ -41,7 +51,7 @@ export async function processText(
   onUpdate?.("transcript", initialTranscript);
 
   // Parallel AI analysis, with streaming updates
-  await analyzeText(
+  const analysis: AnalysisResult = await analyzeText(
     aiService,
     text,
     speakers,
@@ -54,13 +64,24 @@ export async function processText(
   const title = await aiService.generateTitle(text);
   onUpdate?.("title", title);
 
-  const conversation = {
+  const conversation: Conversation = {
     id: conversationId,
     title,
     source: "text",
     transcript: text,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   onUpdate?.("conversation", conversation);
+
+  return {
+    transcript: initialTranscript,
+    conversation,
+    topics: analysis.topics,
+    actionItems: analysis.actionItems,
+    summary: analysis.summary,
+    statusUpdates: analysis.statusUpdates,
+  };
 }
 
 /**

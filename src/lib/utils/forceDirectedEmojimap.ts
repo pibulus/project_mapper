@@ -75,6 +75,7 @@ interface Config {
   onRightClickEdge?: (event: any, d: EdgeData) => void;
   onBackgroundClick?: (event: any) => void;
   onRightClickBackground?: (event: any) => void;
+  onPositionsChange?: (nodes: NodeData[]) => void;
 }
 
 // ===================================================================
@@ -257,18 +258,12 @@ function dragended(
 function createNodeGroup(
   selection: d3.Selection<SVGGElement, NodeData, SVGGElement, unknown>,
   config: Config,
-  simulation: d3.Simulation<NodeData, undefined>,
+  dragBehavior: d3.DragBehavior<SVGGElement, NodeData, NodeData>,
 ) {
   selection
     .attr("class", "node-group")
     .style("cursor", "grab")
-    .call(
-      d3
-        .drag<SVGGElement, NodeData>()
-        .on("start", (event, d) => dragstarted(event, d, simulation))
-        .on("drag", dragged)
-        .on("end", (event, d) => dragended(event, d, simulation)),
-    )
+    .call(dragBehavior)
     .on("mouseover", (event, d) => {
       if (config.onMouseOverNode) config.onMouseOverNode(event, d);
     })
@@ -317,6 +312,7 @@ function updateElements({
   currentEdges,
   config,
   simulation,
+  dragBehavior,
 }: {
   nodeGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
   linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -324,6 +320,7 @@ function updateElements({
   currentEdges: EdgeData[];
   config: Config;
   simulation: d3.Simulation<NodeData, undefined>;
+  dragBehavior: d3.DragBehavior<SVGGElement, NodeData, NodeData>;
 }) {
   // Update links
   const linkElements = linkGroup
@@ -358,7 +355,7 @@ function updateElements({
       (enter) =>
         enter
           .append("g")
-          .call((selection) => createNodeGroup(selection, config, simulation)),
+          .call((selection) => createNodeGroup(selection, config, dragBehavior)),
       (update) => update,
       (exit) => exit.remove(),
     );
@@ -575,6 +572,28 @@ export function forceDirectedEmojimap(
       ticked(elems);
     });
 
+  const dragBehavior = d3
+    .drag<SVGGElement, NodeData>()
+    .on("start", (event, d) => dragstarted(event, d, simulation))
+    .on("drag", dragged)
+    .on("end", (event, d) => {
+      dragended(event, d, simulation);
+      mergedConfig.onPositionsChange?.(nodes);
+    });
+
+  simulation.on("tick", () => {
+    const elems = updateElements({
+      nodeGroup,
+      linkGroup,
+      nodes,
+      currentEdges,
+      config: mergedConfig,
+      simulation,
+      dragBehavior,
+    });
+    ticked(elems);
+  });
+
   // Resize handling with debounced fit
   const debouncedFit = debounce(() => fitAllIcons(svg, zoom, node, nodes), 200);
   const resizeObserver = new ResizeObserver(() => {
@@ -693,6 +712,7 @@ export function forceDirectedEmojimap(
       simulation.force("x", d3.forceX(mergedConfig.width / 2).strength(0.05));
       simulation.force("y", d3.forceY(mergedConfig.height / 2).strength(0.05));
       simulation.alpha(1).restart();
+      mergedConfig.onPositionsChange?.(nodes);
     },
 
     resetVisualization() {
@@ -701,6 +721,7 @@ export function forceDirectedEmojimap(
         n.fy = null;
       });
       simulation.alpha(1).restart();
+      mergedConfig.onPositionsChange?.(nodes);
     },
 
     updateLayout() {

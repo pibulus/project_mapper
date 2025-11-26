@@ -8,9 +8,10 @@
 	 */
 	import { onMount } from 'svelte';
 	import { currentProject, loadFromLocalStorage } from '$lib/stores/projectStore';
-	import Upload from '$lib/components/Upload.svelte';
-	import Dashboard from '$lib/components/Dashboard.svelte';
-	import ExportDrawer from '$lib/components/ExportDrawer.svelte';
+import Upload from '$lib/components/Upload.svelte';
+import Dashboard from '$lib/components/Dashboard.svelte';
+import ExportDrawer from '$lib/components/ExportDrawer.svelte';
+import AppendButton from '$lib/components/AppendButton.svelte';
 
 	let exportDrawerOpen = false;
 
@@ -54,6 +55,7 @@
 					</h1>
 				</div>
 				<div class="flex items-center gap-2">
+					<AppendButton />
 					<!-- Export button -->
 					<button
 						on:click={() => (exportDrawerOpen = true)}

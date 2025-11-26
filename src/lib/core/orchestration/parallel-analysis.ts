@@ -7,9 +7,22 @@
  * - Fast user experience
  */
 
-import type { AIService, GeminiAudioPart } from "../ai/gemini.ts";
+import type { AIService } from "../ai/gemini.ts";
 import type { AnalysisUpdateCallback } from "./conversation-flow.ts";
-import type { ActionItem, NodeInput } from "../types/index.ts";
+import type {
+  ActionItem,
+  ActionItemInput,
+  ActionItemStatusUpdate,
+  ConversationGraph,
+  NodeInput,
+} from "../types/index.ts";
+
+export interface AnalysisResult {
+  topics: ConversationGraph;
+  actionItems: ActionItemInput[];
+  summary: string;
+  statusUpdates: ActionItemStatusUpdate[];
+}
 
 /**
  * Run parallel AI analysis on new text and stream results
@@ -21,7 +34,7 @@ export async function analyzeText(
   existingActionItems: ActionItem[] = [],
   existingNodes: NodeInput[] = [],
   onUpdate?: AnalysisUpdateCallback,
-): Promise<void> {
+): Promise<AnalysisResult> {
   // Run all AI operations, streaming results as they become available
   const topicsPromise = aiService
     .extractTopics(text, existingNodes)
@@ -42,19 +55,27 @@ export async function analyzeText(
     return summary;
   });
 
-  // Wait for all analysis to complete
-  const [topics, actionItems] = await Promise.all([
+  const [topics, actionItems, summary] = await Promise.all([
     topicsPromise,
     actionItemsPromise,
     summaryPromise,
   ]);
 
-  // After topics and action items are extracted, check for status updates
+  let statusUpdates: ActionItemStatusUpdate[] = [];
   if (existingActionItems.length > 0) {
-    aiService
-      .checkActionItemStatus(text, existingActionItems)
-      .then((statusUpdates) => {
-        onUpdate?.("status-updates", statusUpdates);
-      });
+    statusUpdates = await aiService.checkActionItemStatus(
+      text,
+      existingActionItems,
+    );
+    if (statusUpdates.length > 0) {
+      onUpdate?.("status-updates", statusUpdates);
+    }
   }
+
+  return {
+    topics,
+    actionItems,
+    summary,
+    statusUpdates,
+  };
 }
