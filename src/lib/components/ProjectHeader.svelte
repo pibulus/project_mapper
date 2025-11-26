@@ -127,6 +127,15 @@
 			</div>
 		</div>
 		<div class="header-right">
+			<div class="sync-status" title={project.syncEnabled ? 'Synced to Cloud' : 'Local Only'}>
+				{#if project.syncEnabled}
+					<span class="status-dot success"></span>
+					<span class="status-text">Synced</span>
+				{:else}
+					<span class="status-dot local"></span>
+					<span class="status-text">Local</span>
+				{/if}
+			</div>
 			<AppendButton />
 			<button class="pill-btn pill-solid" on:click={() => dispatch('export')}>Export</button>
 		</div>
@@ -269,6 +278,39 @@
 		}
 		.header-right {
 			align-self: flex-end;
+			width: 100%;
+			justify-content: flex-end;
+		}
+	}
+
+	.sync-status {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: var(--pm-text-xs);
+		font-weight: 600;
+		color: rgba(30, 23, 20, 0.6);
+		margin-right: 0.5rem;
+	}
+
+	.status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+
+	.status-dot.success {
+		background: var(--pm-mint);
+		box-shadow: 0 0 0 2px rgba(168, 216, 234, 0.2);
+	}
+
+	.status-dot.local {
+		background: rgba(30, 23, 20, 0.2);
+	}
+
+	@media (max-width: 640px) {
+		.status-text {
+			display: none;
 		}
 	}
 </style>

@@ -144,6 +144,7 @@ export async function loadFromSupabase(
       actionItems: data.action_items || [],
       topics: data.topics || [],
       edges: data.edges || [],
+      syncEnabled: true, // If loaded from Supabase, it's synced
     };
 
     currentProject.set(project);
@@ -173,7 +174,7 @@ export function startNewProject(
     actionItems: [],
     topics: [],
     edges: [],
-    syncEnabled: false, // Default to local-only
+    syncEnabled: isSupabaseConfigured(), // Auto-enable if configured
   };
 
   currentProject.set(project);
