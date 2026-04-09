@@ -126,11 +126,17 @@ export function createProjectParty(projectId: string) {
                 const item = newItems.find((i) => i.id === update.id);
                 if (item) {
                   item.status = update.status;
+                  item.ai_checked = true;
+                  item.checked_reason = update.reason;
+                  item.updated_at = new Date().toISOString();
                 }
               });
               updateProject({ actionItems: newItems });
               return newItems;
             });
+            break;
+          case "analysis-warning":
+            console.warn("[PartyKit] Analysis warning:", msg.data);
             break;
           case "topic-hover":
             if (msg.userId) {

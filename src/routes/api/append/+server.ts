@@ -112,6 +112,7 @@ export const POST: RequestHandler = async (event) => {
       actionItems,
       summary: analysisResult.summary,
       statusUpdates: analysisResult.statusUpdates,
+      warnings: analysisResult.warnings,
     });
   } catch (error: any) {
     console.error("[API /append] ❌ Error:", error);
@@ -143,11 +144,11 @@ function sanitizeExistingActionItems(
     assignee:
       item.assignee === undefined || item.assignee === null
         ? null
-        : item.assignee,
+        : String(item.assignee).trim() || null,
     due_date:
       item.due_date === undefined || item.due_date === null
         ? null
-        : item.due_date,
+        : String(item.due_date).trim() || null,
     status: item.status === "completed" ? "completed" : "pending",
     created_at: item.created_at || now,
     updated_at: item.updated_at || now,
@@ -164,19 +165,36 @@ function createActionItemsFromInputs(
   conversationId: string,
   inputs: ActionItemInput[],
   startingSortOrder: number,
+  existingItems: ActionItem[] = [],
 ): ActionItem[] {
   const now = new Date().toISOString();
-  return inputs.map((item, index) => ({
-    id: crypto.randomUUID(),
-    conversation_id: conversationId,
-    description: item.description.trim(),
-    assignee: item.assignee ?? null,
-    due_date: item.due_date ?? null,
-    status: "pending",
-    created_at: now,
-    updated_at: now,
-    sort_order: startingSortOrder + (index + 1) * 10,
-  }));
+  const seenDescriptions = new Set(
+    existingItems.map((item) => item.description.trim().toLowerCase()),
+  );
+
+  return inputs
+    .map((item) => ({
+      ...item,
+      description: item.description.trim(),
+    }))
+    .filter((item) => {
+      if (!item.description) return false;
+      const key = item.description.toLowerCase();
+      if (seenDescriptions.has(key)) return false;
+      seenDescriptions.add(key);
+      return true;
+    })
+    .map((item, index) => ({
+      id: crypto.randomUUID(),
+      conversation_id: conversationId,
+      description: item.description,
+      assignee: item.assignee ?? null,
+      due_date: item.due_date ?? null,
+      status: "pending",
+      created_at: now,
+      updated_at: now,
+      sort_order: startingSortOrder + (index + 1) * 10,
+    }));
 }
 
 function applyStatusUpdates(
@@ -219,6 +237,7 @@ function buildUpdatedActionItems(
     conversationId,
     newActionItemInputs,
     maxSortOrder,
+    existingItems,
   );
 
   const merged = [...existingItems, ...newItems];
@@ -238,10 +257,6 @@ async function broadcastUpdates(
     { type: "summary", data: result.summary },
     { type: "action-items", data: actionItems },
   ];
-
-  if (result.statusUpdates.length > 0) {
-    payloads.push({ type: "status-updates", data: result.statusUpdates });
-  }
 
   await Promise.all(
     payloads.map((payload) => postUpdateToParty(conversationId, payload)),

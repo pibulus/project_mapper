@@ -61,6 +61,28 @@ function cleanJsonResponse(text: string): string {
     .replace(/\s*```$/, "");
 }
 
+function normalizeNullableString(value: unknown): string | null {
+  if (value === undefined || value === null || value === "null") {
+    return null;
+  }
+
+  const normalized = String(value).trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeActionItemInput(item: any): ActionItemInput | null {
+  const description = String(item?.description || "").trim();
+  if (!description || description.toLowerCase() === "no action items") {
+    return null;
+  }
+
+  return {
+    description: description.charAt(0).toUpperCase() + description.slice(1),
+    assignee: normalizeNullableString(item?.assignee),
+    due_date: normalizeNullableString(item?.due_date),
+  };
+}
+
 // ===================================================================
 // AI SERVICE
 // ===================================================================
@@ -155,21 +177,23 @@ export function createGeminiService(model: any): AIService {
 
         try {
           const actionItems = JSON.parse(cleanedText);
-          return actionItems.map((item: any) => ({
-            description:
-              item.description.charAt(0).toUpperCase() +
-              item.description.slice(1),
-            assignee: item.assignee === "null" ? null : item.assignee,
-            due_date: item.due_date === "null" ? null : item.due_date,
-          }));
+          if (!Array.isArray(actionItems)) {
+            throw new Error("Action items response was not an array");
+          }
+
+          return actionItems
+            .map((item: any) => normalizeActionItemInput(item))
+            .filter((item): item is ActionItemInput => Boolean(item));
         } catch (e) {
           console.error("Error parsing action items JSON:", e);
           console.error("Raw text was:", text);
-          return [];
+          throw new Error("Invalid action item response from Gemini");
         }
       } catch (error) {
         console.error("Error extracting action items:", error);
-        return [];
+        throw error instanceof Error
+          ? error
+          : new Error("Failed to extract action items");
       }
     },
 
@@ -203,15 +227,27 @@ export function createGeminiService(model: any): AIService {
         }
 
         try {
-          return JSON.parse(cleanedText);
+          const parsed = JSON.parse(cleanedText);
+          if (!Array.isArray(parsed)) {
+            throw new Error("Action item status response was not an array");
+          }
+
+          return parsed.map((update: any) => ({
+            id: String(update.id || ""),
+            description: String(update.description || ""),
+            status: update.status === "completed" ? "completed" : "pending",
+            reason: String(update.reason || "").trim(),
+          }));
         } catch (e) {
           console.error("Error parsing action item status JSON:", e);
           console.error("Raw text was:", text);
-          return [];
+          throw new Error("Invalid action item status response from Gemini");
         }
       } catch (error) {
         console.error("Error checking action item status:", error);
-        return [];
+        throw error instanceof Error
+          ? error
+          : new Error("Failed to check action item status");
       }
     },
 

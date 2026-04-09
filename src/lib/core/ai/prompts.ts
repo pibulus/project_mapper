@@ -24,8 +24,8 @@ Make sure you show each speaker's name before their text.
 // ACTION ITEMS
 // ===================================================================
 
-export const ACTION_ITEMS_BASE_PROMPT = `Extract action items
-If there are not action item then make one called 'No action items' and set the assignee to null and the due date to null.
+export const ACTION_ITEMS_BASE_PROMPT = `Extract action items.
+If there are no action items, return an empty array [].
 Return only a JSON array like this:
 [
   {

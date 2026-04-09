@@ -8,6 +8,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { currentProject, updateProject, startNewProject } from '$lib/stores/projectStore';
+	import { appendAudioToProject as appendProjectAudio } from '$lib/core/orchestration/append-audio';
 	import { get } from 'svelte/store';
 	import AudioVisualizer from './AudioVisualizer.svelte';
 	import LoadingModal from './LoadingModal.svelte';
@@ -286,33 +287,11 @@
 			throw new Error('No active project selected for append');
 		}
 
-		const formData = new FormData();
-		formData.append('audio', file);
-		formData.append('conversationId', projectId);
-		formData.append('existingActionItems', JSON.stringify(project.actionItems || []));
-
-		const response = await fetch('/api/append', {
-			method: 'POST',
-			body: formData
-		});
-
-		if (!response.ok) {
-			const data = await response.json().catch(() => ({}));
-			throw new Error(data.error || 'Failed to append audio');
+		const { updates, warnings } = await appendProjectAudio(project, file);
+		updateProject(updates);
+		if (warnings?.length) {
+			console.warn('Append analysis warnings:', warnings);
 		}
-
-		const result = await response.json();
-		const appendedTranscript = [project.transcript, result?.transcript?.text]
-			.filter(Boolean)
-			.join('\n\n');
-
-		updateProject({
-			transcript: appendedTranscript,
-			summary: result.summary ?? project.summary,
-			actionItems: result.actionItems ?? project.actionItems,
-			topics: result.topics?.nodes ?? project.topics,
-			edges: result.topics?.edges ?? project.edges
-		});
 
 		console.log(`✅ Appended audio to project ${projectId}`);
 	}

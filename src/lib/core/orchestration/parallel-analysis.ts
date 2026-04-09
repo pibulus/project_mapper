@@ -22,6 +22,12 @@ export interface AnalysisResult {
   actionItems: ActionItemInput[];
   summary: string;
   statusUpdates: ActionItemStatusUpdate[];
+  warnings: AnalysisWarning[];
+}
+
+export interface AnalysisWarning {
+  scope: "topics" | "action-items" | "summary" | "status-updates";
+  message: string;
 }
 
 /**
@@ -35,12 +41,29 @@ export async function analyzeText(
   existingNodes: NodeInput[] = [],
   onUpdate?: AnalysisUpdateCallback,
 ): Promise<AnalysisResult> {
+  const warnings: AnalysisWarning[] = [];
+
+  const captureWarning = (
+    scope: AnalysisWarning["scope"],
+    error: unknown,
+  ) => {
+    const message =
+      error instanceof Error ? error.message : `Unexpected ${scope} failure`;
+    const warning = { scope, message };
+    warnings.push(warning);
+    onUpdate?.("analysis-warning", warning);
+  };
+
   // Run all AI operations, streaming results as they become available
   const topicsPromise = aiService
     .extractTopics(text, existingNodes)
     .then((topics) => {
       onUpdate?.("topics", topics);
       return topics;
+    })
+    .catch((error) => {
+      captureWarning("topics", error);
+      return { nodes: [], edges: [] };
     });
 
   const actionItemsPromise = aiService
@@ -48,11 +71,18 @@ export async function analyzeText(
     .then((actionItems) => {
       onUpdate?.("action-items", actionItems);
       return actionItems;
+    })
+    .catch((error) => {
+      captureWarning("action-items", error);
+      return [];
     });
 
   const summaryPromise = aiService.generateSummary(text).then((summary) => {
     onUpdate?.("summary", summary);
     return summary;
+  }).catch((error) => {
+    captureWarning("summary", error);
+    return "";
   });
 
   const [topics, actionItems, summary] = await Promise.all([
@@ -63,12 +93,16 @@ export async function analyzeText(
 
   let statusUpdates: ActionItemStatusUpdate[] = [];
   if (existingActionItems.length > 0) {
-    statusUpdates = await aiService.checkActionItemStatus(
-      text,
-      existingActionItems,
-    );
-    if (statusUpdates.length > 0) {
-      onUpdate?.("status-updates", statusUpdates);
+    try {
+      statusUpdates = await aiService.checkActionItemStatus(
+        text,
+        existingActionItems,
+      );
+      if (statusUpdates.length > 0) {
+        onUpdate?.("status-updates", statusUpdates);
+      }
+    } catch (error) {
+      captureWarning("status-updates", error);
     }
   }
 
@@ -77,5 +111,6 @@ export async function analyzeText(
     actionItems,
     summary,
     statusUpdates,
+    warnings,
   };
 }

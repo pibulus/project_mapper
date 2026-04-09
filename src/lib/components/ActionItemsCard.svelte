@@ -79,6 +79,11 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 		updateItem(itemId, { description: newDescription });
 	}
 
+	function normalizeOptionalField(value: string) {
+		const trimmed = value.trim();
+		return trimmed ? trimmed : null;
+	}
+
 	function handleDescriptionKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
@@ -305,22 +310,33 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 								</div>
 
 								<div class="action-meta">
-									<input
-										type="text"
-										placeholder="Assignee"
-										class="meta-input"
-										value={item.assignee}
-										on:blur={(e) => updateItem(item.id, { assignee: e.currentTarget.value })}
-									/>
-									<input
-										type="date"
-										class="meta-input"
-										value={item.due_date}
-										on:blur={(e) => updateItem(item.id, { due_date: e.currentTarget.value })}
-									/>
+										<input
+											type="text"
+											placeholder="Assignee"
+											class="meta-input"
+											value={item.assignee ?? ''}
+											on:blur={(e) =>
+												updateItem(item.id, {
+													assignee: normalizeOptionalField(e.currentTarget.value)
+												})}
+										/>
+										<input
+											type="date"
+											class="meta-input"
+											value={item.due_date ?? ''}
+											on:blur={(e) =>
+												updateItem(item.id, {
+													due_date: normalizeOptionalField(e.currentTarget.value)
+												})}
+										/>
+									</div>
+									{#if item.ai_checked && item.checked_reason}
+										<p class="ai-checkoff-note" title={item.checked_reason}>
+											Auto-updated: {item.checked_reason}
+										</p>
+									{/if}
 								</div>
-							</div>
-						</label>
+							</label>
 						<button
 							class="delete-btn"
 							aria-label="Delete item"
@@ -397,11 +413,18 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 		border-color: rgba(0, 0, 0, 0.15);
 		box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.05);
 	}
-	.meta-input:focus {
-		outline: none;
-		border: 2px solid var(--pm-mint);
-		box-shadow: 2px 2px 0 rgba(168, 216, 234, 0.2);
-	}
+		.meta-input:focus {
+			outline: none;
+			border: 2px solid var(--pm-mint);
+			box-shadow: 2px 2px 0 rgba(168, 216, 234, 0.2);
+		}
+		.ai-checkoff-note {
+			margin-top: 0.35rem;
+			font-size: var(--pm-text-xs);
+			color: var(--pm-brown);
+			opacity: 0.75;
+			font-style: italic;
+		}
 	.add-form {
 		display: flex;
 		flex-direction: column;

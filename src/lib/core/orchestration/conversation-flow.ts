@@ -6,7 +6,11 @@
  */
 
 import type { AIService } from "../ai/gemini.ts";
-import { analyzeText, type AnalysisResult } from "./parallel-analysis.ts";
+import {
+  analyzeText,
+  type AnalysisResult,
+  type AnalysisWarning,
+} from "./parallel-analysis.ts";
 import type {
   ActionItem,
   ActionItemInput,
@@ -26,6 +30,7 @@ export interface ProcessTextResult {
   actionItems: ActionItemInput[];
   summary: string;
   statusUpdates: ActionItemStatusUpdate[];
+  warnings: AnalysisWarning[];
 }
 
 /**
@@ -81,6 +86,7 @@ export async function processText(
     actionItems: analysis.actionItems,
     summary: analysis.summary,
     statusUpdates: analysis.statusUpdates,
+    warnings: analysis.warnings,
   };
 }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
 	import { currentProject, updateProject } from '$lib/stores/projectStore';
+	import { appendAudioToProject } from '$lib/core/orchestration/append-audio';
 
 	let isAppending = false;
 	let errorMessage = '';
@@ -31,32 +32,11 @@
 		errorMessage = '';
 
 		try {
-			const formData = new FormData();
-			formData.append('audio', file);
-			formData.append('conversationId', project.id);
-			formData.append('existingActionItems', JSON.stringify(project.actionItems || []));
-
-			const response = await fetch('/api/append', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (!response.ok) {
-				const data = await response.json().catch(() => ({}));
-				throw new Error(data.error || 'Failed to append audio');
+			const { updates, warnings } = await appendAudioToProject(project, file);
+			updateProject(updates);
+			if (warnings?.length) {
+				console.warn('Append analysis warnings:', warnings);
 			}
-
-			const result = await response.json();
-			const newTranscriptSegment = result?.transcript?.text || '';
-			const mergedTranscript = [project.transcript, newTranscriptSegment].filter(Boolean).join('\n\n');
-
-			updateProject({
-				transcript: mergedTranscript,
-				summary: result.summary ?? project.summary,
-				actionItems: result.actionItems ?? project.actionItems,
-				topics: result.topics?.nodes ?? project.topics,
-				edges: result.topics?.edges ?? project.edges
-			});
 		} catch (err: any) {
 			console.error('❌ Error appending audio:', err);
 			errorMessage = err?.message || 'Failed to append audio';
