@@ -22,7 +22,7 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 - **Real-time**: PartyKit for multiplayer
 - **Database**: Supabase for persistence
 - **Styling**: Tailwind CSS (no DaisyUI - keep it clean)
-- **Deployment**: Vercel
+- **Deployment**: Node server via `@sveltejs/adapter-node`
 
 ## Architecture
 
@@ -51,6 +51,9 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Run production build locally
+node build/index.js
 ```
 
 ## Runtime Reality
@@ -58,6 +61,8 @@ npm run preview
 This repo is the current SvelteKit implementation.
 
 The Deno/Fresh exploration happened in the broader Conversation Mapper lineage and reference folders, but `project_mapper` itself is not a Deno app. It is a SvelteKit + TypeScript app with PartyKit and Supabase.
+
+Current production output is the Node adapter build in `build/`, which makes it suitable for Pi or other small-server deploys without Vercel.
 
 ## Project Status
 
