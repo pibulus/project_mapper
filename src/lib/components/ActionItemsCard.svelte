@@ -6,8 +6,7 @@
 	 * This is a "dumb" component that gets its state and logic
 	 * from the dedicated actionItemsStore.
 	 */
-import type { ActionItem } from '$lib/core/types';
-import { marked } from 'marked';
+	import type { ActionItem } from '$lib/core/types';
 	import {
 		actionItems,
 		toggleItem,
@@ -31,9 +30,11 @@ import { textMatchesTopic } from '$lib/utils/topicUtils';
 	let hoveredItemId: string | null = null;
 	let selectedItemIndex: number = -1; // For keyboard navigation
 	let modalRef: HTMLDivElement;
-let newItemTextarea: HTMLTextAreaElement;
-const { hoveredTopic, selectedTopic } = topicSelection;
-$: activeTopic = $hoveredTopic || $selectedTopic;
+	let newItemTextarea: HTMLTextAreaElement;
+	let editingItemId: string | null = null;
+	let editingDescription = '';
+	const { hoveredTopic, selectedTopic } = topicSelection;
+	$: activeTopic = $hoveredTopic || $selectedTopic;
 
 	// Derived state from the store
 	$: completedCount = $actionItems.filter((i) => i.status === 'completed').length;
@@ -73,9 +74,16 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 		isAdding = false;
 	}
 
-	function handleDescriptionUpdate(event: Event, itemId: string) {
-		const target = event.target as HTMLElement;
-		const newDescription = target.innerText.trim();
+	function startEditingDescription(item: ActionItem) {
+		editingItemId = item.id;
+		editingDescription = item.description;
+	}
+
+	function saveEditingDescription(itemId: string) {
+		const newDescription = editingDescription.trim();
+		editingDescription = '';
+		editingItemId = null;
+		if (!newDescription) return;
 		updateItem(itemId, { description: newDescription });
 	}
 
@@ -84,13 +92,14 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 		return trimmed ? trimmed : null;
 	}
 
-	function handleDescriptionKeyDown(event: KeyboardEvent) {
+	function handleDescriptionKeyDown(event: KeyboardEvent, itemId: string) {
 		if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
-			(event.target as HTMLElement).blur();
+			saveEditingDescription(itemId);
 		}
 		if (event.key === 'Escape') {
-			(event.target as HTMLElement).blur();
+			editingDescription = '';
+			editingItemId = null;
 		}
 	}
 
@@ -296,46 +305,53 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 								on:change={() => toggleItem(item.id)}
 							/>
 							<div style="flex: 1; min-width: 0;">
-								<!-- svelte-ignore a11y-interactive-supports-focus -->
-								<div
-									class="action-text"
-									contenteditable="true"
-									role="textbox"
-									aria-label="Edit action item description"
-									on:blur={(e) => handleDescriptionUpdate(e, item.id)}
-									on:keydown={handleDescriptionKeyDown}
-									on:click|stopPropagation
-								>
-									{@html marked(item.description)}
-								</div>
+								{#if editingItemId === item.id}
+									<textarea
+										class="action-text action-text--editing"
+										rows="2"
+										bind:value={editingDescription}
+										aria-label="Edit action item description"
+										on:blur={() => saveEditingDescription(item.id)}
+										on:keydown={(event) => handleDescriptionKeyDown(event, item.id)}
+										on:click|stopPropagation
+									></textarea>
+								{:else}
+									<button
+										type="button"
+										class="action-text action-text-button"
+										on:click|stopPropagation={() => startEditingDescription(item)}
+									>
+										{item.description}
+									</button>
+								{/if}
 
 								<div class="action-meta">
-										<input
-											type="text"
-											placeholder="Assignee"
-											class="meta-input"
-											value={item.assignee ?? ''}
-											on:blur={(e) =>
-												updateItem(item.id, {
-													assignee: normalizeOptionalField(e.currentTarget.value)
-												})}
-										/>
-										<input
-											type="date"
-											class="meta-input"
-											value={item.due_date ?? ''}
-											on:blur={(e) =>
-												updateItem(item.id, {
-													due_date: normalizeOptionalField(e.currentTarget.value)
-												})}
-										/>
-									</div>
-									{#if item.ai_checked && item.checked_reason}
-										<p class="ai-checkoff-note" title={item.checked_reason}>
-											Auto-updated: {item.checked_reason}
-										</p>
-									{/if}
+									<input
+										type="text"
+										placeholder="Assignee"
+										class="meta-input"
+										value={item.assignee ?? ''}
+										on:blur={(e) =>
+											updateItem(item.id, {
+												assignee: normalizeOptionalField(e.currentTarget.value)
+											})}
+									/>
+									<input
+										type="date"
+										class="meta-input"
+										value={item.due_date ?? ''}
+										on:blur={(e) =>
+											updateItem(item.id, {
+												due_date: normalizeOptionalField(e.currentTarget.value)
+											})}
+									/>
 								</div>
+								{#if item.ai_checked && item.checked_reason}
+									<p class="ai-checkoff-note" title={item.checked_reason}>
+										Auto-updated: {item.checked_reason}
+									</p>
+								{/if}
+							</div>
 							</label>
 						<button
 							class="delete-btn"
@@ -555,15 +571,35 @@ $: activeTopic = $hoveredTopic || $selectedTopic;
 	}
 
 	.action-text {
+		width: 100%;
+		background: transparent;
+		border: 0;
+		padding: 0;
+		margin: 0;
+		text-align: left;
+		font: inherit;
 		font-size: var(--pm-text-sm);
 		color: var(--pm-black);
 		line-height: 1.5;
-		cursor: text;
 	}
 
 	.action-text:focus {
 		outline: 1px solid var(--pm-mint);
 		border-radius: var(--pm-radius-sm);
+	}
+
+	.action-text-button {
+		cursor: text;
+	}
+
+	.action-text--editing {
+		resize: vertical;
+		min-height: 3.2rem;
+		padding: 0.35rem 0.45rem;
+		border: 2px solid rgba(0, 0, 0, 0.12);
+		border-radius: var(--pm-radius-sm);
+		background: rgba(255, 255, 255, 0.7);
+		box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.05);
 	}
 
 	.completed .action-text {

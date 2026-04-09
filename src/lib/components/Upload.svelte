@@ -445,19 +445,25 @@
 
 	<div class="upload-body">
 		<!-- Unified Input Area -->
-		<div
-			class="unified-input"
-			class:is-drop={isDragActive}
-			class:has-file={audioFile}
+	<div
+		class="unified-input"
+		class:is-drop={isDragActive}
+		class:has-file={audioFile}
 			class:is-recording={isRecording}
 			on:dragover={isRecording ? undefined : handleDragOver}
 			on:dragenter={isRecording ? undefined : handleDragOver}
-			on:dragleave={isRecording ? undefined : handleDragLeave}
-			on:drop={isRecording ? undefined : handleDrop}
-			on:click={() => !isRecording && textArea?.focus()}
-			role="button"
-			tabindex="-1"
-		>
+		on:dragleave={isRecording ? undefined : handleDragLeave}
+		on:drop={isRecording ? undefined : handleDrop}
+		on:click={() => !isRecording && textArea?.focus()}
+		on:keydown={(event) => {
+			if (!isRecording && (event.key === 'Enter' || event.key === ' ')) {
+				event.preventDefault();
+				textArea?.focus();
+			}
+		}}
+		role="button"
+		tabindex="0"
+	>
 			{#if isRecording}
 				<!-- Recording Visual -->
 				<div class="record-visual">
@@ -474,7 +480,7 @@
 							style="width: {(recordingTime / MAX_RECORDING_TIME) * 100}%; background: {showTimeWarning
 								? '#EF4444'
 								: 'var(--pm-pink)'};"
-						/>
+						></div>
 					</div>
 
 					{#if showTimeWarning}
@@ -506,7 +512,7 @@
 						}
 					}}
 					on:focus={() => (isDragActive = false)}
-				/>
+				></textarea>
 
 				<!-- File Chip -->
 				{#if audioFile}

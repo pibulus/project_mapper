@@ -16,6 +16,8 @@
 	$: activeTopic = $hoveredTopic || $selectedTopic;
 
 	let lineRefs: HTMLParagraphElement[] = [];
+	let pulsingIndex = -1;
+	let pulseTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	function lineMatchesTopic(line: string): boolean {
 		return textMatchesTopic(line, activeTopic);
@@ -25,8 +27,13 @@
 		const el = lineRefs[index];
 		if (!el) return;
 		el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-		el.classList.add('line-pulse');
-		setTimeout(() => el.classList.remove('line-pulse'), 900);
+		pulsingIndex = index;
+		if (pulseTimeout) {
+			clearTimeout(pulseTimeout);
+		}
+		pulseTimeout = setTimeout(() => {
+			pulsingIndex = -1;
+		}, 900);
 	}
 
 	$: if (activeTopic) {
@@ -47,6 +54,7 @@
 					<p
 						bind:this={lineRefs[index]}
 						class:line-highlight={lineMatchesTopic(line)}
+						class:line-pulse={pulsingIndex === index}
 						style="
 							font-size: var(--pm-text-sm);
 							line-height: 1.6;

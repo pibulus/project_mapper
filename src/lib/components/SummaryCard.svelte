@@ -50,12 +50,6 @@
 </Card>
 
 <style>
-	.topic-highlight {
-		background: rgba(255, 105, 180, 0.2);
-		padding: 0 0.15rem;
-		border-radius: var(--pm-radius-sm);
-	}
-
 	.summary-highlighted {
 		transition: background-color var(--pm-transition-fast);
 	}

@@ -94,6 +94,13 @@
 			handleClose();
 		}
 	}
+
+	function handleBackdropKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			handleClose();
+		}
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -103,9 +110,10 @@
 	<div
 		class="fixed inset-0 bg-black/50 z-40"
 		on:click={handleClose}
+		on:keydown={handleBackdropKeydown}
 		transition:fade={{ duration: 200 }}
 		role="button"
-		tabindex="-1"
+		tabindex="0"
 		aria-label="Close drawer"
 	></div>
 
