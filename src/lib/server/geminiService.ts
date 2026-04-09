@@ -10,7 +10,7 @@ import { env } from "$env/dynamic/private";
 import { createGeminiService, type AIService } from "$lib/core/ai/gemini";
 
 const GEMINI_API_KEY = env.GEMINI_API_KEY;
-const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");

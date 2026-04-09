@@ -18,7 +18,7 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 ## Tech Stack
 
 - **Framework**: SvelteKit 2 with TypeScript
-- **AI**: Google Gemini 2.0 (official SDK)
+- **AI**: Google Gemini 3.1 Flash-Lite Preview (official SDK)
 - **Real-time**: PartyKit for multiplayer
 - **Database**: Supabase for persistence
 - **Styling**: Tailwind CSS (no DaisyUI - keep it clean)
@@ -53,15 +53,29 @@ npm run build
 npm run preview
 ```
 
+## Runtime Reality
+
+This repo is the current SvelteKit implementation.
+
+The Deno/Fresh exploration happened in the broader Conversation Mapper lineage and reference folders, but `project_mapper` itself is not a Deno app. It is a SvelteKit + TypeScript app with PartyKit and Supabase.
+
 ## Project Status
 
-Currently scaffolding. See `SYNTHESIS_NOTES.md` for design decisions and learnings from v1 (SvelteKit) and v2 (Fresh/Deno).
+This is beyond scaffolding. The current state already includes:
 
-## Reference Implementations
+- audio/text ingestion
+- Gemini-powered analysis
+- streaming updates over PartyKit
+- local-first project storage with optional Supabase sync
+- a responsive dashboard with transcript, summary, action items, and topic graph views
 
-- `conversation_mapper_fresh/` - Clean architecture, portable core (reference this)
-- `conversation_mapper/` - Feature implementations (use as reference only)
-- `talktype/` - Clean API patterns with official Gemini SDK
+See `SYNTHESIS_NOTES.md`, `CATCHUP.md`, and `HANDOFF.md` for the design/story history.
+
+## Lineage / References
+
+- `conversation_mapper/` - earlier feature-rich branch with recovery/refactor history
+- `conversation_mapper_fresh/` - Fresh/Deno experiment and architectural reference
+- `talktype/` - clean Gemini/audio API patterns that informed the server-side simplification here
 
 ---
 

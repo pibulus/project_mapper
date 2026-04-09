@@ -14,12 +14,19 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getAIService, transcribeAudio } from "$lib/server/geminiService";
+import { getMaxUploadBytes, guardRequest } from "$lib/server/apiGuard";
 import { processText } from "$lib/core/orchestration/conversation-flow";
 
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+const MAX_UPLOAD_BYTES = getMaxUploadBytes();
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
   try {
+    const guardResponse = guardRequest(event);
+    if (guardResponse) {
+      return guardResponse;
+    }
+
+    const { request } = event;
     const contentType = request.headers.get("content-type") || "";
 
     // Handle multipart form data (audio upload)
@@ -100,8 +107,10 @@ export const POST: RequestHandler = async ({ request }) => {
       friendlyMessage = "API quota exceeded. Please try again in a moment.";
     } else if (message.includes("network")) {
       friendlyMessage = "Network error. Please check your connection.";
+    } else if (message.includes("origin")) {
+      friendlyMessage = "This request is coming from an unexpected origin.";
     }
 
-    return json({ error: friendlyMessage }, { status: 500 });
+    return json({ error: friendlyMessage }, { status: error?.status || 500 });
   }
 };

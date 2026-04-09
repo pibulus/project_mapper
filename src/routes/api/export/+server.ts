@@ -13,11 +13,18 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { guardRequest } from "$lib/server/apiGuard";
 import { getAIService } from "$lib/server/geminiService";
 import { EXPORT_FORMATS } from "$lib/core/export/formats";
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
   try {
+    const guardResponse = guardRequest(event);
+    if (guardResponse) {
+      return guardResponse;
+    }
+
+    const { request } = event;
     const body = await request.json();
     const { transcript, format } = body;
 
@@ -56,8 +63,10 @@ export const POST: RequestHandler = async ({ request }) => {
       friendlyMessage = "Server configuration error: Gemini API key not set";
     } else if (message.includes("quota")) {
       friendlyMessage = "API quota exceeded. Please try again later.";
+    } else if (message.includes("origin")) {
+      friendlyMessage = "This request is coming from an unexpected origin.";
     }
 
-    return json({ error: friendlyMessage }, { status: 500 });
+    return json({ error: friendlyMessage }, { status: error?.status || 500 });
   }
 };

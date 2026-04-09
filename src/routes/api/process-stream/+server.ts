@@ -1,11 +1,18 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getAIService } from "$lib/server/geminiService";
+import { guardRequest } from "$lib/server/apiGuard";
 import { processText } from "$lib/core/orchestration/conversation-flow";
 import { postUpdateToParty } from "$lib/server/partyUpdates";
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async (event) => {
   try {
+    const guardResponse = guardRequest(event);
+    if (guardResponse) {
+      return guardResponse;
+    }
+
+    const { request } = event;
     const body = await request.json();
     const { text, conversationId } = body;
 
@@ -28,6 +35,9 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ id }, { status: 202 });
   } catch (error: any) {
     console.error("[API /process-stream] ❌ Error:", error);
-    return json({ error: "Something went wrong" }, { status: 500 });
+    return json(
+      { error: "Something went wrong processing the stream request." },
+      { status: error?.status || 500 },
+    );
   }
 };
