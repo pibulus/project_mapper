@@ -1,0 +1,16 @@
+{
+  "name": "ProMapper",
+  "short_name": "ProMapper",
+  "description": "Turn raw conversation into a clear project map with audio, text, action items, and live collaboration.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff7ef",
+  "theme_color": "#fff7ef",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}
