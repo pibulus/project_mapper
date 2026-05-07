@@ -66,32 +66,11 @@
           <div class="hero-grid">
             <div class="hero-copy">
               <div class="section-kicker">Welcome to ProMapper</div>
-              <h2>
-                See what you’re actually building from the conversation you just
-                had.
-              </h2>
+              <h2>Turn a conversation into a project map.</h2>
               <p class="hero-lede">
-                Record a messy voice note, paste a brain dump, or drop a call.
-                ProMapper turns it into topics, action items, and a map you can
-                work from without the interface fighting you.
+                Record, paste, or upload. ProMapper pulls out the transcript,
+                summary, tasks, and topics.
               </p>
-              <div class="hero-points">
-                <div class="hero-point">
-                  <span>Audio or text</span>
-                  <p>One capture surface, no mode-change jump scare.</p>
-                </div>
-                <div class="hero-point">
-                  <span>Fast clarity</span>
-                  <p>Summaries, tasks, and themes arrive in the same rhythm.</p>
-                </div>
-                <div class="hero-point">
-                  <span>Built to share</span>
-                  <p>
-                    Designed for solo thinking now and live collaboration when
-                    needed.
-                  </p>
-                </div>
-              </div>
             </div>
             <div class="hero-panel">
               <Upload />
@@ -104,30 +83,21 @@
             <div class="card-body">
               <div class="feature-icon">🎙️</div>
               <h3>Capture first</h3>
-              <p>
-                Talk, paste, or upload from the same exact module with a clean
-                mobile flow.
-              </p>
+              <p>Talk, paste, or upload without changing tools.</p>
             </div>
           </div>
           <div class="feature-card card">
             <div class="card-body">
               <div class="feature-icon">🧭</div>
               <h3>Map the signal</h3>
-              <p>
-                Convert tangents into a structure you can scan in seconds, not
-                minutes.
-              </p>
+              <p>Pull out the transcript, summary, tasks, and topics.</p>
             </div>
           </div>
           <div class="feature-card card">
             <div class="card-body">
               <div class="feature-icon">👥</div>
               <h3>Ready to sync</h3>
-              <p>
-                Live presence and shared context when the project stops being
-                just yours.
-              </p>
+              <p>Keep it local, or bring people in when the work needs them.</p>
             </div>
           </div>
         </section>
@@ -147,8 +117,6 @@
     background: var(--pm-glass-bg);
     border-bottom: var(--pm-border-medium) solid rgba(30, 23, 20, 0.08);
     box-shadow: var(--pm-shadow-soft);
-    position: sticky;
-    top: 0;
     z-index: 30;
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
@@ -157,7 +125,7 @@
   .app-header__inner {
     display: flex;
     justify-content: center;
-    padding: 1rem 0 1.15rem;
+    padding: 0.9rem 0 1rem;
   }
 
   .app-header__brand {
@@ -176,7 +144,7 @@
   }
 
   .landing-main {
-    padding: clamp(1.5rem, 4vw, 3rem) 0 4rem;
+    padding: clamp(1.25rem, 3vw, 2.25rem) 0 4rem;
   }
 
   .dashboard-shell {
@@ -194,7 +162,7 @@
 
   .hero-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
     gap: clamp(1.5rem, 4vw, 3rem);
     align-items: stretch;
   }
@@ -207,10 +175,10 @@
 
   .hero-copy h2 {
     margin: 0;
-    font-size: clamp(2.35rem, 5vw, 4.5rem);
-    line-height: 0.96;
-    letter-spacing: -0.07em;
-    max-width: 10ch;
+    font-size: clamp(2.2rem, 4vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    max-width: 13ch;
   }
 
   .hero-lede {
@@ -219,35 +187,6 @@
     font-size: clamp(1rem, 1.3vw, 1.125rem);
     line-height: 1.65;
     color: rgba(58, 42, 34, 0.82);
-  }
-
-  .hero-points {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  .hero-point {
-    padding: 1rem 1rem 1.1rem;
-    border-radius: var(--pm-radius-lg);
-    background: rgba(255, 255, 255, 0.48);
-    border: 1px solid rgba(30, 23, 20, 0.08);
-    box-shadow: 0 16px 30px rgba(30, 23, 20, 0.08);
-  }
-
-  .hero-point span {
-    display: block;
-    margin-bottom: 0.4rem;
-    font-size: var(--pm-text-sm);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .hero-point p {
-    margin: 0;
-    font-size: var(--pm-text-sm);
-    line-height: 1.55;
-    color: rgba(58, 42, 34, 0.74);
   }
 
   .hero-panel {
@@ -304,13 +243,16 @@
 
   @media (max-width: 960px) {
     .hero-grid,
-    .feature-grid,
-    .hero-points {
+    .feature-grid {
       grid-template-columns: 1fr;
     }
 
+    .hero-panel {
+      order: -1;
+    }
+
     .hero-copy h2 {
-      max-width: 12ch;
+      max-width: 14ch;
     }
   }
 
@@ -328,8 +270,9 @@
     }
 
     .hero-copy h2 {
-      font-size: clamp(2rem, 12vw, 3rem);
-      max-width: 11ch;
+      font-size: clamp(2rem, 9vw, 2.7rem);
+      line-height: 1.04;
+      max-width: 14ch;
     }
 
     .feature-card {

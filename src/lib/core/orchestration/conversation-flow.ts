@@ -66,7 +66,12 @@ export async function processText(
   );
 
   // Generate title
-  const title = await aiService.generateTitle(text);
+  let title = fallbackTitle(text);
+  try {
+    title = await aiService.generateTitle(text);
+  } catch (error) {
+    console.warn("[ConversationFlow] Falling back to local title", error);
+  }
   onUpdate?.("title", title);
 
   const conversation: Conversation = {
@@ -88,6 +93,18 @@ export async function processText(
     statusUpdates: analysis.statusUpdates,
     warnings: analysis.warnings,
   };
+}
+
+function fallbackTitle(text: string): string {
+  const words = text
+    .replace(/[^\w\s'-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (!words.length) return "Mapped Conversation";
+
+  return words.join(" ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 /**

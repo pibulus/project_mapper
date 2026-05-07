@@ -278,9 +278,9 @@ a {
   border-radius: 26px;
   /* Confident slab shadow with pink glow layer for zest */
   box-shadow:
-    0 18px 45px rgba(30, 23, 20, 0.28),
-    0 6px 12px rgba(30, 23, 20, 0.12),
-    0 0 60px rgba(255, 92, 141, 0.12);
+    0 14px 34px rgba(30, 23, 20, 0.2),
+    0 6px 12px rgba(30, 23, 20, 0.1),
+    0 0 38px rgba(255, 92, 141, 0.08);
   overflow: visible;
   isolation: isolate;
   transition:
@@ -306,17 +306,16 @@ a {
       transparent 60%
     );
   filter: blur(50px);
-  opacity: 0.85;
+  opacity: 0.55;
   pointer-events: none;
   z-index: -1;
 }
 
 .glass-card:hover {
-  transform: translate(-1px, -2px);
   box-shadow:
-    0 22px 55px rgba(30, 23, 20, 0.26),
-    0 8px 16px rgba(30, 23, 20, 0.15),
-    0 0 70px rgba(255, 92, 141, 0.15);
+    0 16px 38px rgba(30, 23, 20, 0.2),
+    0 8px 16px rgba(30, 23, 20, 0.12),
+    0 0 44px rgba(255, 92, 141, 0.1);
 }
 
 .shell {

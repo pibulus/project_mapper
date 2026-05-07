@@ -1,9 +1,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getAIService } from "$lib/server/geminiService";
-import { guardRequest } from "$lib/server/apiGuard";
+import { getMaxUploadBytes, guardRequest } from "$lib/server/apiGuard";
+import { transcribeAudio } from "$lib/server/geminiService";
 import { processText } from "$lib/core/orchestration/conversation-flow";
 import { postUpdateToParty } from "$lib/server/partyUpdates";
+
+const MAX_UPLOAD_BYTES = getMaxUploadBytes();
 
 export const POST: RequestHandler = async (event) => {
   try {
@@ -13,8 +16,38 @@ export const POST: RequestHandler = async (event) => {
     }
 
     const { request } = event;
-    const body = await request.json();
-    const { text, conversationId } = body;
+    const contentType = request.headers.get("content-type") || "";
+    let text = "";
+    let conversationId = "";
+    let speakers: string[] = [];
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const audioFile = formData.get("audio");
+      conversationId = formData.get("conversationId")?.toString() || "";
+
+      if (!audioFile || typeof audioFile === "string") {
+        return json({ error: "No audio file provided" }, { status: 400 });
+      }
+
+      if (audioFile.size > MAX_UPLOAD_BYTES) {
+        const mb = (MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0);
+        return json(
+          { error: `File too large. Maximum size is ${mb}MB` },
+          { status: 413 },
+        );
+      }
+
+      const transcript = await transcribeAudio(audioFile);
+      text = transcript.text;
+      speakers = transcript.speakers;
+    } else if (contentType.includes("application/json")) {
+      const body = await request.json();
+      text = body.text;
+      conversationId = body.conversationId || "";
+    } else {
+      return json({ error: "Invalid content type" }, { status: 400 });
+    }
 
     if (!text || typeof text !== "string") {
       return json({ error: "No text provided" }, { status: 400 });
@@ -28,7 +61,7 @@ export const POST: RequestHandler = async (event) => {
     const id = conversationId || crypto.randomUUID();
 
     // Don't await this, let it run in the background
-    processText(aiService, text, id, [], [], [], (type, data) => {
+    processText(aiService, text, id, speakers, [], [], (type, data) => {
       postUpdateToParty(id, { type, data, timestamp: Date.now() });
     });
 

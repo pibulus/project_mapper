@@ -17,6 +17,19 @@
   import AudioVisualizer from "./AudioVisualizer.svelte";
   import LoadingModal from "./LoadingModal.svelte";
 
+  type ProcessResponse = {
+    transcript?: { text?: string };
+    conversation?: { title?: string; transcript?: string };
+    topics?: {
+      nodes?: any[];
+      edges?: any[];
+    };
+    actionItems?: any[];
+    summary?: string;
+    warnings?: Array<{ scope: string; message: string }>;
+    error?: string;
+  };
+
   // ===================================================================
   // STATE MANAGEMENT
   // ===================================================================
@@ -213,29 +226,19 @@
         });
         await appendAudioToProject(file, project.id);
       } else {
-        // Create the project in the DB first
         const newProject = await startNewProject({
-          /* We don't have transcript yet */
+          title: "Mapping audio...",
         });
         if (!newProject) {
-          throw new Error("Failed to create project in database");
+          throw new Error("Failed to create project");
         }
 
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.webm");
         formData.append("conversationId", newProject.id);
 
-        const response = await fetch("/api/process-stream", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.status !== 202) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to start audio processing");
-        }
-
-        console.log(`✅ Started processing for conversation ${newProject.id}`);
+        const result = await processNewCapture(formData);
+        applyProcessResult(result);
       }
     } catch (err: any) {
       console.error("❌ Error processing audio:", err);
@@ -255,29 +258,19 @@
       if (project) {
         await appendAudioToProject(file, project.id);
       } else {
-        // Create the project in the DB first
         const newProject = await startNewProject({
-          /* We don't have the transcript yet */
+          title: "Mapping audio...",
         });
         if (!newProject) {
-          throw new Error("Failed to create project in database");
+          throw new Error("Failed to create project");
         }
 
         const formData = new FormData();
         formData.append("audio", file);
         formData.append("conversationId", newProject.id);
 
-        const response = await fetch("/api/process-stream", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (response.status !== 202) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to start file processing");
-        }
-
-        console.log(`✅ Started processing for conversation ${newProject.id}`);
+        const result = await processNewCapture(formData);
+        applyProcessResult(result);
       }
     } catch (err: any) {
       console.error("❌ Error processing file:", err);
@@ -306,7 +299,8 @@
   }
 
   async function processText() {
-    if (!textInput.trim()) {
+    const submittedText = textInput.trim();
+    if (!submittedText) {
       error = "Please enter some text";
       return;
     }
@@ -315,35 +309,73 @@
     error = "";
 
     try {
-      // Create the project in the DB first
-      const newProject = await startNewProject({ transcript: textInput });
+      const newProject = await startNewProject({ transcript: submittedText });
       if (!newProject) {
-        throw new Error("Failed to create project in database");
+        throw new Error("Failed to create project");
       }
 
-      const response = await fetch("/api/process-stream", {
+      const result = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: textInput,
+          text: submittedText,
           conversationId: newProject.id,
         }),
       });
 
-      if (response.status !== 202) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to start text processing");
+      if (!result.ok) {
+        const data = await result.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to process text");
       }
 
-      console.log(`✅ Started processing for conversation ${newProject.id}`);
+      applyProcessResult(await result.json(), submittedText);
+      textInput = "";
     } catch (err: any) {
       console.error("Error processing text:", err);
       error = err.message || "Failed to process text";
     } finally {
       isProcessing = false;
-      // Reset form after processing starts
       audioFile = null;
-      textInput = "";
+    }
+  }
+
+  async function processNewCapture(body: FormData): Promise<ProcessResponse> {
+    const response = await fetch("/api/process", {
+      method: "POST",
+      body,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to process audio");
+    }
+
+    return data;
+  }
+
+  function applyProcessResult(
+    result: ProcessResponse,
+    fallbackTranscript = "",
+  ) {
+    const current = get(currentProject);
+    const transcript =
+      result.transcript?.text ||
+      result.conversation?.transcript ||
+      fallbackTranscript ||
+      current?.transcript ||
+      "";
+
+    updateProject({
+      title: result.conversation?.title || current?.title || "Mapped project",
+      transcript,
+      summary: result.summary || current?.summary || "",
+      actionItems: result.actionItems || current?.actionItems || [],
+      topics: result.topics?.nodes || current?.topics || [],
+      edges: result.topics?.edges || current?.edges || [],
+    });
+
+    if (result.warnings?.length) {
+      console.warn("Analysis warnings:", result.warnings);
     }
   }
 
@@ -443,10 +475,8 @@
   <div class="upload-header">
     <div class="upload-intro">
       <p class="upload-kicker">Start mapping</p>
-      <h2>Capture the raw material</h2>
-      <p class="upload-description">
-        Speak, paste, or drop an audio file. The layout stays put.
-      </p>
+      <h2>Start with audio or notes</h2>
+      <p class="upload-description">Record, paste, or upload a call.</p>
     </div>
     <div class="mode-toggle">
       <button

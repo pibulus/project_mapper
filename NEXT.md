@@ -3,7 +3,7 @@
 Current reality:
 
 - This is the active SvelteKit + TypeScript app, not the Deno/Fresh runtime.
-- Gemini is now aligned to `gemini-3.1-flash-lite-preview`.
+- Gemini is now aligned to `gemini-2.5-flash`.
 - API routes now have basic request hardening: optional auth token, origin allowlist, rate limiting, and shared upload size config.
 
 What looks solid:

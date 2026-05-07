@@ -18,7 +18,7 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 ## Tech Stack
 
 - **Framework**: SvelteKit 2 with TypeScript
-- **AI**: Google Gemini 3.1 Flash-Lite Preview (official SDK)
+- **AI**: Google Gemini 2.5 Flash (official SDK)
 - **Real-time**: PartyKit for multiplayer
 - **Database**: Supabase for persistence
 - **Styling**: Tailwind CSS (no DaisyUI - keep it clean)

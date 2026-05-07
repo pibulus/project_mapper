@@ -10,7 +10,8 @@ import { env } from "$env/dynamic/private";
 import { createGeminiService, type AIService } from "$lib/core/ai/gemini";
 
 const GEMINI_API_KEY = env.GEMINI_API_KEY;
-const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
+const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_FALLBACK_MODELS = env.GEMINI_FALLBACK_MODELS || "gemini-2.0-flash";
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");
@@ -18,6 +19,24 @@ if (!GEMINI_API_KEY) {
 
 let cachedModel: any = null;
 let cachedService: AIService | null = null;
+
+function getModelNames(): string[] {
+  return [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS.split(",")]
+    .map((model) => model.trim())
+    .filter(Boolean)
+    .filter((model, index, models) => models.indexOf(model) === index);
+}
+
+function isRetriableGeminiError(error: any) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    [429, 500, 502, 503, 504].includes(status) ||
+    message.includes("high demand") ||
+    message.includes("service unavailable") ||
+    message.includes("temporarily unavailable")
+  );
+}
 
 /**
  * Get Gemini model instance (cached)
@@ -29,8 +48,48 @@ export function getGeminiModel() {
 
   if (!cachedModel) {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    cachedModel = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-    console.log(`[Gemini] Initialized model: ${GEMINI_MODEL}`);
+    const modelNames = getModelNames();
+    const modelCache = new Map<string, any>();
+
+    const getRawModel = (modelName: string) => {
+      if (!modelCache.has(modelName)) {
+        modelCache.set(
+          modelName,
+          genAI.getGenerativeModel({ model: modelName }),
+        );
+      }
+      return modelCache.get(modelName);
+    };
+
+    cachedModel = {
+      async generateContent(input: any) {
+        let lastError: unknown;
+        for (const [index, modelName] of modelNames.entries()) {
+          try {
+            if (index > 0) {
+              console.warn(
+                `[Gemini] Retrying with fallback model: ${modelName}`,
+              );
+            }
+            return await getRawModel(modelName).generateContent(input);
+          } catch (error) {
+            lastError = error;
+            if (
+              !isRetriableGeminiError(error) ||
+              index === modelNames.length - 1
+            ) {
+              throw error;
+            }
+            console.warn(
+              `[Gemini] Model ${modelName} unavailable, trying fallback`,
+            );
+          }
+        }
+        throw lastError;
+      },
+    };
+
+    console.log(`[Gemini] Initialized model chain: ${modelNames.join(" -> ")}`);
   }
 
   return cachedModel;
@@ -65,46 +124,18 @@ export async function transcribeAudio(
     throw new Error("GEMINI_API_KEY not configured");
   }
 
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   const mimeType = file.type || "audio/webm";
-  const displayName = file.name || `recording-${Date.now()}`;
-  let uploadedFileName: string | null = null;
+  const arrayBuffer = await file.arrayBuffer();
+  const audioPart = {
+    inlineData: {
+      data: Buffer.from(arrayBuffer).toString("base64"),
+      mimeType,
+    },
+  };
 
-  try {
-    // Upload audio file to Gemini
-    const uploadResult = await genAI.files.upload({
-      file,
-      config: { mimeType, displayName },
-    });
+  const aiService = getAIService();
+  const result = await aiService.transcribeAudio(audioPart);
+  console.log("[Gemini] ✅ Transcription complete");
 
-    if (!uploadResult?.uri) {
-      throw new Error("File upload to Gemini failed");
-    }
-
-    uploadedFileName = uploadResult?.name ?? null;
-    console.log("[Gemini] Uploaded audio file");
-
-    // Get AI service and transcribe
-    const aiService = getAIService();
-    const audioPart = {
-      fileData: {
-        fileUri: uploadResult.uri,
-        mimeType: uploadResult.mimeType || mimeType,
-      },
-    };
-
-    const result = await aiService.transcribeAudio(audioPart);
-    console.log("[Gemini] ✅ Transcription complete");
-
-    return result;
-  } finally {
-    // Clean up uploaded file
-    if (uploadedFileName) {
-      try {
-        await genAI.files.delete(uploadedFileName);
-      } catch (cleanupError) {
-        console.warn("⚠️ Failed to delete Gemini file:", cleanupError);
-      }
-    }
-  }
+  return result;
 }

@@ -2,19 +2,20 @@ import { env } from "$env/dynamic/private";
 
 /**
  * Helper for posting analysis updates back to PartyKit rooms.
- * Falls back to the local dev host when no env override is provided.
+ * No-ops when no PartyKit host is configured.
  */
 const PARTYKIT_HOST =
   env.PARTYKIT_SERVER_HOST ||
   env.PARTYKIT_HOST ||
   env.PUBLIC_PARTYKIT_HOST ||
-  "http://127.0.0.1:1999";
+  "";
 
 export async function postUpdateToParty(
   roomId: string,
   update: { type: string; data: unknown; timestamp?: number },
 ) {
   if (!roomId) return;
+  if (!PARTYKIT_HOST) return;
 
   const url = `${PARTYKIT_HOST.replace(/\/$/, "")}/parties/project/${roomId}`;
   try {
