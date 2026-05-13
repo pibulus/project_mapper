@@ -1,0 +1,37 @@
+# Launch hints for Launch Arsenal.
+# Project-facing launch metadata. Keep it sharp and human.
+name: ProMapper
+slug: project-mapper
+app_type: web-app
+audience: people turning messy conversations into shared plans they can actually act on
+problem: meetings, voice notes, and brain dumps pile up fast, but the useful structure never appears on its own
+promise: A living project map where AI turns messy input into topics, action items, and shared context.
+cta: Try ProMapper.
+differentiators:
+  - Accepts messy voice notes, pasted thoughts, and project brain dumps
+  - Turns raw input into topics, action items, and an explorable knowledge map
+  - Real-time collaboration support for shared project thinking
+  - Built for acting on conversations, not just storing transcripts
+proof_points:
+  - Audio/text upload and transcription
+  - AI-powered action items with auto-checkoff
+  - Topic knowledge graphs with multiple visualizations
+  - PartyKit/PartySocket collaboration dependencies wired in
+  - Pi deploy now preserves app-local production env files during staged releases
+objections:
+  - Needs a focused demo narrative so the graph does not feel like complexity for its own sake
+  - Project Mapper and ProMapper naming should stay consistent before launch
+keywords:
+  seed:
+    - project mapper
+    - promapper
+    - meeting to action items
+    - project knowledge graph
+  audience: people turning messy conversations into shared plans
+  intent:
+    - map a project
+    - extract action items
+    - organize meeting notes
+manual_notes:
+  - Keep the pitch work-focused and concrete.
+  - Avoid abstract AI-workspace language unless the demo shows it.
