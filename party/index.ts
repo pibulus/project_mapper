@@ -11,14 +11,52 @@
 import type * as Party from "partykit/server";
 
 interface ProjectMessage {
-  type: "presence" | "action_item_update" | "transcript_update" | "cursor";
+  type: string;
   data: any;
-  userId: string;
-  timestamp: number;
+  userId?: string;
+  timestamp?: number;
 }
+
+const SERVER_UPDATE_TYPES = new Set([
+  "transcript",
+  "title",
+  "conversation",
+  "topics",
+  "action-items",
+  "summary",
+  "status-updates",
+  "analysis-warning",
+]);
 
 export default class ProjectRoom implements Party.Server {
   constructor(readonly room: Party.Room) {}
+
+  private connectionCount() {
+    return [...this.room.getConnections()].length;
+  }
+
+  private updateToken() {
+    return String(this.room.env.PARTYKIT_UPDATE_TOKEN || "").trim();
+  }
+
+  private isAuthorizedRequest(req: Party.Request) {
+    const token = this.updateToken();
+    if (!token) return true;
+
+    const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    const headerToken = req.headers.get("x-partykit-token");
+    return (bearer || headerToken || "").trim() === token;
+  }
+
+  private broadcastPresenceCount() {
+    this.room.broadcast(
+      JSON.stringify({
+        type: "presence_count",
+        data: { count: this.connectionCount() },
+        timestamp: Date.now(),
+      }),
+    );
+  }
 
   /**
    * When a user connects to the project room
@@ -32,20 +70,13 @@ export default class ProjectRoom implements Party.Server {
       JSON.stringify({
         type: "user_joined",
         userId,
+        data: { count: this.connectionCount() },
         timestamp: Date.now(),
       }),
       [conn.id], // Exclude the connecting user from this broadcast
     );
 
-    // Send current presence count to the new user
-    const connections = [...this.room.getConnections()];
-    conn.send(
-      JSON.stringify({
-        type: "presence_count",
-        count: connections.length,
-        timestamp: Date.now(),
-      }),
-    );
+    this.broadcastPresenceCount();
   }
 
   /**
@@ -54,8 +85,20 @@ export default class ProjectRoom implements Party.Server {
    */
   async onRequest(req: Party.Request) {
     if (req.method === "POST") {
+      if (!this.isAuthorizedRequest(req)) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
       try {
         const update = await req.json();
+        if (
+          !update ||
+          typeof update.type !== "string" ||
+          !SERVER_UPDATE_TYPES.has(update.type)
+        ) {
+          return new Response("Invalid update type", { status: 400 });
+        }
+
         console.log(
           `[PartyKit] Received update for project ${this.room.id}:`,
           update.type,
@@ -102,9 +145,11 @@ export default class ProjectRoom implements Party.Server {
       JSON.stringify({
         type: "user_left",
         userId,
+        data: { count: this.connectionCount() },
         timestamp: Date.now(),
       }),
     );
+    this.broadcastPresenceCount();
   }
 }
 

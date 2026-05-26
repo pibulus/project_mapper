@@ -30,7 +30,13 @@ interface PartyMessage {
   type: string;
   userId?: string;
   timestamp: number;
+  count?: number;
   data?: any;
+}
+
+function getPresenceCount(msg: PartyMessage) {
+  const count = Number(msg.data?.count ?? msg.count ?? 0);
+  return Number.isFinite(count) ? count : 0;
 }
 
 /**
@@ -73,20 +79,26 @@ export function createProjectParty(projectId: string) {
         switch (msg.type) {
           // Presence
           case "presence_count":
-            presence.update((p) => ({ ...p, count: msg.data?.count || 0 }));
+            presence.update((p) => ({ ...p, count: getPresenceCount(msg) }));
             break;
           case "user_joined":
             presence.update((p) => {
               const users = new Set(p.users);
               if (msg.userId) users.add(msg.userId);
-              return { count: users.size, users };
+              return {
+                count: getPresenceCount(msg) || Math.max(p.count, users.size),
+                users,
+              };
             });
             break;
           case "user_left":
             presence.update((p) => {
               const users = new Set(p.users);
               if (msg.userId) users.delete(msg.userId);
-              return { count: users.size, users };
+              return {
+                count: getPresenceCount(msg) || Math.max(0, p.count - 1),
+                users,
+              };
             });
             if (msg.userId) {
               topicSelection.clearRemoteUser(msg.userId);

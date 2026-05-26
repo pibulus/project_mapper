@@ -9,6 +9,7 @@ const PARTYKIT_HOST =
   env.PARTYKIT_HOST ||
   env.PUBLIC_PARTYKIT_HOST ||
   "";
+const PARTYKIT_UPDATE_TOKEN = env.PARTYKIT_UPDATE_TOKEN?.trim() || "";
 
 export async function postUpdateToParty(
   roomId: string,
@@ -21,7 +22,12 @@ export async function postUpdateToParty(
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(PARTYKIT_UPDATE_TOKEN
+          ? { "x-partykit-token": PARTYKIT_UPDATE_TOKEN }
+          : {}),
+      },
       body: JSON.stringify({
         ...update,
         timestamp: update.timestamp ?? Date.now(),

@@ -62,7 +62,7 @@ Goal: make trust boundaries explicit before public deployment.
 - [ ] Review in-memory rate limiting and deployment assumptions.
 - [ ] Review upload size, type, and abuse controls.
 - [ ] Review Supabase RLS policy permissiveness.
-- [ ] Review PartyKit room POST trust boundary.
+- [x] Review PartyKit room POST trust boundary.
 - [ ] Decide private, public, shareable, and synced project semantics.
 
 ### 4. AI Reliability
@@ -92,8 +92,8 @@ Goal: keep the nervous-system pattern real.
 
 Goal: make collaboration coherent rather than merely wired.
 
-- [ ] Verify PartyKit message schemas match between client and server.
-- [ ] Verify presence count and user join/leave behavior.
+- [x] Verify PartyKit message schemas match between client and server.
+- [x] Verify presence count and user join/leave behavior.
 - [ ] Verify topic hover/selection broadcasts.
 - [ ] Check local updates versus PartyKit updates versus Supabase debounce.
 - [ ] Decide conflict behavior for simultaneous edits.
@@ -146,3 +146,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Track 1 complete. Added ESLint 9 flat config, restored Prettier/lint/typecheck/build validation, fixed stale core imports, repaired old storage types, tightened action item and graph typings, and removed the unsafe summary `{@html}` highlight path.
 - 2026-05-27: Fixed export drawer format IDs so the UI sends valid `EXPORT_FORMATS` keys to `/api/export`.
 - 2026-05-27: Deleted unused `src/lib/core/storage/*` lineage code and corrected the core README to match the current API surface.
+- 2026-05-27: Fixed PartyKit presence message shape and added optional `PARTYKIT_UPDATE_TOKEN` auth for server-posted room updates.
