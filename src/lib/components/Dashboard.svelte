@@ -12,37 +12,34 @@
   import ActionItemsCard from "./ActionItemsCard.svelte";
   import TopicGraphCard from "./TopicGraphCard.svelte";
   import { swipe } from "$lib/actions/swipe";
-  import { onMount } from "svelte";
+  import { onDestroy } from "svelte";
 
-  // Define party type loosely to avoid 'any' errors
-  type PartyStore = {
-    transcript: any;
-    summary: any;
-    actionItems: any;
-    nodes: any;
-    edges: any;
-    conversation: any;
-    send: (type: string, data?: any) => void;
-  };
+  type PartyStore = ReturnType<typeof createProjectParty>;
 
   let party: PartyStore | null = null;
+  let partyProjectId: string | null = null;
 
-  // When the current project changes, connect to the party if sync is enabled
-  currentProject.subscribe((project) => {
-    if (project?.id && project.syncEnabled) {
-      party = createProjectParty(project.id) as unknown as PartyStore;
-    } else {
-      party = null;
+  function setPartyProject(projectId: string | null) {
+    if (projectId === partyProjectId) return;
+
+    party?.disconnect();
+    party = null;
+    partyProjectId = projectId;
+
+    if (projectId) {
+      party = createProjectParty(projectId);
     }
-  });
+  }
 
-  // Data can come from the real-time party store OR the local project store
-  $: transcript = party ? party.transcript : $currentProject?.transcript;
-  $: summary = party ? party.summary : $currentProject?.summary;
-  $: actionItems = party ? party.actionItems : $currentProject?.actionItems;
-  $: topics = party ? party.nodes : $currentProject?.topics;
-  $: edges = party ? party.edges : $currentProject?.edges;
-  $: conversation = party ? party.conversation : $currentProject;
+  $: setPartyProject(
+    $currentProject?.id && $currentProject.syncEnabled
+      ? $currentProject.id
+      : null,
+  );
+
+  onDestroy(() => {
+    setPartyProject(null);
+  });
 
   // Mobile Carousel State
   let activePanel = 0;

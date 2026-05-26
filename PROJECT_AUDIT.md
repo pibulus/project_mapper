@@ -94,7 +94,7 @@ Goal: make collaboration coherent rather than merely wired.
 
 - [x] Verify PartyKit message schemas match between client and server.
 - [x] Verify presence count and user join/leave behavior.
-- [ ] Verify topic hover/selection broadcasts.
+- [x] Verify topic hover/selection broadcasts.
 - [ ] Check local updates versus PartyKit updates versus Supabase debounce.
 - [ ] Decide conflict behavior for simultaneous edits.
 
@@ -151,3 +151,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Fixed append flow to send existing transcript/topics/edges, merge graph updates server-side, and broadcast the full merged transcript instead of an append fragment.
 - 2026-05-27: Hardened API guard defaults: same-origin browser requests are allowed by default, cross-origin requests require `ALLOWED_ORIGINS`, bad rate-limit env values fall back safely, and audio endpoints now reject unsupported MIME types.
 - 2026-05-27: Documented the current Supabase RLS schema as anonymous/demo-only; real private ownership still requires an auth or share-token product decision.
+- 2026-05-27: Fixed Dashboard PartyKit lifecycle so synced project changes disconnect old sockets instead of accumulating duplicate realtime connections.
