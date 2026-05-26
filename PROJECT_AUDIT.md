@@ -46,7 +46,7 @@ Goal: verify the user-facing promise works end to end.
 - [ ] New text project creates transcript, title, summary, actions, and topics.
 - [ ] New recorded audio creates a project.
 - [ ] Uploaded audio creates a project.
-- [ ] Append audio merges transcript and action items correctly.
+- [x] Append audio merges transcript and action items correctly.
 - [ ] AI title regeneration works and fails cleanly.
 - [x] Export drawer uses valid format IDs.
 - [ ] Local restore after refresh works.
@@ -74,7 +74,7 @@ Goal: handle Gemini variability without corrupting project state.
 - [ ] Validate status update IDs before applying.
 - [ ] Preserve partial results without pretending the whole analysis succeeded.
 - [ ] Check duplicate action item detection.
-- [ ] Check append topic reuse.
+- [x] Check append topic reuse.
 - [ ] Add fixture-based tests or a manual fixture harness.
 
 ### 5. Architecture Boundaries
@@ -148,3 +148,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Deleted unused `src/lib/core/storage/*` lineage code and corrected the core README to match the current API surface.
 - 2026-05-27: Fixed PartyKit presence message shape and added optional `PARTYKIT_UPDATE_TOKEN` auth for server-posted room updates.
 - 2026-05-27: Fixed export drawer format object wiring, replaced blocking alert/confirm dialogs with inline UI, and removed graph/client debug log spam.
+- 2026-05-27: Fixed append flow to send existing transcript/topics/edges, merge graph updates server-side, and broadcast the full merged transcript instead of an append fragment.

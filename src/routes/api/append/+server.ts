@@ -23,6 +23,10 @@ import type {
   ActionItem,
   ActionItemInput,
   ActionItemStatusUpdate,
+  ConversationGraph,
+  Edge,
+  Node,
+  NodeInput,
 } from "$lib/core/types";
 import { postUpdateToParty } from "$lib/server/partyUpdates";
 
@@ -39,9 +43,15 @@ export const POST: RequestHandler = async (event) => {
     const formData = await request.formData();
     const audioFile = formData.get("audio");
     const conversationId = formData.get("conversationId")?.toString();
+    const existingTranscript = formData
+      .get("existingTranscript")
+      ?.toString()
+      .trim();
     const existingActionItemsJson = formData
       .get("existingActionItems")
       ?.toString();
+    const existingTopicsJson = formData.get("existingTopics")?.toString();
+    const existingEdgesJson = formData.get("existingEdges")?.toString();
 
     if (!audioFile || typeof audioFile === "string") {
       return json({ error: "No audio file provided" }, { status: 400 });
@@ -59,19 +69,19 @@ export const POST: RequestHandler = async (event) => {
       );
     }
 
-    // Parse existing action items if provided
-    let existingActionItems: ActionItem[] = [];
-    if (existingActionItemsJson) {
-      try {
-        existingActionItems = JSON.parse(existingActionItemsJson);
-      } catch {
-        console.warn("[API /append] Failed to parse existing action items");
-      }
-    }
-    existingActionItems = sanitizeExistingActionItems(
+    const existingActionItems = sanitizeExistingActionItems(
       conversationId,
-      existingActionItems,
+      parseArrayField(existingActionItemsJson, "existing action items"),
     );
+    const existingTopics = sanitizeExistingTopics(
+      conversationId,
+      parseArrayField(existingTopicsJson, "existing topics"),
+    );
+    const existingEdges = sanitizeExistingEdges(
+      conversationId,
+      parseArrayField(existingEdgesJson, "existing edges"),
+    );
+    const existingTopicInputs = existingTopics.map(topicToInput);
 
     console.log(
       `[API /append] Appending ${(audioFile.size / 1024).toFixed(2)}KB audio to conversation ${conversationId}`,
@@ -93,7 +103,13 @@ export const POST: RequestHandler = async (event) => {
       conversationId,
       speakers,
       existingActionItems,
+      existingTopicInputs,
     );
+
+    const transcript = {
+      ...analysisResult.transcript,
+      text: mergeTranscript(existingTranscript || "", text),
+    };
 
     const actionItems = buildUpdatedActionItems(
       conversationId,
@@ -101,14 +117,25 @@ export const POST: RequestHandler = async (event) => {
       analysisResult.actionItems,
       analysisResult.statusUpdates,
     );
+    const topics = buildUpdatedTopics(
+      conversationId,
+      existingTopics,
+      existingEdges,
+      analysisResult.topics,
+    );
 
-    await broadcastUpdates(conversationId, analysisResult, actionItems);
+    await broadcastUpdates(conversationId, {
+      transcript,
+      topics,
+      summary: analysisResult.summary,
+      actionItems,
+    });
 
     console.log("[API /append] ✅ Audio appended successfully");
 
     return json({
-      transcript: analysisResult.transcript,
-      topics: analysisResult.topics,
+      transcript,
+      topics,
       actionItems,
       summary: analysisResult.summary,
       statusUpdates: analysisResult.statusUpdates,
@@ -132,33 +159,138 @@ export const POST: RequestHandler = async (event) => {
   }
 };
 
+function parseArrayField(raw: string | undefined, label: string): unknown[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    console.warn(`[API /append] Ignoring non-array ${label}`);
+  } catch {
+    console.warn(`[API /append] Failed to parse ${label}`);
+  }
+
+  return [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeNullableString(value: unknown): string | null {
+  const normalized = normalizeString(value);
+  return normalized || null;
+}
+
+function mergeTranscript(existingTranscript: string, appendedText: string) {
+  return [existingTranscript.trim(), appendedText.trim()]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function sanitizeExistingActionItems(
   conversationId: string,
-  items: ActionItem[],
+  items: unknown[],
 ): ActionItem[] {
   const now = new Date().toISOString();
-  return items.map((item, index) => ({
-    id: item.id || crypto.randomUUID(),
-    conversation_id: item.conversation_id || conversationId,
-    description: item.description?.trim() || "",
-    assignee:
-      item.assignee === undefined || item.assignee === null
-        ? null
-        : String(item.assignee).trim() || null,
-    due_date:
-      item.due_date === undefined || item.due_date === null
-        ? null
-        : String(item.due_date).trim() || null,
-    status: item.status === "completed" ? "completed" : "pending",
-    created_at: item.created_at || now,
-    updated_at: item.updated_at || now,
-    sort_order:
-      typeof item.sort_order === "number" && !Number.isNaN(item.sort_order)
-        ? item.sort_order
-        : (index + 1) * 10,
-    ai_checked: item.ai_checked,
-    checked_reason: item.checked_reason,
-  }));
+  return items
+    .filter(isRecord)
+    .map((item, index): ActionItem | null => {
+      const description = normalizeString(item.description);
+      if (!description) return null;
+
+      return {
+        id: normalizeString(item.id) || crypto.randomUUID(),
+        conversation_id:
+          normalizeString(item.conversation_id) || conversationId,
+        description,
+        assignee: normalizeNullableString(item.assignee),
+        due_date: normalizeNullableString(item.due_date),
+        status: item.status === "completed" ? "completed" : "pending",
+        created_at: normalizeString(item.created_at) || now,
+        updated_at: normalizeString(item.updated_at) || now,
+        sort_order:
+          typeof item.sort_order === "number" && !Number.isNaN(item.sort_order)
+            ? item.sort_order
+            : (index + 1) * 10,
+        ai_checked: item.ai_checked === true || undefined,
+        checked_reason: normalizeString(item.checked_reason) || undefined,
+      };
+    })
+    .filter((item): item is ActionItem => Boolean(item));
+}
+
+function sanitizeExistingTopics(
+  conversationId: string,
+  items: unknown[],
+): Node[] {
+  const now = new Date().toISOString();
+  return items
+    .filter(isRecord)
+    .map((item) => normalizeTopicNode(conversationId, item, now))
+    .filter((item): item is Node => Boolean(item));
+}
+
+function sanitizeExistingEdges(
+  conversationId: string,
+  items: unknown[],
+): Edge[] {
+  const now = new Date().toISOString();
+  return items
+    .filter(isRecord)
+    .map((item) => normalizeEdge(conversationId, item, now))
+    .filter((item): item is Edge => Boolean(item));
+}
+
+function normalizeTopicNode(
+  conversationId: string,
+  item: Record<string, unknown>,
+  now: string,
+): Node | null {
+  const id = normalizeString(item.id);
+  const label = normalizeString(item.label);
+  if (!id || !label) return null;
+
+  return {
+    id,
+    conversation_id: normalizeString(item.conversation_id) || conversationId,
+    label,
+    emoji: normalizeString(item.emoji),
+    color: normalizeString(item.color) || "#999999",
+    created_at: normalizeString(item.created_at) || now,
+  };
+}
+
+function normalizeEdge(
+  conversationId: string,
+  item: Record<string, unknown>,
+  now: string,
+): Edge | null {
+  const source_topic_id = normalizeString(item.source_topic_id);
+  const target_topic_id = normalizeString(item.target_topic_id);
+  if (!source_topic_id || !target_topic_id) return null;
+
+  return {
+    id: normalizeString(item.id) || crypto.randomUUID(),
+    conversation_id: normalizeString(item.conversation_id) || conversationId,
+    source_topic_id,
+    target_topic_id,
+    color: normalizeString(item.color) || "#999999",
+    created_at: normalizeString(item.created_at) || now,
+  };
+}
+
+function topicToInput(topic: Node): NodeInput {
+  return {
+    id: topic.id,
+    label: topic.label,
+    color: topic.color,
+    emoji: topic.emoji,
+  };
 }
 
 function createActionItemsFromInputs(
@@ -246,16 +378,76 @@ function buildUpdatedActionItems(
   return withStatuses.sort((a, b) => a.sort_order - b.sort_order);
 }
 
+function buildUpdatedTopics(
+  conversationId: string,
+  existingNodes: Node[],
+  existingEdges: Edge[],
+  graph: ConversationGraph,
+): { nodes: Node[]; edges: Edge[] } {
+  const now = new Date().toISOString();
+  const nodesById = new Map(existingNodes.map((node) => [node.id, node]));
+
+  for (const node of graph.nodes) {
+    const normalized = normalizeTopicNode(conversationId, node, now);
+    if (!normalized) continue;
+
+    const current = nodesById.get(normalized.id);
+    nodesById.set(normalized.id, current || normalized);
+  }
+
+  const nodes = [...nodesById.values()];
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const edgesByPair = new Map<string, Edge>();
+
+  for (const edge of existingEdges) {
+    if (
+      edge.source_topic_id &&
+      edge.target_topic_id &&
+      nodeIds.has(edge.source_topic_id) &&
+      nodeIds.has(edge.target_topic_id)
+    ) {
+      edgesByPair.set(edgeKey(edge), edge);
+    }
+  }
+
+  for (const edge of graph.edges) {
+    const normalized = normalizeEdge(conversationId, edge, now);
+    if (
+      !normalized ||
+      !nodeIds.has(normalized.source_topic_id) ||
+      !nodeIds.has(normalized.target_topic_id)
+    ) {
+      continue;
+    }
+
+    const key = edgeKey(normalized);
+    if (!edgesByPair.has(key)) {
+      edgesByPair.set(key, normalized);
+    }
+  }
+
+  return {
+    nodes,
+    edges: [...edgesByPair.values()],
+  };
+}
+
+function edgeKey(edge: Pick<Edge, "source_topic_id" | "target_topic_id">) {
+  return `${edge.source_topic_id}->${edge.target_topic_id}`;
+}
+
 async function broadcastUpdates(
   conversationId: string,
-  result: ProcessTextResult,
-  actionItems: ActionItem[],
+  result: Pick<ProcessTextResult, "transcript" | "summary"> & {
+    topics: { nodes: Node[]; edges: Edge[] };
+    actionItems: ActionItem[];
+  },
 ) {
   const payloads = [
     { type: "transcript", data: result.transcript },
     { type: "topics", data: result.topics },
     { type: "summary", data: result.summary },
-    { type: "action-items", data: actionItems },
+    { type: "action-items", data: result.actionItems },
   ];
 
   await Promise.all(

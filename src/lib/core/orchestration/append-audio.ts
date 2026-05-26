@@ -26,10 +26,13 @@ export async function appendAudioToProject(
   const formData = new FormData();
   formData.append("audio", file);
   formData.append("conversationId", project.id);
+  formData.append("existingTranscript", project.transcript || "");
   formData.append(
     "existingActionItems",
     JSON.stringify(project.actionItems || []),
   );
+  formData.append("existingTopics", JSON.stringify(project.topics || []));
+  formData.append("existingEdges", JSON.stringify(project.edges || []));
 
   const response = await fetch("/api/append", {
     method: "POST",
@@ -42,13 +45,10 @@ export async function appendAudioToProject(
   }
 
   const result: AppendAudioResponse = await response.json();
-  const appendedTranscript = [project.transcript, result?.transcript?.text]
-    .filter(Boolean)
-    .join("\n\n");
 
   return {
     updates: {
-      transcript: appendedTranscript,
+      transcript: result?.transcript?.text ?? project.transcript,
       summary: result.summary ?? project.summary,
       actionItems: result.actionItems ?? project.actionItems,
       topics: result.topics?.nodes ?? project.topics,
