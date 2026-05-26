@@ -70,6 +70,7 @@
       if (data?.title) {
         updateProject({ title: data.title });
       }
+      titleError = data?.warning || "";
     } catch (err: any) {
       console.error(err);
       titleError = err?.message || "Unable to generate title";

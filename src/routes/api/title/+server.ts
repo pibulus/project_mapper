@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { guardRequest } from "$lib/server/apiGuard";
 import { getAIService } from "$lib/server/geminiService";
+import { fallbackTitle } from "$lib/core/orchestration/conversation-flow";
 
 export const POST: RequestHandler = async (event) => {
   try {
@@ -21,9 +22,18 @@ export const POST: RequestHandler = async (event) => {
       );
     }
 
-    const aiService = getAIService();
-    const title = await aiService.generateTitle(transcript);
-    return json({ title });
+    try {
+      const aiService = getAIService();
+      const title = await aiService.generateTitle(transcript);
+      return json({ title });
+    } catch (error) {
+      console.warn("[API /title] Falling back to local title:", error);
+      return json({
+        title: fallbackTitle(transcript),
+        fallback: true,
+        warning: "AI title unavailable; used a local title.",
+      });
+    }
   } catch (error: any) {
     console.error("[API /title] Error:", error);
     let message = "Failed to generate title. Please try again.";

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
 	import { currentProject, updateProject } from '$lib/stores/projectStore';
-	import { appendAudioToProject } from '$lib/core/orchestration/append-audio';
+	import { appendAudioToProject } from '$lib/client/appendAudio';
 
 	let isAppending = false;
 	let errorMessage = '';

@@ -95,7 +95,7 @@ export async function processText(
   };
 }
 
-function fallbackTitle(text: string): string {
+export function fallbackTitle(text: string): string {
   const words = text
     .replace(/[^\w\s'-]/g, " ")
     .split(/\s+/)

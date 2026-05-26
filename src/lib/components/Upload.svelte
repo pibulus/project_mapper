@@ -12,7 +12,7 @@
     updateProject,
     startNewProject,
   } from "$lib/stores/projectStore";
-  import { appendAudioToProject as appendProjectAudio } from "$lib/core/orchestration/append-audio";
+  import { appendAudioToProject as appendProjectAudio } from "$lib/client/appendAudio";
   import { get } from "svelte/store";
   import AudioVisualizer from "./AudioVisualizer.svelte";
   import LoadingModal from "./LoadingModal.svelte";

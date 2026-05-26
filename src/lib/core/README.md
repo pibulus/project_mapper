@@ -45,8 +45,7 @@ Same conversation, many formats: blog posts, technical manuals, haikus, meeting 
 │   └── index.ts
 ├── orchestration/
 │   ├── conversation-flow.ts    # Main flow: Audio/Text → AI → Data
-│   ├── parallel-analysis.ts    # Parallel AI coordinator
-│   └── append-audio.ts         # Browser-facing append helper
+│   └── parallel-analysis.ts    # Parallel AI coordinator
 ├── export/
 │   ├── formats.ts              # Pre-defined export formats
 │   └── transformer.ts          # Conversation transformer

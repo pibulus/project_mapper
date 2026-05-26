@@ -47,7 +47,7 @@ Goal: verify the user-facing promise works end to end.
 - [ ] New recorded audio creates a project.
 - [ ] Uploaded audio creates a project.
 - [x] Append audio merges transcript and action items correctly.
-- [ ] AI title regeneration works and fails cleanly.
+- [x] AI title regeneration works and fails cleanly.
 - [x] Export drawer uses valid format IDs.
 - [ ] Local restore after refresh works.
 - [ ] Supabase sync works when configured and degrades cleanly when not.
@@ -63,7 +63,7 @@ Goal: make trust boundaries explicit before public deployment.
 - [x] Review upload size, type, and abuse controls.
 - [x] Review Supabase RLS policy permissiveness.
 - [x] Review PartyKit room POST trust boundary.
-- [ ] Decide private, public, shareable, and synced project semantics.
+- [x] Decide private, public, shareable, and synced project semantics.
 
 ### 4. AI Reliability
 
@@ -72,7 +72,7 @@ Goal: handle Gemini variability without corrupting project state.
 - [x] Validate action item JSON shape.
 - [x] Validate topic graph JSON shape.
 - [x] Validate status update IDs before applying.
-- [ ] Preserve partial results without pretending the whole analysis succeeded.
+- [x] Preserve partial results without pretending the whole analysis succeeded.
 - [ ] Check duplicate action item detection.
 - [x] Check append topic reuse.
 - [ ] Add fixture-based tests or a manual fixture harness.
@@ -82,7 +82,7 @@ Goal: handle Gemini variability without corrupting project state.
 Goal: keep the nervous-system pattern real.
 
 - [x] Remove or update lineage leftovers from older implementations.
-- [ ] Keep `src/lib/core` framework-agnostic where practical.
+- [x] Keep `src/lib/core` framework-agnostic where practical.
 - [ ] Split `Upload.svelte` orchestration from UI.
 - [ ] Check store ownership between `currentProject`, `actionItems`, `partyStore`, and topic selection.
 - [ ] Reduce broad `any` usage where it hides real contracts.
@@ -96,7 +96,7 @@ Goal: make collaboration coherent rather than merely wired.
 - [x] Verify presence count and user join/leave behavior.
 - [x] Verify topic hover/selection broadcasts.
 - [ ] Check local updates versus PartyKit updates versus Supabase debounce.
-- [ ] Decide conflict behavior for simultaneous edits.
+- [x] Decide conflict behavior for simultaneous edits.
 
 ### 7. UX, Mobile, And Accessibility
 
@@ -125,11 +125,11 @@ Goal: avoid slow, expensive, or memory-heavy paths.
 
 Goal: make handoff, Pi deployment, and launch story reliable.
 
-- [ ] Verify `.env.example` covers real production needs.
-- [ ] Verify Pi deploy script rollback and env preservation.
-- [ ] Reconcile `README.md`, `NEXT.md`, `CATCHUP.md`, `HANDOFF.md`, and `SYNTHESIS_NOTES.md`.
-- [ ] Make naming consistent: Project Mapper vs ProMapper.
-- [ ] Add or update a short architecture reference if needed.
+- [x] Verify `.env.example` covers real production needs.
+- [x] Verify Pi deploy script rollback and env preservation.
+- [x] Reconcile `README.md`, `NEXT.md`, `CATCHUP.md`, `HANDOFF.md`, and `SYNTHESIS_NOTES.md`.
+- [x] Make naming consistent: Project Mapper vs ProMapper.
+- [x] Add or update a short architecture reference if needed.
 
 ## Known Hotspots
 
@@ -154,3 +154,5 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Fixed Dashboard PartyKit lifecycle so synced project changes disconnect old sockets instead of accumulating duplicate realtime connections.
 - 2026-05-27: Added Gemini response normalization for action items, topic nodes/edges, and status updates so malformed AI JSON is filtered instead of corrupting project state.
 - 2026-05-27: Removed remaining production-path `console.log` calls from API routes, stores, Gemini service, and PartyKit hot paths while keeping warnings/errors.
+- 2026-05-27: Local smoke found the configured Gemini key is invalid. `/api/process` still returned transcript plus fallback title with warnings, and `/api/title` now returns a fallback title plus warning instead of a hard 500.
+- 2026-05-27: Added `ARCHITECTURE.md`, linked README to the current architecture/audit docs, documented local-private vs anonymous-demo sync semantics, verified Pi deploy rollback/env preservation by inspection, and moved the browser append helper out of `src/lib/core`.

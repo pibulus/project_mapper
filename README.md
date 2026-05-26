@@ -1,4 +1,4 @@
-# Project Mapper (ProMap)
+# Project Mapper / ProMapper
 
 Living, collaborative workspace where AI maintains project intelligence.
 
@@ -74,7 +74,7 @@ This is beyond scaffolding. The current state already includes:
 - local-first project storage with optional Supabase sync
 - a responsive dashboard with transcript, summary, action items, and topic graph views
 
-See `SYNTHESIS_NOTES.md`, `CATCHUP.md`, and `HANDOFF.md` for the design/story history.
+See `ARCHITECTURE.md` for the current system map and `PROJECT_AUDIT.md` for the live audit checklist. `SYNTHESIS_NOTES.md`, `CATCHUP.md`, and `HANDOFF.md` are history/reference notes.
 
 ## Lineage / References
 
