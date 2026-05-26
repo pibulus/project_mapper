@@ -75,7 +75,12 @@ CREATE POLICY "Public projects are viewable by everyone"
   ON projects FOR SELECT
   USING (is_public = TRUE);
 
--- For now, allow all inserts/updates (we'll add auth later)
+-- Anonymous sync policy.
+--
+-- WARNING: this is suitable only for local/dev demos or explicitly shareable
+-- projects. There is no user ownership check here; anyone with the anon key and
+-- a project id can update that project. Do not use these policies for private
+-- production data without adding Supabase Auth or a share-token policy first.
 CREATE POLICY "Anyone can create projects"
   ON projects FOR INSERT
   WITH CHECK (TRUE);
@@ -125,6 +130,6 @@ CREATE TRIGGER update_projects_updated_at
 -- This schema is intentionally simple and flexible:
 -- - Projects store their data as JSONB for easy evolution
 -- - Audio artifacts are separate for better querying
--- - RLS is permissive for now (public by default)
--- - Future: Add auth.users integration for real ownership
+-- - RLS is permissive for anonymous sync demos only
+-- - Future: Add auth.users integration or share-token semantics for ownership
 --
