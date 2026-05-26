@@ -5,12 +5,12 @@
  * This is the nervous system in action
  */
 
-import type { AIService } from "../ai/gemini.ts";
+import type { AIService } from "../ai/gemini";
 import {
   analyzeText,
   type AnalysisResult,
   type AnalysisWarning,
-} from "./parallel-analysis.ts";
+} from "./parallel-analysis";
 import type {
   ActionItem,
   ActionItemInput,
@@ -19,7 +19,7 @@ import type {
   ConversationGraph,
   NodeInput,
   Transcript,
-} from "../types/index.ts";
+} from "../types/index";
 
 export type AnalysisUpdateCallback = (type: string, data: any) => void;
 

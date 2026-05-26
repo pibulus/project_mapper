@@ -1,6 +1,7 @@
 # Handoff – Project Mapper Dashboard/Header Refresh
 
 ## Summary
+
 - Implemented a new sticky `ProjectHeader` component with rename + "AI Title" actions, Append button, and Export CTA.
 - Added `/api/title` so the header can regenerate titles using Gemini.
 - Topic graph now broadcasts hover/selection via PartyKit, persists layouts per project, and surfaces remote presence chips + tooltip counts.
@@ -9,6 +10,7 @@
 - Added floating `TopicTooltip` plus improved fullscreen/fitting controls for the graph.
 
 ## Key Files
+
 - `src/lib/components/ProjectHeader.svelte` – header UI + title editing/regeneration.
 - `src/lib/components/TopicGraphCard.svelte` – action integration, persistence, fullscreen/toolbar, remote presence chips.
 - `src/lib/stores/topicSelection.ts` – shared local/remote topic state.
@@ -17,6 +19,7 @@
 - `src/routes/api/title/+server.ts` – Gemini title generation endpoint.
 
 ## Follow-ups / Ideas
+
 1. **Remote ghost markers:** render avatars/cursors directly on graph nodes using `remoteHovers`/`remoteSelections`.
 2. **Mobile polish:** add swipe-friendly spacing between panels, consider collapsing summary/action items into expandable sections.
 3. **PartyKit presence UI:** show collaborator avatars near the header (tie into `presence` store).

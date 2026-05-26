@@ -26,7 +26,9 @@ currentProject.subscribe((project) => {
 
 function _updateProject(newActionItems: ActionItem[]) {
   // Sort by the sort_order before saving to the main store
-  const sorted = [...newActionItems].sort((a, b) => a.sort_order - b.sort_order);
+  const sorted = [...newActionItems].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  );
   updateProject({ actionItems: sorted });
 }
 
@@ -35,17 +37,20 @@ function _updateProject(newActionItems: ActionItem[]) {
 export function toggleItem(itemId: string) {
   const currentItems = get(actionItems);
   const now = new Date().toISOString();
-  const updated = currentItems.map((i) =>
-    i.id === itemId
-      ? {
-          ...i,
-          status: i.status === "completed" ? "pending" : "completed",
-          updated_at: now,
-          ai_checked: false,
-          checked_reason: undefined,
-        }
-      : i,
-  );
+  const updated: ActionItem[] = currentItems.map((i) => {
+    if (i.id !== itemId) return i;
+
+    const status: ActionItem["status"] =
+      i.status === "completed" ? "pending" : "completed";
+
+    return {
+      ...i,
+      status,
+      updated_at: now,
+      ai_checked: false,
+      checked_reason: undefined,
+    };
+  });
   _updateProject(updated);
 }
 

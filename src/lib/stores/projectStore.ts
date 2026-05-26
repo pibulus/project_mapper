@@ -5,7 +5,7 @@
  * Combines localStorage (fast, offline) with Supabase (persistent, collaborative)
  */
 
-import { writable, derived, get } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
 import type { ConversationData } from "$lib/core/types";
 import { supabase, isSupabaseConfigured } from "$lib/supabaseClient";
@@ -79,7 +79,7 @@ export async function saveToSupabase(
   saveStatus.set("saving");
 
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("projects")
       .upsert({
         id: project.id,

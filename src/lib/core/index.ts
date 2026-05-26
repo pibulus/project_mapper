@@ -8,22 +8,22 @@
 // ===================================================================
 // AI SERVICES
 // ===================================================================
-export * from "./ai/prompts.ts";
-export * from "./ai/gemini.ts";
+export * from "./ai/prompts";
+export * from "./ai/gemini";
 
 // ===================================================================
 // TYPES
 // ===================================================================
-export * from "./types/index.ts";
+export * from "./types/index";
 
 // ===================================================================
 // ORCHESTRATION
 // ===================================================================
-export * from "./orchestration/parallel-analysis.ts";
-export * from "./orchestration/conversation-flow.ts";
+export * from "./orchestration/parallel-analysis";
+export * from "./orchestration/conversation-flow";
 
 // ===================================================================
 // EXPORT
 // ===================================================================
-export * from "./export/formats.ts";
-export * from "./export/transformer.ts";
+export * from "./export/formats";
+export * from "./export/transformer";

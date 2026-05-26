@@ -5,7 +5,7 @@
  * Framework-agnostic, reusable across any implementation
  */
 
-import type { ActionItem, NodeInput } from "../types/index.ts";
+import type { ActionItem, NodeInput } from "../types/index";
 
 // ===================================================================
 // TRANSCRIPTION

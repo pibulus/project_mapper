@@ -3,9 +3,9 @@
  * All type definitions for the conversation mapper nervous system
  */
 
-export * from "./action-item.ts";
-export * from "./conversation.ts";
-export * from "./edge.ts";
-export * from "./node.ts";
-export * from "./transcript.ts";
-export * from "./project.ts";
+export * from "./action-item";
+export * from "./conversation";
+export * from "./edge";
+export * from "./node";
+export * from "./transcript";
+export * from "./project";

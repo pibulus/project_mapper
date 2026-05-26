@@ -40,19 +40,29 @@ interface NodeData {
   fy?: number | null;
   vx?: number;
   vy?: number;
-  [key: string]: any;
 }
 
-interface EdgeData {
+interface RawEdgeData {
   id?: string;
-  source: string | NodeData;
-  target: string | NodeData;
+  source?: string | NodeData;
+  target?: string | NodeData;
   sourceTopicId?: string;
   targetTopicId?: string;
   source_topic_id?: string;
   target_topic_id?: string;
   color?: string;
 }
+
+interface EdgeData extends RawEdgeData {
+  source: string | NodeData;
+  target: string | NodeData;
+}
+
+type NodeDragBehavior = d3.DragBehavior<
+  SVGGElement,
+  NodeData,
+  NodeData | d3.SubjectPosition
+>;
 
 interface Config {
   width: number;
@@ -188,41 +198,69 @@ function createGroups(g: d3.Selection<SVGGElement, unknown, null, undefined>) {
 /**
  * Maps raw edge data into objects suitable for D3 force simulation
  */
-function mapEdges(edges: EdgeData[] = []): EdgeData[] {
+function mapEdges(edges: RawEdgeData[] = []): EdgeData[] {
   if (!edges || !Array.isArray(edges)) {
     console.warn("Invalid edges data passed to mapEdges:", edges);
     return [];
   }
 
-  return edges
-    .map((edge, i) => {
-      if (!edge) {
-        console.warn("Null or undefined edge in mapEdges at index", i);
-        return null;
-      }
+  return edges.reduce<EdgeData[]>((mapped, edge, i) => {
+    if (!edge) {
+      console.warn("Null or undefined edge in mapEdges at index", i);
+      return mapped;
+    }
 
-      const sourceId =
-        edge.sourceTopicId ||
-        edge.source_topic_id ||
-        (typeof edge.source === "string" ? edge.source : "");
-      const targetId =
-        edge.targetTopicId ||
-        edge.target_topic_id ||
-        (typeof edge.target === "string" ? edge.target : "");
+    const sourceId =
+      edge.sourceTopicId ||
+      edge.source_topic_id ||
+      (typeof edge.source === "string" ? edge.source : "");
+    const targetId =
+      edge.targetTopicId ||
+      edge.target_topic_id ||
+      (typeof edge.target === "string" ? edge.target : "");
 
-      if (!sourceId || !targetId) {
-        console.warn("Edge missing source or target ID:", edge);
-        return null;
-      }
+    if (!sourceId || !targetId) {
+      console.warn("Edge missing source or target ID:", edge);
+      return mapped;
+    }
 
-      return {
-        ...edge,
-        source: sourceId,
-        target: targetId,
-        id: edge.id || `${sourceId}-${targetId}-${i}`,
-      };
-    })
-    .filter((edge): edge is EdgeData => edge !== null);
+    mapped.push({
+      ...edge,
+      source: sourceId,
+      target: targetId,
+      id: edge.id || `${sourceId}-${targetId}-${i}`,
+    });
+    return mapped;
+  }, []);
+}
+
+function resolveEdgesToNodes(
+  edges: EdgeData[],
+  nodeMap: Map<string, NodeData>,
+): EdgeData[] {
+  return edges.reduce<EdgeData[]>((resolved, edge) => {
+    const sourceId =
+      typeof edge.source === "string" ? edge.source : edge.source.id;
+    const targetId =
+      typeof edge.target === "string" ? edge.target : edge.target.id;
+    const source = nodeMap.get(sourceId);
+    const target = nodeMap.get(targetId);
+
+    if (!source || !target) {
+      console.warn(
+        `Edge references missing node: ${!source ? "source" : "target"} missing`,
+        edge,
+      );
+      return resolved;
+    }
+
+    resolved.push({
+      ...edge,
+      source,
+      target,
+    });
+    return resolved;
+  }, []);
 }
 
 /**
@@ -259,7 +297,7 @@ function dragended(
 function createNodeGroup(
   selection: d3.Selection<SVGGElement, NodeData, SVGGElement, unknown>,
   config: Config,
-  dragBehavior: d3.DragBehavior<SVGGElement, NodeData, NodeData>,
+  dragBehavior: NodeDragBehavior,
 ) {
   selection
     .attr("class", "node-group")
@@ -312,7 +350,6 @@ function updateElements({
   nodes,
   currentEdges,
   config,
-  simulation,
   dragBehavior,
 }: {
   nodeGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -320,12 +357,11 @@ function updateElements({
   nodes: NodeData[];
   currentEdges: EdgeData[];
   config: Config;
-  simulation: d3.Simulation<NodeData, undefined>;
-  dragBehavior: d3.DragBehavior<SVGGElement, NodeData, NodeData>;
+  dragBehavior: NodeDragBehavior;
 }) {
   // Update links
   const linkElements = linkGroup
-    .selectAll("line")
+    .selectAll<SVGLineElement, EdgeData>("line")
     .data(currentEdges, (d: any) => d.id)
     .join(
       (enter) =>
@@ -350,13 +386,15 @@ function updateElements({
 
   // Update nodes
   const nodeElements = nodeGroup
-    .selectAll("g")
+    .selectAll<SVGGElement, NodeData>("g")
     .data(nodes, (d: any) => d.id)
     .join(
       (enter) =>
         enter
           .append("g")
-          .call((selection) => createNodeGroup(selection, config, dragBehavior)),
+          .call((selection) =>
+            createNodeGroup(selection, config, dragBehavior),
+          ),
       (update) => update,
       (exit) => exit.remove(),
     );
@@ -421,7 +459,7 @@ function fitAllIcons(
   const containerWidth = node.offsetWidth;
   const containerHeight = node.offsetHeight;
 
-  let baseScale = Math.min(
+  const baseScale = Math.min(
     containerWidth / (boxWidth + 2 * padding),
     containerHeight / (boxHeight + 2 * padding),
   );
@@ -451,7 +489,7 @@ function fitAllIcons(
 export interface EmojimapHandle {
   update: (params: {
     nodes?: NodeData[];
-    edges?: EdgeData[];
+    edges?: RawEdgeData[];
     config?: Partial<Config>;
   }) => void;
   resetVisualization: () => void;
@@ -468,31 +506,36 @@ export interface EmojimapHandle {
  */
 export function forceDirectedEmojimap(
   node: HTMLElement,
-  params: { nodes?: NodeData[]; edges?: EdgeData[]; config?: Partial<Config> },
+  params: {
+    nodes?: NodeData[];
+    edges?: RawEdgeData[];
+    config?: Partial<Config>;
+  },
 ): EmojimapHandle {
-	// Validate node
-	if (!node) {
-		console.error("No DOM node provided to forceDirectedEmojimap");
-		return {
-			update: () => {},
-			resetVisualization: () => {},
-			updateLayout: () => {},
-			destroy: () => {},
-		};
-	}
+  // Validate node
+  if (!node) {
+    console.error("No DOM node provided to forceDirectedEmojimap");
+    return {
+      update: () => {},
+      resetVisualization: () => {},
+      updateLayout: () => {},
+      destroy: () => {},
+    };
+  }
 
-	// Validate D3
-	if (!d3) {
-		console.error("[Emojimap] D3 library is not available");
-		return {
-			update: () => {},
-			resetVisualization: () => {},
-			updateLayout: () => {},
-			destroy: () => {},
-		};
-	}
+  // Validate D3
+  if (!d3) {
+    console.error("[Emojimap] D3 library is not available");
+    return {
+      update: () => {},
+      resetVisualization: () => {},
+      updateLayout: () => {},
+      destroy: () => {},
+    };
+  }
 
-  let { nodes = [], edges = [], config = {} } = params || {};
+  let { nodes = [], edges = [] } = params || {};
+  const config = params?.config || {};
 
   // Ensure nodes and edges are arrays
   if (!Array.isArray(nodes)) {
@@ -535,26 +578,7 @@ export function forceDirectedEmojimap(
   console.log(`[Emojimap] Created node map with ${nodeMap.size} nodes`);
 
   // Map edges to nodes
-  currentEdges = currentEdges
-    .map((e) => {
-      const source = nodeMap.get(e.source as string);
-      const target = nodeMap.get(e.target as string);
-
-      if (!source || !target) {
-        console.warn(
-          `Edge references missing node: ${!source ? "source" : "target"} missing`,
-          e,
-        );
-        return null;
-      }
-
-      return {
-        ...e,
-        source,
-        target,
-      };
-    })
-    .filter((e): e is EdgeData => e !== null);
+  currentEdges = resolveEdgesToNodes(currentEdges, nodeMap);
 
   console.log(`[Emojimap] Final edge count: ${currentEdges.length}`);
 
@@ -571,18 +595,7 @@ export function forceDirectedEmojimap(
     .force("charge", d3.forceManyBody().strength(mergedConfig.chargeStrength))
     .force("x", d3.forceX(mergedConfig.width / 2).strength(0.05))
     .force("y", d3.forceY(mergedConfig.height / 2).strength(0.05))
-    .force("collide", d3.forceCollide(mergedConfig.collisionRadius))
-    .on("tick", () => {
-      const elems = updateElements({
-        nodeGroup,
-        linkGroup,
-        nodes,
-        currentEdges,
-        config: mergedConfig,
-        simulation,
-      });
-      ticked(elems);
-    });
+    .force("collide", d3.forceCollide(mergedConfig.collisionRadius));
 
   const dragBehavior = d3
     .drag<SVGGElement, NodeData>()
@@ -600,7 +613,6 @@ export function forceDirectedEmojimap(
       nodes,
       currentEdges,
       config: mergedConfig,
-      simulation,
       dragBehavior,
     });
     ticked(elems);
@@ -687,28 +699,7 @@ export function forceDirectedEmojimap(
         `[Emojimap] Update: mapped ${mappedEdges.length} edges from ${edges.length} raw edges`,
       );
 
-      currentEdges = mappedEdges
-        .map((e) => {
-          if (!e.source || !e.target) return null;
-
-          const source = newNodeMap.get(e.source as string);
-          const target = newNodeMap.get(e.target as string);
-
-          if (!source || !target) {
-            console.warn(
-              `[Emojimap] Edge references missing node:`,
-              !source ? `source (${e.source})` : `target (${e.target})`,
-            );
-            return null;
-          }
-
-          return {
-            ...e,
-            source,
-            target,
-          };
-        })
-        .filter((e): e is EdgeData => e !== null);
+      currentEdges = resolveEdgesToNodes(mappedEdges, newNodeMap);
 
       console.log(`[Emojimap] Update: final edge count ${currentEdges.length}`);
 

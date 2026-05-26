@@ -4,8 +4,8 @@
  * Transform conversations into various formats
  */
 
-import type { AIService } from "../ai/gemini.ts";
-import { EXPORT_FORMATS } from "./formats.ts";
+import type { AIService } from "../ai/gemini";
+import { EXPORT_FORMATS } from "./formats";
 
 export interface ExportResult {
   format: string;

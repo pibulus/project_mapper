@@ -23,7 +23,7 @@ export default class ProjectRoom implements Party.Server {
   /**
    * When a user connects to the project room
    */
-  onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+  onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
     const userId = conn.id;
     console.log(`[PartyKit] User ${userId} joined project ${this.room.id}`);
 

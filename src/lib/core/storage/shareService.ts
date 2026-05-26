@@ -5,7 +5,7 @@
  * Stores shared conversations in localStorage with share metadata
  */
 
-import type { ConversationData } from "../../signals/conversationStore.ts";
+import type { ConversationData } from "../types/project";
 
 // Storage key for shared conversations
 const SHARES_KEY = "conversation_mapper_shares";
@@ -97,11 +97,14 @@ export function createShare(
 
   // Create minimal shareable data (exclude large audio blobs)
   const shareableData = {
-    title: data.conversation.title,
+    id: data.id,
+    title: data.title,
     summary: data.summary,
     transcript: data.transcript,
     actionItems: data.actionItems,
-    timestamp: data.conversation.created_at || new Date().toISOString(),
+    topics: data.topics,
+    edges: data.edges,
+    timestamp: new Date().toISOString(),
   };
 
   // Try to compress for URL sharing
@@ -165,13 +168,16 @@ export function loadSharedConversation(
 
     if (data) {
       return {
-        ...data,
+        id: data.id || `shared_${Date.now()}`,
+        title: data.title || "Shared Conversation",
+        summary: data.summary || "",
+        transcript: data.transcript || "",
+        actionItems: data.actionItems || [],
+        topics: data.topics || [],
+        edges: data.edges || [],
+        syncEnabled: false,
         shareId: "url-share",
         sharedAt: new Date().toISOString(),
-        conversation: {
-          id: `shared_${Date.now()}`,
-          ...data,
-        },
       } as SharedConversation;
     }
   }
@@ -254,9 +260,7 @@ export function getSharesForConversation(
 ): SharedConversation[] {
   const shares = getAllShares();
 
-  return Object.values(shares).filter(
-    (share) => share.conversation.id === conversationId,
-  );
+  return Object.values(shares).filter((share) => share.id === conversationId);
 }
 
 /**

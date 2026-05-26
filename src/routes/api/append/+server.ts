@@ -64,7 +64,7 @@ export const POST: RequestHandler = async (event) => {
     if (existingActionItemsJson) {
       try {
         existingActionItems = JSON.parse(existingActionItemsJson);
-      } catch (e) {
+      } catch {
         console.warn("[API /append] Failed to parse existing action items");
       }
     }

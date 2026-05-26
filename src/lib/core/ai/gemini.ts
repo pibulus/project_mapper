@@ -12,7 +12,7 @@ import type {
   ConversationGraph,
   NodeInput,
   TranscriptionResult,
-} from "../types/index.ts";
+} from "../types/index";
 
 import {
   buildActionItemsPrompt,
@@ -22,7 +22,7 @@ import {
   buildTitlePrompt,
   buildTopicExtractionPrompt,
   TRANSCRIPTION_PROMPT,
-} from "./prompts.ts";
+} from "./prompts";
 
 export type GeminiAudioPart =
   | {

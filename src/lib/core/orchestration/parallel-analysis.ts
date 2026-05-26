@@ -7,15 +7,15 @@
  * - Fast user experience
  */
 
-import type { AIService } from "../ai/gemini.ts";
-import type { AnalysisUpdateCallback } from "./conversation-flow.ts";
+import type { AIService } from "../ai/gemini";
+import type { AnalysisUpdateCallback } from "./conversation-flow";
 import type {
   ActionItem,
   ActionItemInput,
   ActionItemStatusUpdate,
   ConversationGraph,
   NodeInput,
-} from "../types/index.ts";
+} from "../types/index";
 
 export interface AnalysisResult {
   topics: ConversationGraph;
@@ -43,10 +43,7 @@ export async function analyzeText(
 ): Promise<AnalysisResult> {
   const warnings: AnalysisWarning[] = [];
 
-  const captureWarning = (
-    scope: AnalysisWarning["scope"],
-    error: unknown,
-  ) => {
+  const captureWarning = (scope: AnalysisWarning["scope"], error: unknown) => {
     const message =
       error instanceof Error ? error.message : `Unexpected ${scope} failure`;
     const warning = { scope, message };
@@ -77,13 +74,16 @@ export async function analyzeText(
       return [];
     });
 
-  const summaryPromise = aiService.generateSummary(text).then((summary) => {
-    onUpdate?.("summary", summary);
-    return summary;
-  }).catch((error) => {
-    captureWarning("summary", error);
-    return "";
-  });
+  const summaryPromise = aiService
+    .generateSummary(text)
+    .then((summary) => {
+      onUpdate?.("summary", summary);
+      return summary;
+    })
+    .catch((error) => {
+      captureWarning("summary", error);
+      return "";
+    });
 
   const [topics, actionItems, summary] = await Promise.all([
     topicsPromise,

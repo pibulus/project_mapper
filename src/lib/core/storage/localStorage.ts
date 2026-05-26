@@ -5,7 +5,7 @@
  * No backend needed, works offline
  */
 
-import type { ConversationData } from "../../signals/conversationStore.ts";
+import type { ConversationData } from "../types/project";
 
 // Storage keys
 const CONVERSATIONS_KEY = "conversation_mapper_conversations";
@@ -32,7 +32,7 @@ export function saveConversation(data: ConversationData): void {
   if (typeof window === "undefined") return;
 
   const conversations = getAllConversations();
-  const conversationId = data.conversation.id;
+  const conversationId = data.id;
 
   const stored: StoredConversation = {
     ...data,
@@ -123,7 +123,7 @@ export function clearAllConversations(): void {
 // AUTO-SAVE HELPERS
 // ===================================================================
 
-let saveTimeout: number | null = null;
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Debounced save - prevents too frequent writes

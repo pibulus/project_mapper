@@ -79,7 +79,6 @@
   </div>
 {:else}
   <!-- Mobile Swipe Container -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     class="mobile-carousel"
     use:swipe

@@ -4,7 +4,7 @@
  * Manages WebSocket connection to PartyKit room for multiplayer features
  */
 
-import { writable, derived } from "svelte/store";
+import { writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { env } from "$env/dynamic/public";
 import PartySocket from "partysocket";
@@ -82,16 +82,16 @@ export function createProjectParty(projectId: string) {
               return { count: users.size, users };
             });
             break;
-      case "user_left":
-        presence.update((p) => {
-          const users = new Set(p.users);
-          if (msg.userId) users.delete(msg.userId);
-          return { count: users.size, users };
-        });
-        if (msg.userId) {
-          topicSelection.clearRemoteUser(msg.userId);
-        }
-        break;
+          case "user_left":
+            presence.update((p) => {
+              const users = new Set(p.users);
+              if (msg.userId) users.delete(msg.userId);
+              return { count: users.size, users };
+            });
+            if (msg.userId) {
+              topicSelection.clearRemoteUser(msg.userId);
+            }
+            break;
 
           // Analysis updates
           case "transcript":
@@ -140,12 +140,18 @@ export function createProjectParty(projectId: string) {
             break;
           case "topic-hover":
             if (msg.userId) {
-              topicSelection.setRemoteHover(msg.userId, msg.data?.topic ?? null);
+              topicSelection.setRemoteHover(
+                msg.userId,
+                msg.data?.topic ?? null,
+              );
             }
             break;
           case "topic-selection":
             if (msg.userId) {
-              topicSelection.setRemoteSelection(msg.userId, msg.data?.topic ?? null);
+              topicSelection.setRemoteSelection(
+                msg.userId,
+                msg.data?.topic ?? null,
+              );
             }
             break;
         }
