@@ -35,22 +35,21 @@ Same conversation, many formats: blog posts, technical manuals, haikus, meeting 
 ├── ai/
 │   ├── prompts.ts              # All AI prompts as constants
 │   ├── gemini.ts               # Gemini API wrapper
-│   └── index.ts
 ├── types/
 │   ├── action-item.ts          # Action item with AI checkoff
 │   ├── conversation.ts         # Conversation data structure
 │   ├── edge.ts                 # Topic relationship
 │   ├── node.ts                 # Topic node with emoji/color
+│   ├── project.ts              # UI project data structure
 │   ├── transcript.ts           # Transcript segment
 │   └── index.ts
 ├── orchestration/
 │   ├── conversation-flow.ts    # Main flow: Audio/Text → AI → Data
 │   ├── parallel-analysis.ts    # Parallel AI coordinator
-│   └── index.ts
+│   └── append-audio.ts         # Browser-facing append helper
 ├── export/
 │   ├── formats.ts              # Pre-defined export formats
-│   ├── transformer.ts          # Conversation transformer
-│   └── index.ts
+│   └── transformer.ts          # Conversation transformer
 └── index.ts                     # Main entry point
 ```
 
@@ -67,15 +66,16 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 const aiService = createGeminiService(model);
 ```
 
-### 2. Process Audio Input
+### 2. Process Text Input
 
 ```typescript
-import { processAudio } from "./core";
+import { processText } from "./core";
 
-const result = await processAudio(
+const result = await processText(
   aiService,
-  audioBlob,
+  text,
   conversationId,
+  speakers, // Optional
   existingActionItems, // Optional - for AI self-checkoff
 );
 
@@ -88,11 +88,15 @@ const result = await processAudio(
 // - statusUpdates (AI checkoff results)
 ```
 
-### 3. Process Text Input
+### 3. Process Audio Input
+
+Audio transcription is handled by the SvelteKit server wrapper in `src/lib/server/geminiService.ts`, then the transcribed text is passed into `processText`.
 
 ```typescript
+import { transcribeAudio } from "$lib/server/geminiService";
 import { processText } from "./core";
 
+const { text, speakers } = await transcribeAudio(audioFile);
 const result = await processText(
   aiService,
   text,
@@ -136,16 +140,14 @@ const custom = await transformWithCustomPrompt(
 
 - `BLOG` - Engaging blog post
 - `TECHNICAL_MANUAL` - Step-by-step manual
-- `MEETING_SUMMARY` - Professional meeting notes
-- `HAIKU` - 5-7-5 syllable poetry
-- `BULLET_POINTS` - Concise summary
-- `EMAIL` - Professional email
-- `PRESENTATION` - Markdown slides
-- `TWEET_THREAD` - Twitter thread
-- `STORY` - Narrative format
-- `FAQ` - Questions and answers
-- `EXECUTIVE_SUMMARY` - One-page summary
-- `LESSON_PLAN` - Educational format
+- `MEETING` - Formal meeting minutes
+- `SPECIFICATIONS` - Technical specification document
+- `SUMMARY` - Executive summary
+- `HAIKU` - Poetic compact summary
+- `PLAN` - Structured action plan
+- `RESEARCH` - Research notes
+- `JOURNAL` - Reflective journal entry
+- `REPORT` - Case study style report
 
 ## Type Definitions
 
@@ -183,25 +185,11 @@ Audio/Text Input
 
 ## Integration Examples
 
-### Fresh (Deno)
+### SvelteKit / React / Next.js
 
 ```typescript
-import { processAudio } from "@/core/index.ts";
-// Use in route handlers or islands
-```
-
-### SvelteKit
-
-```typescript
-import { processAudio } from "$lib/core";
-// Use in load functions or server endpoints
-```
-
-### React/Next.js
-
-```typescript
-import { processAudio } from "@/core";
-// Use in API routes or server components
+import { processText } from "$lib/core";
+// Use in server endpoints or server components
 ```
 
 ## Why Extract the Nervous System?

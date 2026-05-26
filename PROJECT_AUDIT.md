@@ -81,7 +81,7 @@ Goal: handle Gemini variability without corrupting project state.
 
 Goal: keep the nervous-system pattern real.
 
-- [ ] Remove or update lineage leftovers from older implementations.
+- [x] Remove or update lineage leftovers from older implementations.
 - [ ] Keep `src/lib/core` framework-agnostic where practical.
 - [ ] Split `Upload.svelte` orchestration from UI.
 - [ ] Check store ownership between `currentProject`, `actionItems`, `partyStore`, and topic selection.
@@ -137,7 +137,6 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - `src/lib/components/ActionItemsCard.svelte`: dense interaction logic.
 - `src/lib/components/TopicGraphCard.svelte`: graph state, persistence, fullscreen, and collaboration in one component.
 - `src/lib/utils/forceDirectedEmojimap.ts`: D3-heavy code with debug logging and type debt.
-- `src/lib/core/storage/*`: likely older implementation leftovers.
 - `database-schema.sql`: permissive RLS policies by design, but risky as-is.
 - `party/index.ts`: room updates are easy to broadcast and need a trust-boundary pass.
 
@@ -146,3 +145,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Created audit map and started Track 1: Tooling And Compiler Truth.
 - 2026-05-27: Track 1 complete. Added ESLint 9 flat config, restored Prettier/lint/typecheck/build validation, fixed stale core imports, repaired old storage types, tightened action item and graph typings, and removed the unsafe summary `{@html}` highlight path.
 - 2026-05-27: Fixed export drawer format IDs so the UI sends valid `EXPORT_FORMATS` keys to `/api/export`.
+- 2026-05-27: Deleted unused `src/lib/core/storage/*` lineage code and corrected the core README to match the current API surface.
