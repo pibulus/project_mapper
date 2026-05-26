@@ -117,7 +117,7 @@ Goal: avoid slow, expensive, or memory-heavy paths.
 - [ ] Check base64 audio memory pressure.
 - [ ] Check localStorage size limits for long transcripts.
 - [ ] Check D3 simulation churn and graph update frequency.
-- [ ] Remove debug logging from production paths.
+- [x] Remove debug logging from production paths.
 - [ ] Check client bundle size and heavy dependencies.
 - [ ] Check Gemini fan-out cost under append workflows.
 
@@ -153,3 +153,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Documented the current Supabase RLS schema as anonymous/demo-only; real private ownership still requires an auth or share-token product decision.
 - 2026-05-27: Fixed Dashboard PartyKit lifecycle so synced project changes disconnect old sockets instead of accumulating duplicate realtime connections.
 - 2026-05-27: Added Gemini response normalization for action items, topic nodes/edges, and status updates so malformed AI JSON is filtered instead of corrupting project state.
+- 2026-05-27: Removed remaining production-path `console.log` calls from API routes, stores, Gemini service, and PartyKit hot paths while keeping warnings/errors.

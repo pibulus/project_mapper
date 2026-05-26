@@ -62,10 +62,6 @@ export const POST: RequestHandler = async (event) => {
         );
       }
 
-      console.log(
-        `[API /process] Processing ${(audioFile.size / 1024).toFixed(2)}KB audio`,
-      );
-
       // Transcribe audio (uploads, transcribes, cleans up automatically)
       const { text, speakers } = await transcribeAudio(audioFile);
 
@@ -77,8 +73,6 @@ export const POST: RequestHandler = async (event) => {
         conversationId,
         speakers,
       );
-
-      console.log("[API /process] ✅ Audio processed successfully");
 
       return json(result);
     }
@@ -92,17 +86,11 @@ export const POST: RequestHandler = async (event) => {
         return json({ error: "No text provided" }, { status: 400 });
       }
 
-      console.log(
-        `[API /process] Processing ${text.length} characters of text`,
-      );
-
       const aiService = getAIService();
       const id = conversationId || crypto.randomUUID();
 
       // Use core orchestration
       const result = await processText(aiService, text, id);
-
-      console.log("[API /process] ✅ Text processed successfully");
 
       return json(result);
     }

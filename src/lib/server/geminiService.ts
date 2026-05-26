@@ -88,8 +88,6 @@ export function getGeminiModel() {
         throw lastError;
       },
     };
-
-    console.log(`[Gemini] Initialized model chain: ${modelNames.join(" -> ")}`);
   }
 
   return cachedModel;
@@ -105,7 +103,6 @@ export function getAIService(): AIService {
   if (!cachedService) {
     const model = getGeminiModel();
     cachedService = createGeminiService(model);
-    console.log("[Gemini] AI Service initialized");
   }
 
   return cachedService;
@@ -134,8 +131,5 @@ export async function transcribeAudio(
   };
 
   const aiService = getAIService();
-  const result = await aiService.transcribeAudio(audioPart);
-  console.log("[Gemini] ✅ Transcription complete");
-
-  return result;
+  return aiService.transcribeAudio(audioPart);
 }

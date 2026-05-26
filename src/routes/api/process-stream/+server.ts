@@ -67,10 +67,6 @@ export const POST: RequestHandler = async (event) => {
       return json({ error: "No text provided" }, { status: 400 });
     }
 
-    console.log(
-      `[API /process-stream] Processing ${text.length} characters of text`,
-    );
-
     const aiService = getAIService();
     const id = conversationId || crypto.randomUUID();
 

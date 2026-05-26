@@ -63,7 +63,6 @@ export default class ProjectRoom implements Party.Server {
    */
   onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
     const userId = conn.id;
-    console.log(`[PartyKit] User ${userId} joined project ${this.room.id}`);
 
     // Broadcast presence update to all connected users
     this.room.broadcast(
@@ -99,11 +98,6 @@ export default class ProjectRoom implements Party.Server {
           return new Response("Invalid update type", { status: 400 });
         }
 
-        console.log(
-          `[PartyKit] Received update for project ${this.room.id}:`,
-          update.type,
-        );
-
         // Broadcast the update to all connected clients
         this.room.broadcast(JSON.stringify(update));
 
@@ -123,8 +117,7 @@ export default class ProjectRoom implements Party.Server {
   onMessage(message: string, sender: Party.Connection) {
     try {
       const msg: ProjectMessage = JSON.parse(message);
-
-      console.log(`[PartyKit] Message from ${sender.id}:`, msg.type);
+      if (!msg || typeof msg.type !== "string") return;
 
       // Broadcast to all other users
       this.room.broadcast(message, [sender.id]);
@@ -138,7 +131,6 @@ export default class ProjectRoom implements Party.Server {
    */
   onClose(conn: Party.Connection) {
     const userId = conn.id;
-    console.log(`[PartyKit] User ${userId} left project ${this.room.id}`);
 
     // Broadcast user left event
     this.room.broadcast(

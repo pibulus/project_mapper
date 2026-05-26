@@ -60,21 +60,18 @@ export function createProjectParty(projectId: string) {
     if (!browser || !PUBLIC_PARTYKIT_HOST) return;
     if (socket) return;
 
-    console.log(`[PartyKit] Connecting to project: ${projectId}`);
     socket = new PartySocket({
       host: PUBLIC_PARTYKIT_HOST,
       room: projectId,
     });
 
     socket.addEventListener("open", () => {
-      console.log("[PartyKit] Connected");
       connected.set(true);
     });
 
     socket.addEventListener("message", (event) => {
       try {
         const msg: PartyMessage = JSON.parse(event.data);
-        console.log("[PartyKit] Message received:", msg.type);
 
         switch (msg.type) {
           // Presence
@@ -173,7 +170,6 @@ export function createProjectParty(projectId: string) {
     });
 
     socket.addEventListener("close", () => {
-      console.log("[PartyKit] Disconnected");
       connected.set(false);
       socket = null;
     });
@@ -185,7 +181,6 @@ export function createProjectParty(projectId: string) {
 
   function disconnect() {
     if (socket) {
-      console.log("[PartyKit] Disconnecting");
       socket.close();
     }
   }

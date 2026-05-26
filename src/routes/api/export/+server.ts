@@ -43,14 +43,10 @@ export const POST: RequestHandler = async (event) => {
       return json({ error: `Unknown format: ${format}` }, { status: 400 });
     }
 
-    console.log(`[API /export] Generating ${format} export`);
-
     const aiService = getAIService();
 
     // Use core AI service to generate markdown
     const markdown = await aiService.generateMarkdown(formatPrompt, transcript);
-
-    console.log(`[API /export] ✅ Generated ${format} export`);
 
     return json({ markdown });
   } catch (error: any) {

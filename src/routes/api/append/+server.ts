@@ -97,13 +97,6 @@ export const POST: RequestHandler = async (event) => {
     );
     const existingTopicInputs = existingTopics.map(topicToInput);
 
-    console.log(
-      `[API /append] Appending ${(audioFile.size / 1024).toFixed(2)}KB audio to conversation ${conversationId}`,
-    );
-    console.log(
-      `[API /append] Tracking ${existingActionItems.length} existing action items`,
-    );
-
     // Transcribe audio (uploads, transcribes, cleans up automatically)
     const { text, speakers } = await transcribeAudio(audioFile);
 
@@ -144,8 +137,6 @@ export const POST: RequestHandler = async (event) => {
       summary: analysisResult.summary,
       actionItems,
     });
-
-    console.log("[API /append] ✅ Audio appended successfully");
 
     return json({
       transcript,
