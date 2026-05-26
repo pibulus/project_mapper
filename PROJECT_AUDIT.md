@@ -48,7 +48,7 @@ Goal: verify the user-facing promise works end to end.
 - [ ] Uploaded audio creates a project.
 - [ ] Append audio merges transcript and action items correctly.
 - [ ] AI title regeneration works and fails cleanly.
-- [ ] Export drawer uses valid format IDs.
+- [x] Export drawer uses valid format IDs.
 - [ ] Local restore after refresh works.
 - [ ] Supabase sync works when configured and degrades cleanly when not.
 - [ ] PartyKit updates work when configured and degrade cleanly when not.
@@ -145,3 +145,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 
 - 2026-05-27: Created audit map and started Track 1: Tooling And Compiler Truth.
 - 2026-05-27: Track 1 complete. Added ESLint 9 flat config, restored Prettier/lint/typecheck/build validation, fixed stale core imports, repaired old storage types, tightened action item and graph typings, and removed the unsafe summary `{@html}` highlight path.
+- 2026-05-27: Fixed export drawer format IDs so the UI sends valid `EXPORT_FORMATS` keys to `/api/export`.

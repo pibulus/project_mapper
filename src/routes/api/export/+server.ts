@@ -4,11 +4,11 @@
  * Transform conversation transcript to different formats using AI
  *
  * Supported formats:
- * - blog: Blog post with sections and flow
- * - manual: Technical manual with steps
- * - haiku: Poetic 3-line summary
- * - summary: Executive summary
- * - custom: Custom format with provided prompt
+ * - BLOG: Blog post with sections and flow
+ * - TECHNICAL_MANUAL: Manual with steps
+ * - HAIKU: Poetic compact summary
+ * - SUMMARY: Executive summary
+ * - PLAN: Action plan
  */
 
 import { json } from "@sveltejs/kit";

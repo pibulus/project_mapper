@@ -9,6 +9,11 @@ export const EXPORT_FORMATS = {
   BLOG: `Analyze this content and, if it contains narrative-worthy material, transform it into an engaging article in the style of modern web portals like Pedestrian or Kotaku.
 If the content isn't suitable for a blog post (e.g., it's too technical or purely procedural), kindly respond with: "This content might work better with a different format. Consider trying the Summary or Meeting format instead."`,
 
+  TECHNICAL_MANUAL: `Transform this conversation into a practical technical manual or operating guide.
+Use clear sections, ordered steps where useful, assumptions, caveats, and any implementation details mentioned in the source material.
+
+If the conversation does not contain enough procedural or technical detail, kindly respond with: "This conversation doesn't contain enough technical detail for a manual. Consider using the Summary or Action Plan format instead."`,
+
   MEETING: `If this appears to be a discussion or meeting conversation, convert it into formal meeting minutes including:
 • Date and participants (if mentioned)
 • Key discussion points
@@ -28,6 +33,9 @@ If the content lacks technical substance, kindly respond with: "This conversatio
 
   SUMMARY:
     'Create a concise executive summary of this conversation. Focus on key points, decisions, and outcomes. If the content is too brief or lacks substantial points to summarize, kindly note: "This content might be too brief for a meaningful summary. Perhaps try viewing it in its original form."',
+
+  HAIKU:
+    "Distill the essence of this conversation into a haiku or compact haiku sequence. Preserve the core idea and tone rather than forcing every detail into the poem.",
 
   PLAN: `Extract and organize any action items or tasks from this conversation into a structured plan. Only include assignees when they are explicitly mentioned in the conversation. Format each item as:
 • Task: [description]
