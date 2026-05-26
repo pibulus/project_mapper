@@ -57,10 +57,10 @@ Goal: verify the user-facing promise works end to end.
 
 Goal: make trust boundaries explicit before public deployment.
 
-- [ ] Review API token behavior and defaults.
-- [ ] Review origin allowlist behavior for same-origin, CLI, and production requests.
-- [ ] Review in-memory rate limiting and deployment assumptions.
-- [ ] Review upload size, type, and abuse controls.
+- [x] Review API token behavior and defaults.
+- [x] Review origin allowlist behavior for same-origin, CLI, and production requests.
+- [x] Review in-memory rate limiting and deployment assumptions.
+- [x] Review upload size, type, and abuse controls.
 - [ ] Review Supabase RLS policy permissiveness.
 - [x] Review PartyKit room POST trust boundary.
 - [ ] Decide private, public, shareable, and synced project semantics.
@@ -149,3 +149,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Fixed PartyKit presence message shape and added optional `PARTYKIT_UPDATE_TOKEN` auth for server-posted room updates.
 - 2026-05-27: Fixed export drawer format object wiring, replaced blocking alert/confirm dialogs with inline UI, and removed graph/client debug log spam.
 - 2026-05-27: Fixed append flow to send existing transcript/topics/edges, merge graph updates server-side, and broadcast the full merged transcript instead of an append fragment.
+- 2026-05-27: Hardened API guard defaults: same-origin browser requests are allowed by default, cross-origin requests require `ALLOWED_ORIGINS`, bad rate-limit env values fall back safely, and audio endpoints now reject unsupported MIME types.

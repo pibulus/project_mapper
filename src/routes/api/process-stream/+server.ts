@@ -1,7 +1,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getAIService } from "$lib/server/geminiService";
-import { getMaxUploadBytes, guardRequest } from "$lib/server/apiGuard";
+import {
+  getAllowedAudioDescription,
+  getMaxUploadBytes,
+  guardRequest,
+  isAllowedAudioUpload,
+} from "$lib/server/apiGuard";
 import { transcribeAudio } from "$lib/server/geminiService";
 import { processText } from "$lib/core/orchestration/conversation-flow";
 import { postUpdateToParty } from "$lib/server/partyUpdates";
@@ -35,6 +40,15 @@ export const POST: RequestHandler = async (event) => {
         return json(
           { error: `File too large. Maximum size is ${mb}MB` },
           { status: 413 },
+        );
+      }
+
+      if (!isAllowedAudioUpload(audioFile)) {
+        return json(
+          {
+            error: `Unsupported audio type. Allowed types: ${getAllowedAudioDescription()}`,
+          },
+          { status: 415 },
         );
       }
 

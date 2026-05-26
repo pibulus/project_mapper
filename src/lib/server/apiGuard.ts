@@ -1,12 +1,53 @@
 import { env } from "$env/dynamic/private";
 import { json, type RequestEvent } from "@sveltejs/kit";
 
-const RATE_LIMIT_WINDOW_MS = Number(env.API_RATE_WINDOW_MS ?? "60000");
-const RATE_LIMIT_MAX = Number(env.API_RATE_LIMIT ?? "30");
-const MAX_UPLOAD_BYTES = Number(env.MAX_UPLOAD_BYTES ?? `${50 * 1024 * 1024}`);
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60000;
+const DEFAULT_RATE_LIMIT_MAX = 30;
+const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const DEFAULT_AUDIO_MIME_TYPES = [
+  "audio/aac",
+  "audio/flac",
+  "audio/m4a",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+  "audio/wave",
+  "audio/webm",
+  "audio/x-m4a",
+  "audio/x-wav",
+];
+const DEFAULT_AUDIO_EXTENSIONS = [
+  ".aac",
+  ".flac",
+  ".m4a",
+  ".mp3",
+  ".mp4",
+  ".ogg",
+  ".wav",
+  ".webm",
+];
+
+const RATE_LIMIT_WINDOW_MS = readPositiveNumber(
+  env.API_RATE_WINDOW_MS,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
+);
+const RATE_LIMIT_MAX = readPositiveNumber(
+  env.API_RATE_LIMIT,
+  DEFAULT_RATE_LIMIT_MAX,
+);
+const MAX_UPLOAD_BYTES = readPositiveNumber(
+  env.MAX_UPLOAD_BYTES,
+  DEFAULT_MAX_UPLOAD_BYTES,
+);
 const AUTH_TOKEN = env.API_AUTH_TOKEN?.trim() || "";
 
 const buckets = new Map<string, { count: number; windowStart: number }>();
+
+function readPositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function getAllowedOrigins() {
   return (env.ALLOWED_ORIGINS ?? "")
@@ -15,13 +56,22 @@ function getAllowedOrigins() {
     .filter(Boolean);
 }
 
-function isOriginAllowed(request: Request) {
+function getAllowedAudioMimeTypes() {
+  const configuredTypes = (env.ALLOWED_AUDIO_MIME_TYPES ?? "")
+    .split(",")
+    .map((type) => type.trim().toLowerCase())
+    .filter(Boolean);
+
+  return configuredTypes.length ? configuredTypes : DEFAULT_AUDIO_MIME_TYPES;
+}
+
+function isOriginAllowed(event: RequestEvent) {
+  const { request, url } = event;
   const allowedOrigins = getAllowedOrigins();
-  if (!allowedOrigins.length) return true;
-
   const origin = request.headers.get("origin");
-  if (!origin) return false;
+  if (!origin) return true;
 
+  if (origin === url.origin) return true;
   return allowedOrigins.includes(origin);
 }
 
@@ -85,6 +135,29 @@ export function getMaxUploadBytes() {
   return MAX_UPLOAD_BYTES;
 }
 
+export function isAllowedAudioUpload(file: File) {
+  const allowedTypes = getAllowedAudioMimeTypes();
+  const mimeType = file.type.toLowerCase().split(";")[0]?.trim() || "";
+
+  if (mimeType) {
+    return allowedTypes.some((allowedType) => {
+      if (allowedType.endsWith("/*")) {
+        return mimeType.startsWith(`${allowedType.slice(0, -1)}`);
+      }
+      return mimeType === allowedType;
+    });
+  }
+
+  const filename = file.name.toLowerCase();
+  return DEFAULT_AUDIO_EXTENSIONS.some((extension) =>
+    filename.endsWith(extension),
+  );
+}
+
+export function getAllowedAudioDescription() {
+  return getAllowedAudioMimeTypes().join(", ");
+}
+
 export function guardRequest(event: RequestEvent) {
   if (AUTH_TOKEN) {
     const bearer = event.request.headers
@@ -98,7 +171,7 @@ export function guardRequest(event: RequestEvent) {
     }
   }
 
-  if (!isOriginAllowed(event.request)) {
+  if (!isOriginAllowed(event)) {
     return json({ error: "Request origin is not allowed" }, { status: 403 });
   }
 
