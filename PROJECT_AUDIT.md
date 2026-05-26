@@ -69,9 +69,9 @@ Goal: make trust boundaries explicit before public deployment.
 
 Goal: handle Gemini variability without corrupting project state.
 
-- [ ] Validate action item JSON shape.
-- [ ] Validate topic graph JSON shape.
-- [ ] Validate status update IDs before applying.
+- [x] Validate action item JSON shape.
+- [x] Validate topic graph JSON shape.
+- [x] Validate status update IDs before applying.
 - [ ] Preserve partial results without pretending the whole analysis succeeded.
 - [ ] Check duplicate action item detection.
 - [x] Check append topic reuse.
@@ -152,3 +152,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Hardened API guard defaults: same-origin browser requests are allowed by default, cross-origin requests require `ALLOWED_ORIGINS`, bad rate-limit env values fall back safely, and audio endpoints now reject unsupported MIME types.
 - 2026-05-27: Documented the current Supabase RLS schema as anonymous/demo-only; real private ownership still requires an auth or share-token product decision.
 - 2026-05-27: Fixed Dashboard PartyKit lifecycle so synced project changes disconnect old sockets instead of accumulating duplicate realtime connections.
+- 2026-05-27: Added Gemini response normalization for action items, topic nodes/edges, and status updates so malformed AI JSON is filtered instead of corrupting project state.

@@ -61,6 +61,14 @@ function cleanJsonResponse(text: string): string {
     .replace(/\s*```$/, "");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function normalizeNullableString(value: unknown): string | null {
   if (value === undefined || value === null || value === "null") {
     return null;
@@ -70,8 +78,10 @@ function normalizeNullableString(value: unknown): string | null {
   return normalized ? normalized : null;
 }
 
-function normalizeActionItemInput(item: any): ActionItemInput | null {
-  const description = String(item?.description || "").trim();
+function normalizeActionItemInput(item: unknown): ActionItemInput | null {
+  if (!isRecord(item)) return null;
+
+  const description = normalizeString(item.description);
   if (!description || description.toLowerCase() === "no action items") {
     return null;
   }
@@ -81,6 +91,72 @@ function normalizeActionItemInput(item: any): ActionItemInput | null {
     assignee: normalizeNullableString(item?.assignee),
     due_date: normalizeNullableString(item?.due_date),
   };
+}
+
+function normalizeStatusUpdate(
+  update: unknown,
+  existingIds: Set<string>,
+): ActionItemStatusUpdate | null {
+  if (!isRecord(update)) return null;
+
+  const id = normalizeString(update.id);
+  if (!id || !existingIds.has(id)) return null;
+
+  const status = normalizeString(update.status);
+  if (status !== "completed" && status !== "pending") return null;
+
+  return {
+    id,
+    description: normalizeString(update.description),
+    status,
+    reason: normalizeString(update.reason),
+  };
+}
+
+function normalizeTopicNode(node: unknown): NodeInput | null {
+  if (!isRecord(node)) return null;
+
+  const id = normalizeString(node.id);
+  const label = normalizeString(node.label);
+  if (!id || !label) return null;
+
+  return {
+    id,
+    label,
+    color: normalizeString(node.color) || "#999999",
+    emoji: normalizeString(node.emoji),
+  };
+}
+
+function normalizeTopicGraph(data: unknown): ConversationGraph {
+  if (!isRecord(data)) return { nodes: [], edges: [] };
+
+  const nodes = Array.isArray(data.nodes)
+    ? data.nodes
+        .map((node) => normalizeTopicNode(node))
+        .filter((node): node is NodeInput => Boolean(node))
+    : [];
+  const nodeIds = new Set(nodes.map((node) => node.id));
+
+  const edges = Array.isArray(data.edges)
+    ? data.edges
+        .filter(isRecord)
+        .map((edge) => ({
+          source_topic_id: normalizeString(edge.source_topic_id),
+          target_topic_id: normalizeString(edge.target_topic_id),
+          color: normalizeString(edge.color) || "#999999",
+        }))
+        .filter(
+          (edge) =>
+            edge.source_topic_id &&
+            edge.target_topic_id &&
+            edge.source_topic_id !== edge.target_topic_id &&
+            nodeIds.has(edge.source_topic_id) &&
+            nodeIds.has(edge.target_topic_id),
+        )
+    : [];
+
+  return { nodes, edges };
 }
 
 // ===================================================================
@@ -182,7 +258,7 @@ export function createGeminiService(model: any): AIService {
           }
 
           return actionItems
-            .map((item: any) => normalizeActionItemInput(item))
+            .map((item: unknown) => normalizeActionItemInput(item))
             .filter((item): item is ActionItemInput => Boolean(item));
         } catch (e) {
           console.error("Error parsing action items JSON:", e);
@@ -232,12 +308,16 @@ export function createGeminiService(model: any): AIService {
             throw new Error("Action item status response was not an array");
           }
 
-          return parsed.map((update: any) => ({
-            id: String(update.id || ""),
-            description: String(update.description || ""),
-            status: update.status === "completed" ? "completed" : "pending",
-            reason: String(update.reason || "").trim(),
-          }));
+          const existingIds = new Set(
+            existingActionItems.map((item) => item.id),
+          );
+          return parsed
+            .map((update: unknown) =>
+              normalizeStatusUpdate(update, existingIds),
+            )
+            .filter((update): update is ActionItemStatusUpdate =>
+              Boolean(update),
+            );
         } catch (e) {
           console.error("Error parsing action item status JSON:", e);
           console.error("Raw text was:", text);
@@ -272,10 +352,7 @@ export function createGeminiService(model: any): AIService {
 
         try {
           const data = JSON.parse(jsonString);
-          return {
-            nodes: data.nodes || [],
-            edges: data.edges || [],
-          };
+          return normalizeTopicGraph(data);
         } catch (e) {
           console.error("Error parsing JSON response", e, jsonString);
           return { nodes: [], edges: [] };
