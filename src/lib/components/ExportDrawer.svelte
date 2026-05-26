@@ -25,6 +25,7 @@
   let generatedMarkdown = "";
   let isGenerating = false;
   let error = "";
+  let copyStatus = "";
 
   // Available export formats with descriptions
   const formats: ExportOption[] = [
@@ -55,6 +56,7 @@
     selectedFormat = format;
     isGenerating = true;
     error = "";
+    copyStatus = "";
     generatedMarkdown = "";
 
     try {
@@ -87,8 +89,7 @@
 
     navigator.clipboard.writeText(generatedMarkdown).then(
       () => {
-        // Show success toast (simple version)
-        alert("Copied to clipboard!");
+        copyStatus = "Copied to clipboard";
       },
       (err) => {
         console.error("Failed to copy:", err);
@@ -104,6 +105,7 @@
       selectedFormat = null;
       generatedMarkdown = "";
       error = "";
+      copyStatus = "";
     }, 300);
   }
 
@@ -163,7 +165,7 @@
           <p class="text-gray-600 mb-4">Choose an export format:</p>
           {#each formats as format}
             <button
-              on:click={() => generateExport(format.id)}
+              on:click={() => generateExport(format)}
               class="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all group"
             >
               <div class="flex items-center justify-between">
@@ -193,6 +195,7 @@
               selectedFormat = null;
               generatedMarkdown = "";
               error = "";
+              copyStatus = "";
             }}
             class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
           >
@@ -226,6 +229,9 @@
                   📋 Copy to Clipboard
                 </button>
               </div>
+              {#if copyStatus}
+                <p class="text-sm text-green-700">{copyStatus}</p>
+              {/if}
 
               <!-- Preview -->
               <div

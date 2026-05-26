@@ -155,9 +155,7 @@
       }, 1000) as unknown as number;
     } catch (err) {
       console.error("Error starting recording:", err);
-      alert(
-        "Could not access microphone. Please grant permission and try again.",
-      );
+      error = "Could not access microphone. Please grant permission and try again.";
       cleanup();
     }
   }
@@ -211,10 +209,6 @@
   // ===================================================================
 
   async function processRecordedAudio(audioBlob: Blob) {
-    console.log("🎤 Starting audio processing...", {
-      size: audioBlob.size,
-      type: audioBlob.type,
-    });
     isProcessing = true;
     error = "";
 
@@ -249,7 +243,6 @@
   }
 
   async function processAudioFile(file: File) {
-    console.log("📁 Processing audio file:", file.name);
     isProcessing = true;
     error = "";
 
@@ -294,8 +287,6 @@
     if (warnings?.length) {
       console.warn("Append analysis warnings:", warnings);
     }
-
-    console.log(`✅ Appended audio to project ${projectId}`);
   }
 
   async function processText() {

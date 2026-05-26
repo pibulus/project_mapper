@@ -107,27 +107,13 @@ const defaultConfig: Config = {
   linkDistance: 100,
   chargeStrength: -1500,
   collisionRadius: 50,
-  onMouseOverNode: (event, d) => {
-    console.log("Mouse over node:", d.id);
-  },
-  onDoubleClickNode: (event, d) => {
-    console.log("Double clicked node:", d.id);
-  },
-  onRightClickNode: (event, d) => {
-    console.log("Right clicked node:", d.id);
-  },
-  onMouseOverEdge: (event, d) => {
-    console.log("Mouse over edge:", d.id);
-  },
-  onDoubleClickEdge: (event, d) => {
-    console.log("Double clicked edge:", d.id);
-  },
-  onRightClickEdge: (event, d) => {
-    console.log("Right clicked edge:", d.id);
-  },
-  onBackgroundClick: (event) => {
-    console.log("Background clicked. pointerType: ", event.pointerType);
-  },
+  onMouseOverNode: () => {},
+  onDoubleClickNode: () => {},
+  onRightClickNode: () => {},
+  onMouseOverEdge: () => {},
+  onDoubleClickEdge: () => {},
+  onRightClickEdge: () => {},
+  onBackgroundClick: () => {},
   onRightClickBackground: (event) => {
     event.preventDefault();
     // Dispatch custom event for external handling
@@ -553,10 +539,6 @@ export function forceDirectedEmojimap(
 
   // Process edges with error handling
   let currentEdges = mapEdges(edges);
-  console.log(
-    `[Emojimap] Mapped ${currentEdges.length} edges from ${edges.length} raw edges`,
-  );
-
   // Initialize SVG, groups, and zoom behavior
   const svg = createSvg(node, mergedConfig);
   const g = svg.append("g");
@@ -575,12 +557,8 @@ export function forceDirectedEmojimap(
     nodeMap.set(n.id, n);
   });
 
-  console.log(`[Emojimap] Created node map with ${nodeMap.size} nodes`);
-
   // Map edges to nodes
   currentEdges = resolveEdgesToNodes(currentEdges, nodeMap);
-
-  console.log(`[Emojimap] Final edge count: ${currentEdges.length}`);
 
   // Initialize simulation
   const simulation = d3
@@ -628,14 +606,6 @@ export function forceDirectedEmojimap(
   // Public API
   return {
     update(newParams) {
-      console.log(
-        "[Emojimap] Update called with params:",
-        newParams?.nodes?.length || 0,
-        "nodes",
-        newParams?.edges?.length || 0,
-        "edges",
-      );
-
       if (!newParams) {
         console.warn("[Emojimap] Update called with no parameters");
         return;
@@ -691,17 +661,10 @@ export function forceDirectedEmojimap(
         if (n && n.id) newNodeMap.set(n.id, n);
       });
 
-      console.log(`[Emojimap] Update: node map has ${newNodeMap.size} nodes`);
-
       // Map and filter edges
       const mappedEdges = mapEdges(edges);
-      console.log(
-        `[Emojimap] Update: mapped ${mappedEdges.length} edges from ${edges.length} raw edges`,
-      );
 
       currentEdges = resolveEdgesToNodes(mappedEdges, newNodeMap);
-
-      console.log(`[Emojimap] Update: final edge count ${currentEdges.length}`);
 
       // Update simulation
       simulation.nodes(nodes);

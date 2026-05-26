@@ -33,6 +33,7 @@
   let newItemTextarea: HTMLTextAreaElement;
   let editingItemId: string | null = null;
   let editingDescription = "";
+  let pendingDeleteItemId: string | null = null;
   const { hoveredTopic, selectedTopic } = topicSelection;
   $: activeTopic = $hoveredTopic || $selectedTopic;
 
@@ -73,6 +74,13 @@
 
     return [...sortGroup(uncompleted), ...sortGroup(completed)];
   })();
+
+  $: if (
+    pendingDeleteItemId &&
+    !$actionItems.some((item) => item.id === pendingDeleteItemId)
+  ) {
+    pendingDeleteItemId = null;
+  }
 
   // UI-only functions
   function handleSaveNewItem() {
@@ -174,11 +182,17 @@
     setTimeout(() => newItemTextarea?.focus(), 100);
   }
 
-  // Delete with confirmation
-  function handleDelete(itemId: string) {
-    if (confirm("Delete this action item?")) {
-      deleteItem(itemId);
-    }
+  function requestDelete(itemId: string) {
+    pendingDeleteItemId = pendingDeleteItemId === itemId ? null : itemId;
+  }
+
+  function confirmDelete(itemId: string) {
+    deleteItem(itemId);
+    pendingDeleteItemId = null;
+  }
+
+  function cancelDelete() {
+    pendingDeleteItemId = null;
   }
 
   // Drag and Drop handlers
@@ -386,10 +400,32 @@
             <button
               class="delete-btn"
               aria-label="Delete item"
-              on:click|stopPropagation={() => handleDelete(item.id)}
+              aria-expanded={pendingDeleteItemId === item.id}
+              aria-controls={`delete-confirm-${item.id}`}
+              on:click|stopPropagation={() => requestDelete(item.id)}
             >
               ×
             </button>
+            {#if pendingDeleteItemId === item.id}
+              <div
+                id={`delete-confirm-${item.id}`}
+                class="delete-confirm"
+                role="group"
+                aria-label="Confirm action item deletion"
+              >
+                <span>Delete item?</span>
+                <button
+                  type="button"
+                  class="delete-confirm__danger"
+                  on:click|stopPropagation={() => confirmDelete(item.id)}
+                >
+                  Delete
+                </button>
+                <button type="button" on:click|stopPropagation={cancelDelete}
+                  >Cancel</button
+                >
+              </div>
+            {/if}
           </div>
         {/each}
       </div>
@@ -547,7 +583,9 @@
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
   }
 
-  .action-item-wrapper:hover .delete-btn {
+  .action-item-wrapper:hover .delete-btn,
+  .action-item-wrapper:focus-within .delete-btn,
+  .delete-btn[aria-expanded="true"] {
     opacity: 1;
   }
 
@@ -558,6 +596,45 @@
     transform: scale(1.1);
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
   }
+
+  .delete-confirm {
+    position: absolute;
+    top: 0.25rem;
+    right: 3rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: calc(100% - 3.5rem);
+    padding: 0.35rem;
+    border: 2px solid rgba(30, 23, 20, 0.18);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.12);
+    font-size: var(--pm-text-xs);
+  }
+
+  .delete-confirm span {
+    white-space: nowrap;
+    color: var(--pm-brown);
+  }
+
+  .delete-confirm button {
+    border: 2px solid rgba(30, 23, 20, 0.16);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    color: var(--pm-black);
+    padding: 0.2rem 0.45rem;
+    font-size: var(--pm-text-xs);
+    cursor: pointer;
+  }
+
+  .delete-confirm .delete-confirm__danger {
+    border-color: #ff6b9d;
+    background: #ff6b9d;
+    color: white;
+  }
+
   .action-item {
     display: flex;
     align-items: flex-start;

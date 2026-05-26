@@ -13,14 +13,6 @@
   import type { EmojimapHandle } from "$lib/utils/forceDirectedEmojimap";
   import { topicSelection } from "$lib/stores/topicSelection";
 
-  // Debug imports
-  console.log("[TopicGraphCard] Imports check:", {
-    Card: !!Card,
-    emojimap: !!emojimap,
-    topicSelection: !!topicSelection,
-    currentProject: !!currentProject,
-  });
-
   export let partySend: ((type: string, data?: any) => void) | null = null;
 
   const STORAGE_PREFIX = "pm_topic_graph_positions";

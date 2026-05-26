@@ -108,7 +108,7 @@ Goal: make the app usable under real device constraints.
 - [ ] Test dashboard mobile tabs/swipe behavior.
 - [ ] Test action item keyboard navigation and focus.
 - [ ] Test graph fullscreen, export, reset, and fit controls.
-- [ ] Replace blocking alerts where they hurt workflow.
+- [x] Replace blocking alerts where they hurt workflow.
 
 ### 8. Performance And Resource Use
 
@@ -147,3 +147,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Fixed export drawer format IDs so the UI sends valid `EXPORT_FORMATS` keys to `/api/export`.
 - 2026-05-27: Deleted unused `src/lib/core/storage/*` lineage code and corrected the core README to match the current API surface.
 - 2026-05-27: Fixed PartyKit presence message shape and added optional `PARTYKIT_UPDATE_TOKEN` auth for server-posted room updates.
+- 2026-05-27: Fixed export drawer format object wiring, replaced blocking alert/confirm dialogs with inline UI, and removed graph/client debug log spam.

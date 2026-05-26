@@ -87,7 +87,6 @@
 	let silenceCountdown = 0;
 
 	function initFallbackVisualizer() {
-		console.log('🎨 Using fallback visualizer (Safari/iOS)');
 		history = Array(historyLength).fill(0);
 		fallbackAnimating = true;
 		recording = true;
