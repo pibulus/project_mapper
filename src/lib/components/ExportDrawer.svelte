@@ -32,6 +32,7 @@
   let isGenerating = false;
   let error = "";
   let copyStatus = "";
+  let exportRequestSeq = 0;
   $: exportTranscript = project?.transcript || transcript;
   $: savedDrafts = project?.exportDrafts || [];
 
@@ -124,6 +125,8 @@
     copyStatus = "";
     generatedMarkdown = "";
     activeDraftId = "";
+    const requestSeq = ++exportRequestSeq;
+    const requestedFormatId = format.id;
 
     try {
       const response = await fetch("/api/export", {
@@ -143,27 +146,43 @@
       }
 
       const result = await response.json();
+      if (
+        requestSeq !== exportRequestSeq ||
+        !isOpen ||
+        selectedFormat?.id !== requestedFormatId
+      ) {
+        return;
+      }
       generatedMarkdown = result.markdown;
     } catch (err: any) {
+      if (requestSeq !== exportRequestSeq) return;
       console.error("Error generating export:", err);
       error = err.message || "Failed to generate export";
     } finally {
-      isGenerating = false;
+      if (requestSeq === exportRequestSeq) {
+        isGenerating = false;
+      }
     }
   }
 
-  function copyToClipboard() {
+  async function copyToClipboard() {
     if (!generatedMarkdown) return;
 
-    navigator.clipboard.writeText(generatedMarkdown).then(
-      () => {
-        copyStatus = "Copied to clipboard";
-      },
-      (err) => {
-        console.error("Failed to copy:", err);
-        error = "Failed to copy to clipboard";
-      },
-    );
+    if (!navigator.clipboard?.writeText) {
+      copyStatus = "";
+      error = "Clipboard unavailable. Select and copy the markdown manually.";
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(generatedMarkdown);
+      copyStatus = "Copied to clipboard";
+      error = "";
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      copyStatus = "";
+      error = "Could not copy. Select and copy the markdown manually.";
+    }
   }
 
   function saveDraft() {
@@ -267,6 +286,8 @@
 
   function handleClose() {
     isOpen = false;
+    exportRequestSeq += 1;
+    isGenerating = false;
     // Reset state after animation
     setTimeout(() => {
       selectedFormat = null;
@@ -298,7 +319,7 @@
 {#if isOpen}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 bg-black/50 z-40"
+    class="export-backdrop"
     on:click={handleClose}
     on:keydown={handleBackdropKeydown}
     transition:fade={{ duration: 200 }}
@@ -309,17 +330,19 @@
 
   <!-- Drawer -->
   <div
-    class="fixed top-0 right-0 h-full w-full sm:w-[500px] bg-white shadow-2xl z-50 overflow-y-auto"
+    class="export-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Export project"
     transition:fly={{ x: 500, duration: 300, easing: cubicOut }}
   >
     <!-- Header -->
-    <div
-      class="sticky top-0 bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between z-10"
-    >
-      <h2 class="text-2xl font-bold">Export Project</h2>
+    <div class="export-drawer__header">
+      <h2>Export Project</h2>
       <button
+        type="button"
         on:click={handleClose}
-        class="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-2xl transition-colors"
+        class="export-drawer__close"
         aria-label="Close"
       >
         ✕
@@ -327,66 +350,62 @@
     </div>
 
     <!-- Content -->
-    <div class="p-6 space-y-6">
+    <div class="export-drawer__content">
       {#if !selectedFormat}
         <!-- Format Selection -->
-        <div class="space-y-3">
-          <p class="text-gray-600 mb-4">Choose an export format:</p>
+        <div class="format-list">
+          <p class="export-drawer__hint">Choose an export format</p>
           {#each formats as format}
             <button
+              type="button"
               on:click={() => selectFormat(format)}
-              class="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all group"
+              class="format-option"
             >
-              <div class="flex items-center justify-between">
+              <div class="format-option__inner">
                 <div>
-                  <div
-                    class="font-semibold text-lg group-hover:text-pink-600 transition-colors"
-                  >
-                    {format.label}
-                  </div>
-                  <div class="text-sm text-gray-600 mt-1">{format.desc}</div>
+                  <div class="format-option__label">{format.label}</div>
+                  <div class="format-option__desc">{format.desc}</div>
                 </div>
-                <div
-                  class="text-2xl opacity-50 group-hover:opacity-100 transition-opacity"
-                >
-                  →
-                </div>
+                <div class="format-option__arrow">→</div>
               </div>
             </button>
           {/each}
         </div>
       {:else}
         <!-- Generated Output -->
-        <div class="space-y-4">
+        <div class="export-workspace">
           <!-- Back button -->
           <button
+            type="button"
             on:click={() => {
+              exportRequestSeq += 1;
               selectedFormat = null;
               generatedMarkdown = "";
               error = "";
               copyStatus = "";
               activeDraftId = "";
+              isGenerating = false;
             }}
-            class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
+            class="drawer-back"
           >
             ← Back to formats
           </button>
 
           {#if isGenerating}
             <!-- Loading state -->
-            <div class="flex items-center justify-center py-12">
-              <div class="text-center">
-                <div class="inline-block animate-spin text-4xl mb-4">⚙️</div>
-                <p class="text-gray-600">
+            <div class="export-loading">
+              <div>
+                <div class="export-loading__spinner">⚙️</div>
+                <p>
                   Generating your {selectedFormat.label}...
                 </p>
               </div>
             </div>
           {:else if selectedFormat.custom && !generatedMarkdown}
-            <div class="space-y-4">
+            <div class="export-workspace">
               {#if error}
-                <div class="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-                  <p class="text-red-700">{error}</p>
+                <div class="export-error">
+                  <p>{error}</p>
                 </div>
               {/if}
               <label class="markdown-editor">
@@ -398,8 +417,9 @@
                 ></textarea>
               </label>
               <button
+                type="button"
                 on:click={() => generateExport(selectedFormat)}
-                class="w-full btn btn-primary"
+                class="btn btn-primary w-full"
                 disabled={!customPrompt.trim()}
               >
                 Generate Custom Export
@@ -407,36 +427,39 @@
             </div>
           {:else if error}
             <!-- Error state -->
-            <div class="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-              <p class="text-red-700">{error}</p>
+            <div class="export-error">
+              <p>{error}</p>
             </div>
           {:else if generatedMarkdown}
             <!-- Success state -->
-            <div class="space-y-4">
+            <div class="export-workspace">
               <!-- Action buttons -->
               <div class="export-actions">
                 <button
+                  type="button"
                   on:click={saveDraft}
-                  class="flex-1 btn btn-primary"
+                  class="btn btn-primary flex-1"
                   disabled={!project}
                 >
                   {activeDraftId ? "💾 Update Draft" : "💾 Save Draft"}
                 </button>
                 <button
+                  type="button"
                   on:click={copyToClipboard}
-                  class="flex-1 btn btn-primary"
+                  class="btn btn-primary flex-1"
                 >
                   📋 Copy Markdown
                 </button>
                 <button
+                  type="button"
                   on:click={downloadMarkdown}
-                  class="flex-1 btn btn-ghost border-2 border-gray-200"
+                  class="btn btn-ghost flex-1 border-2 border-gray-200"
                 >
                   ⬇ Download .md
                 </button>
               </div>
               {#if copyStatus}
-                <p class="text-sm text-green-700">{copyStatus}</p>
+                <p class="copy-status">{copyStatus}</p>
               {/if}
 
               <label class="markdown-editor">
@@ -488,6 +511,220 @@
 {/if}
 
 <style>
+  .export-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(30, 23, 20, 0.52);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  .export-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 50;
+    width: min(100%, 520px);
+    height: 100%;
+    overflow-y: auto;
+    border-left: var(--pm-border-medium) solid rgba(30, 23, 20, 0.14);
+    background: linear-gradient(180deg, var(--pm-cream-light) 0%, white 100%);
+    box-shadow: -18px 0 44px rgba(30, 23, 20, 0.18);
+  }
+
+  .export-drawer__header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: var(--pm-border-medium) solid rgba(30, 23, 20, 0.1);
+    background: var(--pm-cream-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 1rem 1.25rem;
+  }
+
+  .export-drawer__header h2 {
+    margin: 0;
+    color: var(--pm-black);
+    font-size: clamp(1.4rem, 3vw, 1.7rem);
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .export-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.14);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    color: var(--pm-black);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition:
+      background 0.16s ease,
+      transform 0.16s ease;
+  }
+
+  .export-drawer__close:hover,
+  .export-drawer__close:focus-visible {
+    background: rgba(255, 214, 224, 0.42);
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  .export-drawer__content {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.15rem 1.25rem 1.5rem;
+  }
+
+  .export-drawer__hint {
+    margin: 0 0 0.25rem;
+    color: rgba(30, 23, 20, 0.62);
+    font-size: var(--pm-text-sm);
+    font-weight: 700;
+  }
+
+  .format-list,
+  .export-workspace {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .format-option {
+    display: block;
+    width: 100%;
+    min-height: 72px;
+    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.1);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 255, 255, 0.78);
+    padding: 0.85rem 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background 0.16s ease,
+      border-color 0.16s ease,
+      transform 0.16s ease;
+  }
+
+  .format-option__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+  }
+
+  .format-option__label {
+    color: var(--pm-black);
+    font-size: var(--pm-text-base);
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .format-option__desc {
+    margin-top: 0.25rem;
+    color: rgba(30, 23, 20, 0.62);
+    font-size: var(--pm-text-sm);
+    line-height: 1.35;
+  }
+
+  .format-option__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border-radius: var(--pm-radius-full);
+    background: rgba(255, 214, 224, 0.36);
+    color: rgba(30, 23, 20, 0.56);
+    font-size: 1.35rem;
+    transition:
+      background 0.16s ease,
+      color 0.16s ease;
+  }
+
+  .drawer-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: rgba(30, 23, 20, 0.66);
+    font-size: var(--pm-text-sm);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .export-loading {
+    display: grid;
+    min-height: 220px;
+    place-items: center;
+    color: rgba(30, 23, 20, 0.64);
+    text-align: center;
+  }
+
+  .export-loading__spinner {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    font-size: 2.25rem;
+    animation: export-spin 1.1s linear infinite;
+  }
+
+  .export-loading p,
+  .export-error p,
+  .copy-status {
+    margin: 0;
+  }
+
+  .export-error {
+    border: var(--pm-border-medium) solid rgba(232, 131, 156, 0.34);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 214, 224, 0.38);
+    padding: 0.85rem;
+    color: rgba(122, 40, 62, 0.94);
+    font-weight: 700;
+  }
+
+  .copy-status {
+    color: #15803d;
+    font-size: var(--pm-text-sm);
+    font-weight: 700;
+  }
+
+  @media (hover: hover) {
+    .format-option:hover,
+    .format-option:focus-visible {
+      border-color: rgba(232, 131, 156, 0.52);
+      background: rgba(255, 214, 224, 0.28);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .format-option:hover .format-option__arrow,
+    .format-option:focus-visible .format-option__arrow {
+      background: rgba(255, 214, 224, 0.68);
+      color: var(--pm-black);
+    }
+  }
+
+  @keyframes export-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .export-actions {
     display: flex;
     flex-wrap: wrap;
@@ -624,5 +861,34 @@
   .markdown-editor textarea:focus {
     outline: 3px solid rgba(168, 216, 234, 0.45);
     border-color: var(--pm-mint);
+  }
+
+  @media (max-width: 640px) {
+    .export-drawer {
+      width: 100%;
+      border-left: 0;
+    }
+
+    .export-drawer__header {
+      padding: 0.85rem 1rem;
+    }
+
+    .export-drawer__content {
+      gap: 1rem;
+      padding: 0.9rem 0.9rem 1.25rem;
+    }
+
+    .format-option {
+      min-height: 68px;
+      padding: 0.75rem 0.8rem;
+    }
+
+    .format-option__desc {
+      font-size: var(--pm-text-xs);
+    }
+
+    .markdown-editor textarea {
+      min-height: 360px;
+    }
   }
 </style>

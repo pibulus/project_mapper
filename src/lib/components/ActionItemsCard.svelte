@@ -366,11 +366,13 @@
                 : ''}"
             >
               <input
+                class="complete-checkbox"
                 type="checkbox"
                 checked={item.status === "completed"}
                 aria-label={`Mark "${item.description}" as ${
                   item.status === "completed" ? "pending" : "completed"
                 }`}
+                on:click|stopPropagation
                 on:change={() => handleToggleItem(item)}
               />
               <div style="flex: 1; min-width: 0;">
@@ -549,6 +551,7 @@
   }
   .add-form .btn-primary {
     align-self: flex-start;
+    min-height: 44px;
     background: var(--pm-pink);
     color: white;
     border: 2px solid var(--pm-pink);
@@ -719,11 +722,13 @@
     box-shadow: 3px 3px 0 rgba(168, 216, 234, 0.25);
   }
 
-  .action-item input[type="checkbox"] {
-    margin-top: 0.25rem;
-    width: 1.125rem;
-    height: 1.125rem;
+  .complete-checkbox {
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
+    margin: -0.4rem 0 0 -0.35rem;
+    cursor: pointer;
+    accent-color: var(--pm-pink);
   }
 
   .action-text {

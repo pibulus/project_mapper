@@ -130,6 +130,7 @@
     font-size: var(--pm-text-sm);
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: all var(--pm-transition-fast);
     box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.1);
   }

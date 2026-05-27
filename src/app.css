@@ -167,9 +167,11 @@ a {
     box-shadow var(--pm-transition-fast);
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0 rgba(30, 23, 20, 0.3);
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 rgba(30, 23, 20, 0.3);
+  }
 }
 
 .card-header {

@@ -23,6 +23,14 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
+function finiteNumber(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function nodePosition(value: string | NodeData, axis: "x" | "y") {
+  return typeof value === "object" ? finiteNumber(value[axis]) : 0;
+}
+
 // ===================================================================
 // TYPE DEFINITIONS
 // ===================================================================
@@ -399,24 +407,13 @@ function ticked({
   nodeElements: d3.Selection<SVGGElement, NodeData, SVGGElement, unknown>;
 }) {
   linkElements
-    .attr("x1", (d: any) =>
-      d.source && d.source.x !== undefined ? d.source.x : 0,
-    )
-    .attr("y1", (d: any) =>
-      d.source && d.source.y !== undefined ? d.source.y : 0,
-    )
-    .attr("x2", (d: any) =>
-      d.target && d.target.x !== undefined ? d.target.x : 0,
-    )
-    .attr("y2", (d: any) =>
-      d.target && d.target.y !== undefined ? d.target.y : 0,
-    );
+    .attr("x1", (d) => nodePosition(d.source, "x"))
+    .attr("y1", (d) => nodePosition(d.source, "y"))
+    .attr("x2", (d) => nodePosition(d.target, "x"))
+    .attr("y2", (d) => nodePosition(d.target, "y"));
 
   nodeElements.attr("transform", (d) => {
-    if (d && d.x !== undefined && d.y !== undefined) {
-      return `translate(${d.x},${d.y})`;
-    }
-    return "translate(0,0)";
+    return `translate(${finiteNumber(d?.x)},${finiteNumber(d?.y)})`;
   });
 }
 
@@ -433,17 +430,23 @@ function fitAllIcons(
 
   const padding = 50;
   const fillFactor = 0.8;
-
-  const minX = d3.min(nodes, (d) => d.x || 0) || 0;
-  const maxX = d3.max(nodes, (d) => d.x || 0) || 0;
-  const minY = d3.min(nodes, (d) => d.y || 0) || 0;
-  const maxY = d3.max(nodes, (d) => d.y || 0) || 0;
-
-  const boxWidth = maxX - minX;
-  const boxHeight = maxY - minY;
-
   const containerWidth = node.offsetWidth;
   const containerHeight = node.offsetHeight;
+
+  if (containerWidth <= 0 || containerHeight <= 0) return;
+
+  const positionedNodes = nodes.filter((node) => {
+    return Number.isFinite(node.x) && Number.isFinite(node.y);
+  });
+  if (!positionedNodes.length) return;
+
+  const minX = d3.min(positionedNodes, (d) => d.x || 0) || 0;
+  const maxX = d3.max(positionedNodes, (d) => d.x || 0) || 0;
+  const minY = d3.min(positionedNodes, (d) => d.y || 0) || 0;
+  const maxY = d3.max(positionedNodes, (d) => d.y || 0) || 0;
+
+  const boxWidth = Math.max(maxX - minX, 1);
+  const boxHeight = Math.max(maxY - minY, 1);
 
   const baseScale = Math.min(
     containerWidth / (boxWidth + 2 * padding),
@@ -453,6 +456,14 @@ function fitAllIcons(
   const scale = baseScale * fillFactor;
   const translateX = containerWidth / 2 - scale * ((minX + maxX) / 2);
   const translateY = containerHeight / 2 - scale * ((minY + maxY) / 2);
+
+  if (
+    !Number.isFinite(scale) ||
+    !Number.isFinite(translateX) ||
+    !Number.isFinite(translateY)
+  ) {
+    return;
+  }
 
   svg
     .attr("width", containerWidth)

@@ -97,6 +97,17 @@
     on:swipeleft={nextPanel}
     on:swiperight={prevPanel}
   >
+    <div class="mobile-tabs" aria-label="Project panels">
+      {#each panels as panel, i}
+        <button
+          class="mobile-tab"
+          class:active={activePanel === i}
+          on:click={() => setPanel(i)}
+          aria-label="Show {panel.label}">{panel.label}</button
+        >
+      {/each}
+    </div>
+
     <div class="dashboard-grid" class:mobile-active={true}>
       <section class="panel transcript" class:active={activePanel === 0}>
         <TranscriptCard />
@@ -110,17 +121,6 @@
       <section class="panel graph" class:active={activePanel === 3}>
         <TopicGraphCard partySend={party ? party.send : null} />
       </section>
-    </div>
-
-    <div class="mobile-tabs" aria-label="Project panels">
-      {#each panels as panel, i}
-        <button
-          class="mobile-tab"
-          class:active={activePanel === i}
-          on:click={() => setPanel(i)}
-          aria-label="Show {panel.label}">{panel.label}</button
-        >
-      {/each}
     </div>
   </div>
 {/if}
@@ -168,8 +168,7 @@
     display: none; /* Hidden on desktop */
     justify-content: center;
     gap: 0.5rem;
-    margin-top: 1rem;
-    padding-bottom: 1rem;
+    margin-bottom: 1rem;
   }
 
   .mobile-tab {
@@ -211,6 +210,12 @@
     .mobile-tabs {
       display: flex;
       flex-wrap: wrap;
+      padding: 0.35rem;
+      border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.08);
+      border-radius: var(--pm-radius-full);
+      background: rgba(255, 247, 239, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
   }
 
