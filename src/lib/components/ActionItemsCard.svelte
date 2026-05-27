@@ -14,6 +14,7 @@
     addItem,
     updateItem,
     reorderItems,
+    restoreItem,
   } from "$lib/stores/actionItemsStore";
   import Card from "./ui/Card.svelte";
   import ActionItemsHeader from "./ActionItemsHeader.svelte";
@@ -34,6 +35,7 @@
   let editingItemId: string | null = null;
   let editingDescription = "";
   let pendingDeleteItemId: string | null = null;
+  let undoState: { message: string; item: ActionItem } | null = null;
   const { hoveredTopic, selectedTopic } = topicSelection;
   $: activeTopic = $hoveredTopic || $selectedTopic;
   $: canManualReorder = sortingStyle === "manual" && !searchQuery.trim();
@@ -145,7 +147,7 @@
     } else if (event.key === "Enter" && selectedItemIndex >= 0) {
       event.preventDefault();
       const item = sortedItems[selectedItemIndex];
-      if (item) toggleItem(item.id);
+      if (item) handleToggleItem(item);
     }
   }
 
@@ -188,12 +190,30 @@
   }
 
   function confirmDelete(itemId: string) {
+    const item = $actionItems.find((actionItem) => actionItem.id === itemId);
+    if (!item) return;
     deleteItem(itemId);
+    undoState = { message: "Deleted item", item };
     pendingDeleteItemId = null;
   }
 
   function cancelDelete() {
     pendingDeleteItemId = null;
+  }
+
+  function handleToggleItem(item: ActionItem) {
+    toggleItem(item.id);
+    undoState = {
+      message:
+        item.status === "completed" ? "Marked pending" : "Marked complete",
+      item,
+    };
+  }
+
+  function undoLastAction() {
+    if (!undoState) return;
+    restoreItem(undoState.item);
+    undoState = null;
   }
 
   // Drag and Drop handlers
@@ -290,6 +310,13 @@
       </div>
     {/if}
 
+    {#if undoState}
+      <div class="undo-banner" role="status">
+        <span>{undoState.message}</span>
+        <button type="button" on:click={undoLastAction}>Undo</button>
+      </div>
+    {/if}
+
     {#if sortedItems.length === 0 && !isAdding}
       <div class="empty-state-container">
         <div class="empty-state-icon">
@@ -333,7 +360,7 @@
               }
             }}
           >
-            <label
+            <div
               class="action-item {item.status === 'completed'
                 ? 'completed'
                 : ''}"
@@ -341,7 +368,10 @@
               <input
                 type="checkbox"
                 checked={item.status === "completed"}
-                on:change={() => toggleItem(item.id)}
+                aria-label={`Mark "${item.description}" as ${
+                  item.status === "completed" ? "pending" : "completed"
+                }`}
+                on:change={() => handleToggleItem(item)}
               />
               <div style="flex: 1; min-width: 0;">
                 {#if editingItemId === item.id}
@@ -393,7 +423,7 @@
                   </p>
                 {/if}
               </div>
-            </label>
+            </div>
             <button
               class="delete-btn"
               aria-label="Delete item"
@@ -536,6 +566,32 @@
     transform: translateY(0);
     box-shadow: 1px 1px 0 rgba(30, 23, 20, 0.1);
   }
+  .undo-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 2px solid rgba(30, 23, 20, 0.12);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 244, 79, 0.22);
+    color: rgba(30, 23, 20, 0.78);
+    font-size: var(--pm-text-sm);
+    font-weight: 700;
+  }
+
+  .undo-banner button {
+    min-height: 44px;
+    padding: 0.45rem 0.75rem;
+    border: 2px solid rgba(30, 23, 20, 0.2);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    color: var(--pm-black);
+    cursor: pointer;
+    font-weight: 800;
+  }
+
   .action-item-wrapper {
     position: relative;
   }
@@ -648,8 +704,6 @@
   .action-item:hover {
     background: var(--pm-cream-light);
     border-color: rgba(30, 23, 20, 0.18);
-    border-width: 3px;
-    padding: calc(0.75rem - 1px);
     transform: translateY(-1px);
     box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.12);
   }
@@ -662,8 +716,6 @@
 
   .action-item.completed:hover {
     border-color: var(--pm-mint);
-    border-width: 3px;
-    padding: calc(0.75rem - 1px);
     box-shadow: 3px 3px 0 rgba(168, 216, 234, 0.25);
   }
 
@@ -730,5 +782,67 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .action-items-list {
+      max-height: none;
+    }
+
+    .action-item {
+      padding: 0.85rem;
+      padding-right: 3.35rem;
+    }
+
+    .delete-btn {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .delete-btn:hover {
+      transform: none;
+    }
+
+    .delete-confirm {
+      position: static;
+      margin-top: 0.45rem;
+      max-width: 100%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .delete-confirm button {
+      min-height: 44px;
+      padding: 0.45rem 0.75rem;
+    }
+
+    .action-meta {
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-top: 0.55rem;
+      opacity: 1;
+    }
+
+    .meta-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0.45rem 0.55rem;
+      background: rgba(255, 255, 255, 0.58);
+      border-color: rgba(30, 23, 20, 0.12);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .action-item,
+    .delete-btn,
+    .add-form .btn-primary {
+      transition: none;
+    }
+
+    .action-item:hover,
+    .delete-btn:hover,
+    .add-form .btn-primary:hover {
+      transform: none;
+    }
   }
 </style>

@@ -60,6 +60,27 @@ export function deleteItem(itemId: string) {
   _updateProject(updated);
 }
 
+export function restoreItem(item: ActionItem) {
+  const currentItems = get(actionItems);
+  const existingIndex = currentItems.findIndex(
+    (current) => current.id === item.id,
+  );
+  const restored = {
+    ...item,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existingIndex >= 0) {
+    const updated = currentItems.map((current) =>
+      current.id === item.id ? restored : current,
+    );
+    _updateProject(updated);
+    return;
+  }
+
+  _updateProject([restored, ...currentItems]);
+}
+
 export function addItem(description: string) {
   if (!description.trim()) return;
   const currentItems = get(actionItems);
