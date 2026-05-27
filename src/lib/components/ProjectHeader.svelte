@@ -6,6 +6,7 @@
     saveStatus,
     updateProject,
   } from "$lib/stores/projectStore";
+  import { downloadProjectBackup } from "$lib/client/projectBackup";
   import type { ConversationData } from "$lib/core/types/project";
 
   export let project: ConversationData | null = null;
@@ -112,6 +113,12 @@
     }
   }
 
+  function backupProject() {
+    if (!project) return;
+    downloadProjectBackup(project);
+    shareMessage = "Backup downloaded";
+  }
+
   function getSyncLabel(
     current: ConversationData | null,
     status: "saved" | "saving" | "error",
@@ -205,6 +212,14 @@
         title="Publish a public-by-link demo copy and copy the URL"
       >
         {isSharing ? "Sharing..." : "Share"}
+      </button>
+      <button
+        class="pill-btn"
+        on:click={backupProject}
+        type="button"
+        title="Download a portable project backup"
+      >
+        Backup
       </button>
       <button class="pill-btn pill-solid" on:click={() => dispatch("export")}
         >Export</button

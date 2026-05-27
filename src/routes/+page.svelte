@@ -15,7 +15,9 @@
     loadLocalProject,
     loadFromLocalStorage,
     localProjects,
+    setCurrentProject,
   } from "$lib/stores/projectStore";
+  import { readProjectBackupFile } from "$lib/client/projectBackup";
   import Upload from "$lib/components/Upload.svelte";
   import Dashboard from "$lib/components/Dashboard.svelte";
   import ExportDrawer from "$lib/components/ExportDrawer.svelte";
@@ -25,6 +27,8 @@
   let exportDrawerOpen = false;
   let starterText = "";
   let starterTextKey = 0;
+  let importInput: HTMLInputElement | null = null;
+  let importError = "";
 
   const sampleRant = `Spidergoats sound fake until you realize the useful part is the silk, not the goat.
 
@@ -48,6 +52,27 @@ I want a map of the science, the weird social backlash, the risks, and the most 
   function loadSampleRant() {
     starterText = sampleRant;
     starterTextKey += 1;
+    importError = "";
+  }
+
+  function openImportDialog() {
+    importInput?.click();
+  }
+
+  async function handleImportBackup(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      importError = "";
+      const project = await readProjectBackupFile(file);
+      setCurrentProject(project);
+    } catch (err: any) {
+      importError = err?.message || "Could not import that backup.";
+    } finally {
+      input.value = "";
+    }
   }
 
   function formatProjectDate(value: string) {
@@ -124,7 +149,25 @@ I want a map of the science, the weird social backlash, the risks, and the most 
                 >
                   Try the weird science rant
                 </button>
+                <button
+                  type="button"
+                  class="sample-btn sample-btn--secondary"
+                  on:click={openImportDialog}
+                >
+                  Import backup
+                </button>
+                <input
+                  bind:this={importInput}
+                  class="visually-hidden"
+                  type="file"
+                  accept="application/json,.json,.promapper.json"
+                  on:change={handleImportBackup}
+                  aria-label="Import project backup"
+                />
               </div>
+              {#if importError}
+                <p class="import-error">{importError}</p>
+              {/if}
               <div class="payoff-preview" aria-label="Example project output">
                 <div class="preview-map">
                   <span class="preview-node node-a">Silk yield</span>
@@ -325,6 +368,31 @@ I want a map of the science, the weird social backlash, the risks, and the most 
   .sample-btn:hover {
     transform: translateY(-1px);
     box-shadow: 4px 4px 0 rgba(30, 23, 20, 0.22);
+  }
+
+  .sample-btn--secondary {
+    background: var(--pm-cream-light);
+    border-color: rgba(30, 23, 20, 0.28);
+    box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.12);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .import-error {
+    margin: -0.35rem 0 0;
+    color: #b91c1c;
+    font-size: var(--pm-text-sm);
+    font-weight: 700;
   }
 
   .payoff-preview {
