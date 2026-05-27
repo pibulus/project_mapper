@@ -33,9 +33,99 @@ export type GeminiAudioPart =
       fileData: { fileUri: string; mimeType: string };
     };
 
+type GeminiTextPart = { text: string };
+type GeminiContentPart = GeminiTextPart | GeminiAudioPart;
+type GeminiGenerateInput =
+  | string
+  | GeminiContentPart
+  | Array<string | GeminiContentPart>;
+
+type GeminiThinkingLevel = "minimal" | "low" | "medium" | "high";
+
+type GeminiGenerationConfig = {
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  maxOutputTokens?: number;
+  responseMimeType?: "application/json" | "text/plain";
+  thinkingConfig?: {
+    thinkingLevel?: GeminiThinkingLevel;
+    thinkingBudget?: number;
+  };
+};
+
+const LOW_LATENCY_THINKING = { thinkingLevel: "minimal" } as const;
+
+const TRANSCRIPTION_GENERATION_CONFIG: GeminiGenerationConfig = {
+  temperature: 0,
+  topP: 0.9,
+  thinkingConfig: LOW_LATENCY_THINKING,
+};
+
+const TITLE_GENERATION_CONFIG: GeminiGenerationConfig = {
+  temperature: 0.2,
+  topP: 0.8,
+  maxOutputTokens: 64,
+  thinkingConfig: LOW_LATENCY_THINKING,
+};
+
+const JSON_GENERATION_CONFIG: GeminiGenerationConfig = {
+  temperature: 0.1,
+  topP: 0.8,
+  responseMimeType: "application/json",
+  thinkingConfig: LOW_LATENCY_THINKING,
+};
+
+const STATUS_GENERATION_CONFIG: GeminiGenerationConfig = {
+  ...JSON_GENERATION_CONFIG,
+  maxOutputTokens: 2048,
+};
+
+const TOPIC_GENERATION_CONFIG: GeminiGenerationConfig = {
+  ...JSON_GENERATION_CONFIG,
+  maxOutputTokens: 4096,
+};
+
+const SUMMARY_GENERATION_CONFIG: GeminiGenerationConfig = {
+  temperature: 0.2,
+  topP: 0.9,
+  maxOutputTokens: 2048,
+  thinkingConfig: LOW_LATENCY_THINKING,
+};
+
+const MARKDOWN_GENERATION_CONFIG: GeminiGenerationConfig = {
+  temperature: 0.25,
+  topP: 0.9,
+  thinkingConfig: LOW_LATENCY_THINKING,
+};
+
 // ===================================================================
 // UTILITIES
 // ===================================================================
+
+async function generateGeminiText(
+  model: any,
+  input: GeminiGenerateInput,
+  generationConfig: GeminiGenerationConfig = {},
+) {
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: toGeminiParts(input) }],
+    generationConfig,
+  });
+  const response = await result.response;
+  return response.text();
+}
+
+function toGeminiParts(input: GeminiGenerateInput): GeminiContentPart[] {
+  const parts = Array.isArray(input) ? input : [input];
+  return parts.map((part) => {
+    if (typeof part === "string") {
+      return { text: part };
+    }
+
+    return part;
+  });
+}
 
 /**
  * Extract speaker names from transcript
@@ -309,11 +399,13 @@ export function createGeminiService(model: any): AIService {
       audioInput: GeminiAudioPart,
     ): Promise<TranscriptionResult> {
       try {
-        const result = await model.generateContent([
-          TRANSCRIPTION_PROMPT,
-          audioInput,
-        ]);
-        const transcriptText = result.response.text().trim();
+        const transcriptText = (
+          await generateGeminiText(
+            model,
+            [TRANSCRIPTION_PROMPT, audioInput],
+            TRANSCRIPTION_GENERATION_CONFIG,
+          )
+        ).trim();
         const speakers = extractSpeakers(transcriptText);
         return { text: transcriptText, speakers };
       } catch (error) {
@@ -329,9 +421,9 @@ export function createGeminiService(model: any): AIService {
     async generateTitle(transcript: string): Promise<string> {
       try {
         const prompt = buildTitlePrompt(transcript);
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+        return (
+          await generateGeminiText(model, prompt, TITLE_GENERATION_CONFIG)
+        ).trim();
       } catch (error) {
         console.error("❌ Error generating title:", error);
         throw new Error("Failed to generate title with Gemini");
@@ -354,14 +446,11 @@ export function createGeminiService(model: any): AIService {
           existingActionItems,
         );
 
-        let result;
-        if (typeof input !== "string") {
-          result = await model.generateContent([prompt, input]);
-        } else {
-          result = await model.generateContent(prompt);
-        }
-
-        const text = result.response.text();
+        const text = await generateGeminiText(
+          model,
+          typeof input !== "string" ? [prompt, input] : prompt,
+          JSON_GENERATION_CONFIG,
+        );
         const cleanedText = cleanJsonResponse(text);
 
         try {
@@ -401,14 +490,13 @@ export function createGeminiService(model: any): AIService {
 
         const prompt = buildActionItemStatusPrompt(existingActionItems);
 
-        let result;
-        if (typeof input !== "string") {
-          result = await model.generateContent([prompt, input]);
-        } else {
-          result = await model.generateContent(`${prompt}\n\nText: ${input}`);
-        }
-
-        const text = result.response.text();
+        const text = await generateGeminiText(
+          model,
+          typeof input !== "string"
+            ? [prompt, input]
+            : `${prompt}\n\nText: ${input}`,
+          STATUS_GENERATION_CONFIG,
+        );
         const cleanedText = cleanJsonResponse(text);
 
         if (cleanedText.trim() === "[]") {
@@ -461,9 +549,11 @@ export function createGeminiService(model: any): AIService {
           existingNodes,
           existingEdges,
         );
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let jsonString = response.text();
+        let jsonString = await generateGeminiText(
+          model,
+          prompt,
+          TOPIC_GENERATION_CONFIG,
+        );
 
         jsonString = cleanJsonResponse(jsonString);
         jsonString = jsonString.replace(/^.*?({.*}).*?$/, "$1");
@@ -488,9 +578,9 @@ export function createGeminiService(model: any): AIService {
     async generateSummary(text: string): Promise<string> {
       try {
         const prompt = buildSummaryPrompt(text);
-        const result = await model.generateContent(prompt);
-        const response = await result.response.text();
-        return response.trim();
+        return (
+          await generateGeminiText(model, prompt, SUMMARY_GENERATION_CONFIG)
+        ).trim();
       } catch (error) {
         console.error("Error generating summary:", error);
         throw new Error("Failed to generate summary with Gemini");
@@ -507,9 +597,9 @@ export function createGeminiService(model: any): AIService {
     ): Promise<string> {
       try {
         const prompt = buildMarkdownTransformPrompt(formatPrompt, text);
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+        return (
+          await generateGeminiText(model, prompt, MARKDOWN_GENERATION_CONFIG)
+        ).trim();
       } catch (error) {
         console.error("Error generating markdown:", error);
         throw new Error("Failed to generate markdown with Gemini");

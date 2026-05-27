@@ -26,9 +26,10 @@ if (
 }
 
 const GEMINI_API_KEY = getPrivateEnv("GEMINI_API_KEY");
-const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-2.5-flash";
+const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-3.1-flash-lite";
 const GEMINI_FALLBACK_MODELS =
-  getPrivateEnv("GEMINI_FALLBACK_MODELS") || "gemini-2.0-flash";
+  getPrivateEnv("GEMINI_FALLBACK_MODELS") ||
+  "gemini-2.5-flash-lite,gemini-2.5-flash";
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");
@@ -106,6 +107,39 @@ function isRetriableGeminiError(error: any) {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function prepareInputForModel(input: any, modelName: string) {
+  if (!isRecord(input) || !isRecord(input.generationConfig)) {
+    return input;
+  }
+
+  const thinkingConfig = input.generationConfig.thinkingConfig;
+  if (!isRecord(thinkingConfig) || !("thinkingLevel" in thinkingConfig)) {
+    return input;
+  }
+
+  if (!modelName.startsWith("gemini-2.5")) {
+    return input;
+  }
+
+  const { thinkingLevel, ...remainingThinkingConfig } = thinkingConfig;
+  const thinkingBudget = thinkingLevel === "minimal" ? 0 : -1;
+
+  return {
+    ...input,
+    generationConfig: {
+      ...input.generationConfig,
+      thinkingConfig: {
+        ...remainingThinkingConfig,
+        thinkingBudget,
+      },
+    },
+  };
+}
+
 /**
  * Get Gemini model instance (cached)
  */
@@ -139,7 +173,9 @@ export function getGeminiModel() {
                 `[Gemini] Retrying with fallback model: ${modelName}`,
               );
             }
-            return await getRawModel(modelName).generateContent(input);
+            return await getRawModel(modelName).generateContent(
+              prepareInputForModel(input, modelName),
+            );
           } catch (error) {
             lastError = error;
             if (
