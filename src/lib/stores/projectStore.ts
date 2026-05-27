@@ -64,12 +64,38 @@ function normalizeProject(project: ConversationData): ConversationData {
     actionItems: project.actionItems || [],
     topics: project.topics || [],
     edges: project.edges || [],
+    exportDrafts: normalizeExportDrafts(project.exportDrafts),
     syncEnabled: project.syncEnabled === true,
     isPublic: project.isPublic === true,
     createdAt: project.createdAt || now,
     updatedAt: project.updatedAt || now,
     lastAnalysisWarnings: project.lastAnalysisWarnings || [],
   };
+}
+
+function normalizeExportDrafts(
+  drafts: ConversationData["exportDrafts"],
+): NonNullable<ConversationData["exportDrafts"]> {
+  if (!Array.isArray(drafts)) return [];
+
+  return drafts
+    .filter((draft) => {
+      return (
+        draft &&
+        typeof draft.id === "string" &&
+        typeof draft.content === "string" &&
+        draft.content.trim()
+      );
+    })
+    .map((draft) => ({
+      id: draft.id,
+      format: draft.format || "CUSTOM",
+      label: draft.label || "Saved Draft",
+      content: draft.content,
+      prompt: draft.prompt || undefined,
+      createdAt: draft.createdAt || draft.updatedAt || nowIso(),
+      updatedAt: draft.updatedAt || draft.createdAt || nowIso(),
+    }));
 }
 
 function summaryFromProject(project: ConversationData): LocalProjectSummary {
@@ -271,21 +297,34 @@ export async function saveToSupabase(
   saveStatus.set("saving");
 
   try {
-    const { error } = await supabase
+    const payload = {
+      id: project.id,
+      title: project.title || "Untitled Project",
+      summary: project.summary,
+      transcript: project.transcript,
+      action_items: project.actionItems || [],
+      topics: project.topics || [],
+      edges: project.edges || [],
+      export_drafts: project.exportDrafts || [],
+      is_public: project.isPublic === true,
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error } = await supabase
       .from("projects")
-      .upsert({
-        id: project.id,
-        title: project.title || "Untitled Project",
-        summary: project.summary,
-        transcript: project.transcript,
-        action_items: project.actionItems || [],
-        topics: project.topics || [],
-        edges: project.edges || [],
-        is_public: project.isPublic === true,
-        updated_at: new Date().toISOString(),
-      })
+      .upsert(payload)
       .select()
       .single();
+
+    if (error && isMissingExportDraftsColumn(error)) {
+      const { export_drafts: _exportDrafts, ...fallbackPayload } = payload;
+      const fallback = await supabase
+        .from("projects")
+        .upsert(fallbackPayload)
+        .select()
+        .single();
+      error = fallback.error;
+    }
 
     if (error) {
       console.error("[ProjectStore] Supabase save error:", error);
@@ -300,6 +339,18 @@ export async function saveToSupabase(
     saveStatus.set("error");
     return false;
   }
+}
+
+function isMissingExportDraftsColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String(error.message) : "";
+  const details = "details" in error ? String(error.details) : "";
+  const code = "code" in error ? String(error.code) : "";
+  return (
+    code === "PGRST204" ||
+    message.includes("export_drafts") ||
+    details.includes("export_drafts")
+  );
 }
 
 /**
@@ -336,6 +387,7 @@ export async function loadFromSupabase(
       actionItems: data.action_items || [],
       topics: data.topics || [],
       edges: data.edges || [],
+      exportDrafts: normalizeExportDrafts(data.export_drafts),
       syncEnabled: true, // If loaded from Supabase, it's synced
       isPublic: data.is_public === true,
       createdAt: data.created_at,
@@ -370,6 +422,7 @@ export function startNewProject(
     actionItems: initialData.actionItems || [],
     topics: initialData.topics || [],
     edges: initialData.edges || [],
+    exportDrafts: normalizeExportDrafts(initialData.exportDrafts),
     syncEnabled: initialData.syncEnabled === true,
     isPublic: initialData.isPublic === true,
     createdAt: initialData.createdAt || now,

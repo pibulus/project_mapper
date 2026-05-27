@@ -23,10 +23,14 @@ CREATE TABLE IF NOT EXISTS projects (
   action_items JSONB DEFAULT '[]'::jsonb,
   topics JSONB DEFAULT '[]'::jsonb,
   edges JSONB DEFAULT '[]'::jsonb,
+  export_drafts JSONB DEFAULT '[]'::jsonb,
 
   -- Settings
   is_public BOOLEAN DEFAULT FALSE
 );
+
+ALTER TABLE projects
+  ADD COLUMN IF NOT EXISTS export_drafts JSONB DEFAULT '[]'::jsonb;
 
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);

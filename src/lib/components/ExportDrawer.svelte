@@ -10,7 +10,8 @@
   import { fade, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { EXPORT_FORMATS } from "$lib/core/export/formats";
-  import type { ConversationData } from "$lib/core/types";
+  import { updateProject } from "$lib/stores/projectStore";
+  import type { ConversationData, ExportDraft } from "$lib/core/types";
 
   export let isOpen = false;
   export let transcript = "";
@@ -27,10 +28,12 @@
   let selectedFormat: ExportOption | null = null;
   let generatedMarkdown = "";
   let customPrompt = "";
+  let activeDraftId = "";
   let isGenerating = false;
   let error = "";
   let copyStatus = "";
   $: exportTranscript = project?.transcript || transcript;
+  $: savedDrafts = project?.exportDrafts || [];
 
   // Available export formats with descriptions
   const formats: ExportOption[] = [
@@ -93,6 +96,7 @@
     generatedMarkdown = "";
     error = "";
     copyStatus = "";
+    activeDraftId = "";
 
     if (!format.custom) {
       generateExport(format);
@@ -119,6 +123,7 @@
     error = "";
     copyStatus = "";
     generatedMarkdown = "";
+    activeDraftId = "";
 
     try {
       const response = await fetch("/api/export", {
@@ -161,6 +166,79 @@
     );
   }
 
+  function saveDraft() {
+    if (!project || !selectedFormat || !generatedMarkdown.trim()) return;
+
+    const now = new Date().toISOString();
+    const nextDraft: ExportDraft = {
+      id: activeDraftId || crypto.randomUUID(),
+      format: selectedFormat.id,
+      label: selectedFormat.label,
+      content: generatedMarkdown,
+      prompt: selectedFormat.custom ? customPrompt.trim() : undefined,
+      createdAt:
+        savedDrafts.find((draft) => draft.id === activeDraftId)?.createdAt ||
+        now,
+      updatedAt: now,
+    };
+
+    const nextDrafts = [
+      nextDraft,
+      ...savedDrafts.filter((draft) => draft.id !== nextDraft.id),
+    ].slice(0, 20);
+
+    activeDraftId = nextDraft.id;
+    updateProject({ exportDrafts: nextDrafts });
+    copyStatus = "Draft saved";
+  }
+
+  function loadDraft(draft: ExportDraft) {
+    const format =
+      formats.find((item) => item.id === draft.format) ||
+      formats.find((item) => item.id === "CUSTOM");
+    if (!format) return;
+
+    selectedFormat = format;
+    generatedMarkdown = draft.content;
+    customPrompt = draft.prompt || "";
+    activeDraftId = draft.id;
+    error = "";
+    copyStatus = "Draft loaded";
+  }
+
+  function deleteDraft(draftId: string) {
+    updateProject({
+      exportDrafts: savedDrafts.filter((draft) => draft.id !== draftId),
+    });
+    if (activeDraftId === draftId) {
+      activeDraftId = "";
+      copyStatus = "Draft deleted";
+    }
+  }
+
+  function draftPreview(content: string) {
+    return (
+      content
+        .replace(/^#+\s*/gm, "")
+        .replace(/[*_`>#-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 140) || "No preview"
+    );
+  }
+
+  function formatDraftDate(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Recently";
+
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
+
   function downloadMarkdown() {
     if (!generatedMarkdown) return;
 
@@ -196,6 +274,7 @@
       error = "";
       copyStatus = "";
       customPrompt = "";
+      activeDraftId = "";
     }, 300);
   }
 
@@ -286,6 +365,7 @@
               generatedMarkdown = "";
               error = "";
               copyStatus = "";
+              activeDraftId = "";
             }}
             class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
           >
@@ -334,7 +414,14 @@
             <!-- Success state -->
             <div class="space-y-4">
               <!-- Action buttons -->
-              <div class="flex gap-2">
+              <div class="export-actions">
+                <button
+                  on:click={saveDraft}
+                  class="flex-1 btn btn-primary"
+                  disabled={!project}
+                >
+                  {activeDraftId ? "💾 Update Draft" : "💾 Save Draft"}
+                </button>
                 <button
                   on:click={copyToClipboard}
                   class="flex-1 btn btn-primary"
@@ -360,11 +447,153 @@
           {/if}
         </div>
       {/if}
+
+      {#if !selectedFormat && savedDrafts.length}
+        <div class="saved-drafts">
+          <div class="saved-drafts__header">
+            <h3>Saved Drafts</h3>
+            <span>{savedDrafts.length}/20</span>
+          </div>
+          <div class="saved-drafts__list">
+            {#each savedDrafts as draft}
+              <article class="saved-draft">
+                <button
+                  type="button"
+                  class="saved-draft__load"
+                  on:click={() => loadDraft(draft)}
+                >
+                  <span class="saved-draft__title">{draft.label}</span>
+                  <span class="saved-draft__meta">
+                    {formatDraftDate(draft.updatedAt)}
+                  </span>
+                  <span class="saved-draft__preview">
+                    {draftPreview(draft.content)}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="saved-draft__delete"
+                  on:click={() => deleteDraft(draft.id)}
+                  aria-label="Delete saved draft"
+                >
+                  ×
+                </button>
+              </article>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
 
 <style>
+  .export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .export-actions :global(.btn) {
+    min-width: min(100%, 9rem);
+  }
+
+  .saved-drafts {
+    display: grid;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 2px solid rgba(30, 23, 20, 0.08);
+  }
+
+  .saved-drafts__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .saved-drafts__header h3 {
+    margin: 0;
+    font-size: var(--pm-text-lg);
+    font-weight: 800;
+    color: var(--pm-black);
+  }
+
+  .saved-drafts__header span {
+    color: rgba(30, 23, 20, 0.56);
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
+  }
+
+  .saved-drafts__list {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .saved-draft {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    border: 2px solid rgba(30, 23, 20, 0.1);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 255, 255, 0.72);
+    overflow: hidden;
+  }
+
+  .saved-draft__load,
+  .saved-draft__delete {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .saved-draft__load {
+    display: grid;
+    gap: 0.25rem;
+    min-height: 72px;
+    padding: 0.75rem;
+    text-align: left;
+  }
+
+  .saved-draft__load:hover,
+  .saved-draft__load:focus-visible {
+    background: rgba(255, 214, 224, 0.28);
+    outline: none;
+  }
+
+  .saved-draft__title {
+    font-weight: 800;
+    color: var(--pm-black);
+  }
+
+  .saved-draft__meta,
+  .saved-draft__preview {
+    color: rgba(30, 23, 20, 0.62);
+    font-size: var(--pm-text-xs);
+    line-height: 1.35;
+  }
+
+  .saved-draft__preview {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .saved-draft__delete {
+    min-height: 44px;
+    min-width: 44px;
+    border-left: 2px solid rgba(30, 23, 20, 0.08);
+    color: rgba(30, 23, 20, 0.54);
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .saved-draft__delete:hover,
+  .saved-draft__delete:focus-visible {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    outline: none;
+  }
+
   .markdown-editor {
     display: grid;
     gap: 0.5rem;
