@@ -7,7 +7,7 @@
   import { browser } from "$app/environment";
   import { tick, onDestroy } from "svelte";
   import type { Node, Edge } from "$lib/core/types";
-  import { currentProject } from "$lib/stores/projectStore";
+  import { currentProject, updateProject } from "$lib/stores/projectStore";
   import Card from "$lib/components/ui/Card.svelte";
   import { emojimap } from "$lib/actions/emojimap";
   import type { EmojimapHandle } from "$lib/utils/forceDirectedEmojimap";
@@ -37,6 +37,10 @@
   let isFullscreen = false;
   let lastBroadcastHoverId: string = NO_TOPIC;
   let lastBroadcastSelectionId: string = NO_TOPIC;
+  let topicLabelInput = "";
+  let lastEditableTopicId: string | null = null;
+  let pendingDeleteTopicId: string | null = null;
+  let topicMessage = "";
 
   const loadPositions = (projectId: string): PositionMap => {
     if (!browser) return {};
@@ -94,6 +98,9 @@
   // Derived selection state
   $: hoveredTopic = $hoveredTopicStore;
   $: selectedTopic = $selectedTopicStore;
+  $: editableTopic = selectedTopic
+    ? topics.find((topic) => topic.id === selectedTopic.id) || null
+    : null;
   $: remoteHoverMap = $remoteHovers;
   $: remoteSelectionMap = $remoteSelections;
   $: remoteSelectionEntries = Object.entries(remoteSelectionMap || {}).filter(
@@ -121,6 +128,13 @@
     lastBroadcastSelectionId = NO_TOPIC;
     broadcastHover(null);
     broadcastSelection(null);
+  }
+
+  $: if ((editableTopic?.id || null) !== lastEditableTopicId) {
+    topicLabelInput = editableTopic?.label || "";
+    lastEditableTopicId = editableTopic?.id || null;
+    pendingDeleteTopicId = null;
+    topicMessage = "";
   }
 
   // Merge stored positions with topics
@@ -167,6 +181,68 @@
     broadcastHover(null);
     broadcastSelection(null);
     graphHandle?.resetVisualization();
+  }
+
+  function renameSelectedTopic() {
+    if (!editableTopic) return;
+    const nextLabel = topicLabelInput.trim();
+    if (!nextLabel || nextLabel === editableTopic.label) return;
+
+    const nextTopics = topics.map((topic) =>
+      topic.id === editableTopic.id ? { ...topic, label: nextLabel } : topic,
+    );
+    const renamedTopic = nextTopics.find(
+      (topic) => topic.id === editableTopic.id,
+    );
+
+    updateProject({ topics: nextTopics });
+    if (renamedTopic) {
+      topicSelection.setSelectedTopic(renamedTopic);
+      broadcastSelection(renamedTopic as GraphNode);
+    }
+    topicMessage = "Topic renamed";
+  }
+
+  function requestDeleteSelectedTopic() {
+    if (!editableTopic) return;
+    pendingDeleteTopicId =
+      pendingDeleteTopicId === editableTopic.id ? null : editableTopic.id;
+  }
+
+  function deleteSelectedTopic() {
+    if (!editableTopic) return;
+
+    const nextTopics = topics.filter((topic) => topic.id !== editableTopic.id);
+    const nextEdges = edges.filter(
+      (edge) =>
+        edge.source_topic_id !== editableTopic.id &&
+        edge.target_topic_id !== editableTopic.id,
+    );
+
+    if (projectId) {
+      const { [editableTopic.id]: _removedPosition, ...nextPositions } =
+        storedPositions;
+      savePositions(projectId, nextPositions);
+    }
+
+    updateProject({ topics: nextTopics, edges: nextEdges });
+    topicSelection.clearHover();
+    topicSelection.clearSelection();
+    pendingDeleteTopicId = null;
+    topicMessage = "";
+    broadcastHover(null);
+    broadcastSelection(null);
+  }
+
+  function handleTopicEditorKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      renameSelectedTopic();
+    }
+    if (event.key === "Escape") {
+      topicLabelInput = editableTopic?.label || "";
+      pendingDeleteTopicId = null;
+    }
   }
 
   async function toggleFullscreen() {
@@ -330,6 +406,52 @@
         <div class="badge-overflow">+{topics.length - 6} more</div>
       {/if}
     </div>
+    {#if editableTopic}
+      <div class="topic-editor" aria-label="Selected topic controls">
+        <div class="topic-editor__identity">
+          <span
+            class="topic-editor__dot"
+            style="background: {editableTopic.color || '#999999'};"
+          ></span>
+          <span>{editableTopic.emoji}</span>
+        </div>
+        <input
+          type="text"
+          bind:value={topicLabelInput}
+          maxlength="64"
+          aria-label="Selected topic label"
+          on:keydown={handleTopicEditorKeydown}
+        />
+        <button
+          type="button"
+          class="topic-editor__save"
+          on:click={renameSelectedTopic}
+          disabled={!topicLabelInput.trim() ||
+            topicLabelInput.trim() === editableTopic.label}
+        >
+          Rename
+        </button>
+        <button
+          type="button"
+          class:topic-editor__danger={pendingDeleteTopicId === editableTopic.id}
+          on:click={pendingDeleteTopicId === editableTopic.id
+            ? deleteSelectedTopic
+            : requestDeleteSelectedTopic}
+        >
+          {pendingDeleteTopicId === editableTopic.id
+            ? "Confirm Remove"
+            : "Remove"}
+        </button>
+        {#if pendingDeleteTopicId === editableTopic.id}
+          <button type="button" on:click={() => (pendingDeleteTopicId = null)}>
+            Cancel
+          </button>
+        {/if}
+        {#if topicMessage}
+          <span class="topic-editor__message">{topicMessage}</span>
+        {/if}
+      </div>
+    {/if}
     {#if remoteSelectionEntries.length || remoteHoverEntries.length}
       <div class="remote-presence">
         {#if remoteSelectionEntries.length}
@@ -434,6 +556,84 @@
     font-size: var(--pm-text-sm);
     color: var(--pm-brown);
     opacity: 0.7;
+  }
+
+  .topic-editor {
+    display: grid;
+    grid-template-columns: auto minmax(10rem, 1fr) auto auto auto;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    padding: 0.7rem;
+    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.1);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  .topic-editor__identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    padding: 0 0.45rem;
+    border-radius: var(--pm-radius-full);
+    background: rgba(255, 247, 239, 0.82);
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.08);
+  }
+
+  .topic-editor__dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(30, 23, 20, 0.16);
+  }
+
+  .topic-editor input {
+    min-height: 44px;
+    min-width: 0;
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    padding: 0.55rem 0.7rem;
+    color: var(--pm-black);
+    font-size: var(--pm-text-sm);
+    font-weight: 700;
+  }
+
+  .topic-editor button {
+    min-height: 44px;
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    padding: 0.5rem 0.75rem;
+    color: var(--pm-brown);
+    font-size: var(--pm-text-xs);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .topic-editor button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .topic-editor__save {
+    background: var(--pm-black) !important;
+    border-color: var(--pm-black) !important;
+    color: white !important;
+  }
+
+  .topic-editor__danger {
+    background: #ff6b9d !important;
+    border-color: #ff6b9d !important;
+    color: white !important;
+  }
+
+  .topic-editor__message {
+    grid-column: 2 / -1;
+    color: rgba(30, 23, 20, 0.62);
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
   }
 
   .remote-stack {
@@ -552,5 +752,23 @@
     line-height: 1;
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 720px) {
+    .graph-toolbar {
+      justify-content: flex-start;
+    }
+
+    .graph-controls {
+      flex-wrap: wrap;
+    }
+
+    .topic-editor {
+      grid-template-columns: 1fr;
+    }
+
+    .topic-editor__message {
+      grid-column: 1;
+    }
   }
 </style>
