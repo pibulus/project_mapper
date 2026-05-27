@@ -16,7 +16,7 @@ What still wants attention:
 
 - `Upload.svelte` still owns a lot of orchestration and will become a maintenance hotspot.
 - There is no stronger auth/session story yet; API hardening is intentionally lightweight.
-- README and handoff docs are better now, but the project history is still spread across `CATCHUP.md`, `HANDOFF.md`, and `SYNTHESIS_NOTES.md`.
+- Current docs are organized: root reference docs stay at the top level, while older handoff and synthesis notes live under `docs/history/`.
 
 Obvious next moves:
 

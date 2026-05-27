@@ -1,4 +1,6 @@
-# 🎨 Project Mapper - Session Catchup
+# Project Mapper - Session Catchup
+
+Historical note: this file is older session archaeology. Use `README.md`, `ARCHITECTURE.md`, and `PROJECT_AUDIT.md` for current truth.
 
 **Current session:** Nov 25, 2025 - Audio processing simplification + API fix
 

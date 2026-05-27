@@ -1,5 +1,7 @@
 # Action Items Component Audit
 
+Historical note: this focused comparison predates the 2026-05-27 project audit. Use `PROJECT_AUDIT.md` for current audit status.
+
 **Comparing:** project_mapper vs conversation_mapper vs conversation_mapper_fresh
 
 ---

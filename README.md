@@ -29,6 +29,8 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 Built on a "nervous system" pattern:
 
 - `/src/lib/core/` - Framework-agnostic TypeScript (portable)
+- `/src/lib/client/` - Browser/API helpers that are not pure core logic
+- `/src/lib/server/` - Server-only guards, Gemini setup, Supabase service client, and PartyKit update posting
 - `/src/routes/` - SvelteKit pages and API routes
 - `/src/lib/components/` - Svelte UI components
 
@@ -74,7 +76,7 @@ This is beyond scaffolding. The current state already includes:
 - local-first project storage with optional Supabase sync
 - a responsive dashboard with transcript, summary, action items, and topic graph views
 
-See `ARCHITECTURE.md` for the current system map and `PROJECT_AUDIT.md` for the live audit checklist. `SYNTHESIS_NOTES.md`, `CATCHUP.md`, and `HANDOFF.md` are history/reference notes.
+See `ARCHITECTURE.md` for the current system map, `PROJECT_AUDIT.md` for the audit closeout, `GLOSSARY.md` for project vocabulary, and `docs/README.md` for the documentation index. Older handoff and synthesis notes live under `docs/history/`.
 
 ## Lineage / References
 

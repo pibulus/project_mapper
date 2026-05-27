@@ -127,7 +127,7 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 
 - [x] Verify `.env.example` covers real production needs.
 - [x] Verify Pi deploy script rollback and env preservation.
-- [x] Reconcile `README.md`, `NEXT.md`, `CATCHUP.md`, `HANDOFF.md`, and `SYNTHESIS_NOTES.md`.
+- [x] Reconcile `README.md`, `NEXT.md`, `docs/history/CATCHUP.md`, `docs/history/HANDOFF.md`, and `docs/history/SYNTHESIS_NOTES.md`.
 - [x] Make naming consistent: Project Mapper vs ProMapper.
 - [x] Add or update a short architecture reference if needed.
 
@@ -164,3 +164,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Removed remaining production-path `console.log` calls from API routes, stores, Gemini service, and PartyKit hot paths while keeping warnings/errors.
 - 2026-05-27: Local smoke found the configured Gemini key is invalid. `/api/process` still returned transcript plus fallback title with warnings, and `/api/title` now returns a fallback title plus warning instead of a hard 500.
 - 2026-05-27: Added `ARCHITECTURE.md`, linked README to the current architecture/audit docs, documented local-private vs anonymous-demo sync semantics, verified Pi deploy rollback/env preservation by inspection, and moved the browser append helper out of `src/lib/core`.
+- 2026-05-27: Docs organization pass moved historical notes and focused audits under `docs/`, added `docs/README.md`, `GLOSSARY.md`, and `CLAUDE.md`, and did an 80/20 stale-reference pass.

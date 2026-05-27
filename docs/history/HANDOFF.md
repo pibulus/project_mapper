@@ -1,5 +1,7 @@
 # Handoff – Project Mapper Dashboard/Header Refresh
 
+Historical note: this file is older session archaeology. Use `README.md`, `ARCHITECTURE.md`, and `PROJECT_AUDIT.md` for current truth.
+
 ## Summary
 
 - Implemented a new sticky `ProjectHeader` component with rename + "AI Title" actions, Append button, and Export CTA.
@@ -24,5 +26,3 @@
 2. **Mobile polish:** add swipe-friendly spacing between panels, consider collapsing summary/action items into expandable sections.
 3. **PartyKit presence UI:** show collaborator avatars near the header (tie into `presence` store).
 4. **Testing:** add unit/integration tests for `/api/title` once we introduce a testing harness.
-
-Let me know if you need anything else! (rm this file when done.)

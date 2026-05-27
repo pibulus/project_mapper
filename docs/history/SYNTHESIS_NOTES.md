@@ -2,6 +2,8 @@
 
 _Reference document for building a modular AI workspace platform_
 
+Historical note: this file is older product/lineage context. Use `README.md`, `ARCHITECTURE.md`, and `PROJECT_AUDIT.md` for current implementation truth.
+
 ---
 
 ## What This Document Is
