@@ -11,7 +11,9 @@ What looks solid:
 
 - The repo has real product shape now, not just scaffolding.
 - Core flow is coherent: ingest -> analyze -> normalize dashboard-ready records -> persist locally -> optionally publish/share.
-- Export is project-aware now: transcript, summary, action items, topics, and graph connections can feed an editable markdown draft.
+- Export is project-aware now: transcript, summary, action items, topics, and graph connections can feed editable markdown drafts that can be saved on the project.
+- Projects now have portable `.promapper.json` backup/export and front-door import.
+- The graph now supports selected-topic rename/remove and an organic/readable layout toggle.
 - PartyKit + Supabase boundaries are reasonably clear.
 
 What still wants attention:
@@ -26,4 +28,5 @@ Obvious next moves:
 - Test end-to-end on the Pi with real env vars for Gemini, Supabase, and PartyKit.
 - Decide whether this should get a real release version/tag once that flow is stable.
 - Consider splitting recording/upload orchestration out of `Upload.svelte`.
-- Consider project JSON import/export and saved markdown drafts as the next highest-value parity fixes from `docs/audits/FEATURE_PARITY_AUDIT.md`.
+- Run a real-device mobile pass across capture, action items, graph controls, export drafts, and backup import.
+- Consider topic merge only after real duplicate-topic examples show up.
