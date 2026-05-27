@@ -11,4 +11,11 @@ export interface ConversationData {
   topics: Node[];
   edges: Edge[];
   syncEnabled: boolean;
+  isPublic?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastAnalysisWarnings?: Array<{
+    scope: string;
+    message: string;
+  }>;
 }

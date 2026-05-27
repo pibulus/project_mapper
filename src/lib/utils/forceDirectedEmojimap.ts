@@ -634,14 +634,8 @@ export function forceDirectedEmojimap(
       // Update config
       Object.assign(mergedConfig, newParams.config || {});
 
-      if (!nodes.length || !edges.length) {
-        console.warn(
-          "[Emojimap] Update skipped: nodes or edges empty.",
-          nodes.length,
-          "nodes,",
-          edges.length,
-          "edges",
-        );
+      if (!nodes.length) {
+        console.warn("[Emojimap] Update skipped: no nodes.");
         return;
       }
 

@@ -10,9 +10,11 @@
   import { fade, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { EXPORT_FORMATS } from "$lib/core/export/formats";
+  import type { ConversationData } from "$lib/core/types";
 
   export let isOpen = false;
   export let transcript = "";
+  export let project: ConversationData | null = null;
 
   type ExportFormatId = keyof typeof EXPORT_FORMATS;
   type ExportOption = {
@@ -26,6 +28,7 @@
   let isGenerating = false;
   let error = "";
   let copyStatus = "";
+  $: exportTranscript = project?.transcript || transcript;
 
   // Available export formats with descriptions
   const formats: ExportOption[] = [
@@ -48,8 +51,12 @@
   ];
 
   async function generateExport(format: ExportOption) {
-    if (!transcript) {
-      error = "No transcript available";
+    if (
+      !exportTranscript &&
+      !project?.summary &&
+      !project?.actionItems?.length
+    ) {
+      error = "No project content available";
       return;
     }
 
@@ -64,7 +71,8 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          transcript,
+          transcript: exportTranscript,
+          project,
           format: format.id,
         }),
       });
@@ -95,6 +103,32 @@
         console.error("Failed to copy:", err);
         error = "Failed to copy to clipboard";
       },
+    );
+  }
+
+  function downloadMarkdown() {
+    if (!generatedMarkdown) return;
+
+    const blob = new Blob([generatedMarkdown], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${slugify(project?.title || selectedFormat?.label || "project-export")}.md`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function slugify(value: string) {
+    return (
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 80) || "project-export"
     );
   }
 
@@ -147,7 +181,7 @@
     <div
       class="sticky top-0 bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between z-10"
     >
-      <h2 class="text-2xl font-bold">Export Conversation</h2>
+      <h2 class="text-2xl font-bold">Export Project</h2>
       <button
         on:click={handleClose}
         class="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-2xl transition-colors"
@@ -226,20 +260,23 @@
                   on:click={copyToClipboard}
                   class="flex-1 btn btn-primary"
                 >
-                  📋 Copy to Clipboard
+                  📋 Copy Markdown
+                </button>
+                <button
+                  on:click={downloadMarkdown}
+                  class="flex-1 btn btn-ghost border-2 border-gray-200"
+                >
+                  ⬇ Download .md
                 </button>
               </div>
               {#if copyStatus}
                 <p class="text-sm text-green-700">{copyStatus}</p>
               {/if}
 
-              <!-- Preview -->
-              <div
-                class="border-2 border-gray-200 rounded-lg p-4 bg-gray-50 max-h-[500px] overflow-y-auto"
-              >
-                <pre
-                  class="whitespace-pre-wrap text-sm font-mono">{generatedMarkdown}</pre>
-              </div>
+              <label class="markdown-editor">
+                <span>Edit markdown before sharing</span>
+                <textarea bind:value={generatedMarkdown} rows="18"></textarea>
+              </label>
             </div>
           {/if}
         </div>
@@ -247,3 +284,37 @@
     </div>
   </div>
 {/if}
+
+<style>
+  .markdown-editor {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .markdown-editor span {
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
+    color: rgba(30, 23, 20, 0.72);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .markdown-editor textarea {
+    width: 100%;
+    min-height: 460px;
+    resize: vertical;
+    border: 2px solid rgba(30, 23, 20, 0.16);
+    border-radius: var(--pm-radius-sm);
+    background: var(--pm-cream-light);
+    padding: 1rem;
+    font-family: var(--pm-font-mono);
+    font-size: var(--pm-text-sm);
+    line-height: 1.6;
+    color: var(--pm-black);
+  }
+
+  .markdown-editor textarea:focus {
+    outline: 3px solid rgba(168, 216, 234, 0.45);
+    border-color: var(--pm-mint);
+  }
+</style>

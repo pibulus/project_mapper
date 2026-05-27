@@ -11,7 +11,7 @@ Project Mapper / ProMapper is a SvelteKit 2 app that turns audio or text into a 
 - `src/routes/api/process/+server.ts` creates a new project analysis from text or audio.
 - `src/routes/api/append/+server.ts` appends audio to an existing project and merges transcript, action items, topics, and edges.
 - `src/routes/api/title/+server.ts` regenerates a project title with Gemini and falls back to a local title when AI is unavailable.
-- `src/routes/api/export/+server.ts` transforms a transcript into an export format.
+- `src/routes/api/export/+server.ts` transforms the current project workspace into an export format.
 - `party/index.ts` is the PartyKit room server for presence, topic hover/selection, and analysis broadcasts.
 
 ## Core Flow
@@ -35,16 +35,17 @@ Project Mapper / ProMapper is a SvelteKit 2 app that turns audio or text into a 
 - Svelte components should prefer rendering and user interaction. `Upload.svelte` is still the main exception and remains a refactor candidate.
 - PartyKit is treated as a realtime delivery layer, not source-of-truth storage.
 - Supabase is currently optional persistence, not a complete private ownership model.
-- Current ownership semantics are: local projects are private to the browser profile; synced projects are anonymous/demo share-by-id projects and should not be treated as private.
+- Current ownership semantics are: local projects are private to the browser profile and appear in browser-local history; shared projects are explicitly published as anonymous/demo public-by-link projects and should not be treated as private.
 
 ## Realtime And Persistence
 
 - PartyKit rooms are keyed by project id.
+- Browser-local history stores a project index plus per-project records in localStorage; clearing the active project returns home without deleting recent projects.
 - Server-posted PartyKit room updates can be protected with `PARTYKIT_UPDATE_TOKEN`.
 - Presence messages use a consistent `{ data: { count } }` shape.
 - Topic hover and selection are client-originated PartyKit broadcasts and are stored in `topicSelection`.
 - Appended audio now broadcasts the full merged transcript and merged graph, not just the append fragment.
-- Simultaneous edits are currently last-write-wins through the project store, Supabase debounce, and PartyKit message order. There is no CRDT/merge engine yet.
+- Simultaneous edits are still not CRDT-backed. Append results now merge into the latest client state to preserve locally edited action items/topics where possible, but Supabase debounce and PartyKit delivery remain last-write-wins for broader conflicts.
 - Supabase policies in `database-schema.sql` are anonymous/demo-oriented. Private production data needs Supabase Auth or an explicit share-token model before tightening RLS without breaking sync.
 
 ## Validation

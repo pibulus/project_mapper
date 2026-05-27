@@ -49,8 +49,8 @@ Goal: verify the user-facing promise works end to end.
 - [x] Append audio merges transcript and action items correctly.
 - [x] AI title regeneration works and fails cleanly.
 - [x] Export drawer uses valid format IDs.
-- [x] Local restore after refresh reviewed: `projectStore` loads and saves `promap_current_project` from localStorage; long-transcript quota remains a known risk.
-- [x] Supabase sync reviewed: missing config degrades without crashing; configured anonymous sync is demo/share-by-id only until ownership is redesigned.
+- [x] Local restore after refresh reviewed: `projectStore` now uses an active project id, browser-local project index, and per-project localStorage records; long-transcript quota remains a known risk.
+- [x] Supabase sync reviewed: missing config degrades without crashing; cloud sharing is now an explicit public-by-link action and anonymous/demo editable until ownership is redesigned.
 - [x] PartyKit updates reviewed: missing public host becomes a no-op connection; configured rooms need live deployment validation.
 
 ### 3. Security And Data Ownership
@@ -95,7 +95,7 @@ Goal: make collaboration coherent rather than merely wired.
 - [x] Verify PartyKit message schemas match between client and server.
 - [x] Verify presence count and user join/leave behavior.
 - [x] Verify topic hover/selection broadcasts.
-- [x] Check local updates versus PartyKit updates versus Supabase debounce: audited as last-write-wins with a 2s Supabase debounce; no CRDT/merge engine exists.
+- [x] Check local updates versus PartyKit updates versus Supabase debounce: append results now merge into latest client state where possible; broader collaboration remains last-write-wins with a 2s Supabase debounce and no CRDT engine.
 - [x] Decide conflict behavior for simultaneous edits.
 
 ### 7. UX, Mobile, And Accessibility
@@ -115,7 +115,7 @@ Goal: make the app usable under real device constraints.
 Goal: avoid slow, expensive, or memory-heavy paths.
 
 - [x] Check base64 audio memory pressure: bounded by `MAX_UPLOAD_BYTES`; current Gemini inline base64 conversion still duplicates audio in memory and should be revisited for large files.
-- [x] Check localStorage size limits for long transcripts: audited as a known risk because the full project JSON is saved under one key.
+- [x] Check localStorage size limits for long transcripts: audited as a known risk because full project JSON is saved per project in browser storage.
 - [x] Check D3 simulation churn and graph update frequency: audited; debug log spam removed, but large graph performance still needs visual profiling.
 - [x] Remove debug logging from production paths.
 - [x] Check client bundle size and heavy dependencies: production build reports the main page chunk at roughly 329 kB raw / 99 kB gzip; D3 is the obvious heavy dependency.
@@ -146,7 +146,7 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - Local HTTP smoke: home route passed; `/api/process` returned partial project data despite invalid Gemini key; `/api/title` now falls back cleanly.
 - Current env blocker: `GEMINI_API_KEY` is invalid, so full AI artifact generation and live audio transcription cannot be marked as product-green yet.
 - Manual release checks still needed: real microphone/browser permissions, desktop/mobile visual pass, graph controls, Supabase deployment behavior, and PartyKit deployment behavior.
-- Product decision still needed before private production: Supabase Auth versus explicit share-token ownership.
+- Product decision still needed before private production: Supabase Auth versus explicit share-token ownership. Current sharing is public-by-link/demo editable.
 
 ## Work Log
 
@@ -165,3 +165,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Local smoke found the configured Gemini key is invalid. `/api/process` still returned transcript plus fallback title with warnings, and `/api/title` now returns a fallback title plus warning instead of a hard 500.
 - 2026-05-27: Added `ARCHITECTURE.md`, linked README to the current architecture/audit docs, documented local-private vs anonymous-demo sync semantics, verified Pi deploy rollback/env preservation by inspection, and moved the browser append helper out of `src/lib/core`.
 - 2026-05-27: Docs organization pass moved historical notes and focused audits under `docs/`, added `docs/README.md`, `GLOSSARY.md`, and `CLAUDE.md`, and did an 80/20 stale-reference pass.
+- 2026-05-27: Fantasy-flow pass fixed first-run project creation so failed analysis stays on the capture screen, normalized `/api/process` action items/topics into dashboard-ready records, blocked filtered drag reorder data loss, added browser-local recent projects, made sharing explicit/public-by-link, made export project-aware/editable/downloadable, preserved local edits during append merges, and added a landing-page sample payoff.

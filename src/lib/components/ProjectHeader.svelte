@@ -1,7 +1,11 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import AppendButton from "./AppendButton.svelte";
-  import { updateProject } from "$lib/stores/projectStore";
+  import {
+    enableSync,
+    saveStatus,
+    updateProject,
+  } from "$lib/stores/projectStore";
   import type { ConversationData } from "$lib/core/types/project";
 
   export let project: ConversationData | null = null;
@@ -15,9 +19,13 @@
   let titleInput = project?.title || "";
   let isSavingTitle = false;
   let isRegenerating = false;
+  let isSharing = false;
   let titleError = "";
+  let shareMessage = "";
 
   $: titleInput = project?.title || titleInput;
+  $: syncLabel = getSyncLabel(project, $saveStatus);
+  $: syncTone = getSyncTone(project, $saveStatus);
 
   function beginEdit() {
     if (!project) return;
@@ -77,6 +85,51 @@
     } finally {
       isRegenerating = false;
     }
+  }
+
+  async function shareProject() {
+    if (!project) return;
+
+    try {
+      isSharing = true;
+      shareMessage = "";
+      const success = await enableSync(project, { isPublic: true });
+      if (!success) {
+        throw new Error("Could not publish this project");
+      }
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("project", project.id);
+      url.hash = "";
+
+      await navigator.clipboard.writeText(url.toString());
+      shareMessage = "Public link copied";
+    } catch (err: any) {
+      console.error(err);
+      shareMessage = err?.message || "Could not copy share link";
+    } finally {
+      isSharing = false;
+    }
+  }
+
+  function getSyncLabel(
+    current: ConversationData | null,
+    status: "saved" | "saving" | "error",
+  ) {
+    if (!current?.syncEnabled) return "Local";
+    if (status === "saving") return "Saving";
+    if (status === "error") return "Sync issue";
+    return current.isPublic ? "Shared" : "Cloud saved";
+  }
+
+  function getSyncTone(
+    current: ConversationData | null,
+    status: "saved" | "saving" | "error",
+  ) {
+    if (!current?.syncEnabled) return "local";
+    if (status === "error") return "error";
+    if (status === "saving") return "saving";
+    return "success";
   }
 </script>
 
@@ -138,20 +191,27 @@
     <div class="header-right">
       <div
         class="sync-status"
-        title={project.syncEnabled ? "Synced to Cloud" : "Local Only"}
+        title={project.syncEnabled ? "Cloud save status" : "Local browser only"}
       >
-        {#if project.syncEnabled}
-          <span class="status-dot success"></span>
-          <span class="status-text">Synced</span>
-        {:else}
-          <span class="status-dot local"></span>
-          <span class="status-text">Local</span>
-        {/if}
+        <span class="status-dot {syncTone}"></span>
+        <span class="status-text">{syncLabel}</span>
       </div>
       <AppendButton />
+      <button
+        class="pill-btn"
+        on:click={shareProject}
+        type="button"
+        disabled={isSharing}
+        title="Publish a public-by-link demo copy and copy the URL"
+      >
+        {isSharing ? "Sharing..." : "Share"}
+      </button>
       <button class="pill-btn pill-solid" on:click={() => dispatch("export")}
         >Export</button
       >
+      {#if shareMessage}
+        <span class="share-message">{shareMessage}</span>
+      {/if}
     </div>
   </header>
 {/if}
@@ -323,6 +383,21 @@
 
   .status-dot.local {
     background: rgba(30, 23, 20, 0.2);
+  }
+
+  .status-dot.saving {
+    background: var(--pm-yellow);
+    box-shadow: 0 0 0 2px rgba(255, 244, 79, 0.22);
+  }
+
+  .status-dot.error {
+    background: var(--pm-pink);
+    box-shadow: 0 0 0 2px rgba(232, 131, 156, 0.22);
+  }
+
+  .share-message {
+    font-size: var(--pm-text-xs);
+    color: rgba(30, 23, 20, 0.68);
   }
 
   @media (max-width: 640px) {

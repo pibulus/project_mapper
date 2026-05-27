@@ -12,7 +12,7 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 - AI-powered action items with auto-checkoff
 - Topic knowledge graphs with multiple visualizations
 - Real-time multiplayer collaboration (PartyKit)
-- Persistent project storage (Supabase)
+- Browser-local project history with explicit Supabase sharing
 - Export to multiple formats
 
 ## Tech Stack
@@ -73,7 +73,8 @@ This is beyond scaffolding. The current state already includes:
 - audio/text ingestion
 - Gemini-powered analysis
 - streaming updates over PartyKit
-- local-first project storage with optional Supabase sync
+- local-first project history with explicit public-by-link Supabase sharing
+- editable project-aware markdown export
 - a responsive dashboard with transcript, summary, action items, and topic graph views
 
 See `ARCHITECTURE.md` for the current system map, `PROJECT_AUDIT.md` for the audit closeout, `GLOSSARY.md` for project vocabulary, and `docs/README.md` for the documentation index. Older handoff and synthesis notes live under `docs/history/`.

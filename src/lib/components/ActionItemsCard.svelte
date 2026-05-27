@@ -36,6 +36,7 @@
   let pendingDeleteItemId: string | null = null;
   const { hoveredTopic, selectedTopic } = topicSelection;
   $: activeTopic = $hoveredTopic || $selectedTopic;
+  $: canManualReorder = sortingStyle === "manual" && !searchQuery.trim();
 
   // Derived state from the store
   $: completedCount = $actionItems.filter(
@@ -197,21 +198,17 @@
 
   // Drag and Drop handlers
   function handleDragStart(itemId: string) {
-    if (sortingStyle !== "manual") return;
+    if (!canManualReorder) return;
     draggedItemId = itemId;
   }
 
   function handleDragOver(event: DragEvent) {
-    if (sortingStyle !== "manual") return;
+    if (!canManualReorder) return;
     event.preventDefault();
   }
 
   function handleDrop(targetItemId: string) {
-    if (
-      !draggedItemId ||
-      draggedItemId === targetItemId ||
-      sortingStyle !== "manual"
-    ) {
+    if (!draggedItemId || draggedItemId === targetItemId || !canManualReorder) {
       draggedItemId = null;
       return;
     }
@@ -321,7 +318,7 @@
             class:selected={selectedItemIndex === index}
             class:topic-match={activeTopic &&
               textMatchesTopic(item.description, activeTopic)}
-            draggable={sortingStyle === "manual"}
+            draggable={canManualReorder}
             role="listitem"
             on:dragstart={() => handleDragStart(item.id)}
             on:dragover={handleDragOver}

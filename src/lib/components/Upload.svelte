@@ -5,7 +5,7 @@
    * Handles: text input, file upload (drag/drop), and audio recording
    * Warm pastel punk aesthetic with juicy interactions
    */
-  import { onMount, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import { browser } from "$app/environment";
   import {
     currentProject,
@@ -16,15 +16,19 @@
   import { get } from "svelte/store";
   import AudioVisualizer from "./AudioVisualizer.svelte";
   import LoadingModal from "./LoadingModal.svelte";
+  import type { ActionItem, Edge, Node } from "$lib/core/types";
+
+  export let initialText = "";
+  export let initialTextKey = 0;
 
   type ProcessResponse = {
     transcript?: { text?: string };
-    conversation?: { title?: string; transcript?: string };
+    conversation?: { id?: string; title?: string; transcript?: string };
     topics?: {
-      nodes?: any[];
-      edges?: any[];
+      nodes?: Node[];
+      edges?: Edge[];
     };
-    actionItems?: any[];
+    actionItems?: ActionItem[];
     summary?: string;
     warnings?: Array<{ scope: string; message: string }>;
     error?: string;
@@ -36,6 +40,7 @@
 
   let mode: "audio" | "text" = "audio";
   let textInput = "";
+  let appliedInitialTextKey = -1;
   let audioFile: File | null = null;
   let isProcessing = false;
   let error = "";
@@ -76,6 +81,17 @@
         ? "Map Audio"
         : "Start Recording";
   $: primaryDisabled = isProcessing && !isRecording;
+  $: if (
+    initialText &&
+    initialTextKey !== appliedInitialTextKey &&
+    !isProcessing
+  ) {
+    mode = "text";
+    audioFile = null;
+    textInput = initialText;
+    appliedInitialTextKey = initialTextKey;
+    setTimeout(() => textArea?.focus(), 0);
+  }
 
   // ===================================================================
   // TIME FORMATTING
@@ -155,7 +171,8 @@
       }, 1000) as unknown as number;
     } catch (err) {
       console.error("Error starting recording:", err);
-      error = "Could not access microphone. Please grant permission and try again.";
+      error =
+        "Could not access microphone. Please grant permission and try again.";
       cleanup();
     }
   }
@@ -220,19 +237,13 @@
         });
         await appendAudioToProject(file, project.id);
       } else {
-        const newProject = await startNewProject({
-          title: "Mapping audio...",
-        });
-        if (!newProject) {
-          throw new Error("Failed to create project");
-        }
-
+        const conversationId = crypto.randomUUID();
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.webm");
-        formData.append("conversationId", newProject.id);
+        formData.append("conversationId", conversationId);
 
         const result = await processNewCapture(formData);
-        applyProcessResult(result);
+        applyProcessResult(result, "", conversationId);
       }
     } catch (err: any) {
       console.error("❌ Error processing audio:", err);
@@ -251,19 +262,13 @@
       if (project) {
         await appendAudioToProject(file, project.id);
       } else {
-        const newProject = await startNewProject({
-          title: "Mapping audio...",
-        });
-        if (!newProject) {
-          throw new Error("Failed to create project");
-        }
-
+        const conversationId = crypto.randomUUID();
         const formData = new FormData();
         formData.append("audio", file);
-        formData.append("conversationId", newProject.id);
+        formData.append("conversationId", conversationId);
 
         const result = await processNewCapture(formData);
-        applyProcessResult(result);
+        applyProcessResult(result, "", conversationId);
       }
     } catch (err: any) {
       console.error("❌ Error processing file:", err);
@@ -283,10 +288,10 @@
     }
 
     const { updates, warnings } = await appendProjectAudio(project, file);
-    updateProject(updates);
-    if (warnings?.length) {
-      console.warn("Append analysis warnings:", warnings);
-    }
+    updateProject({
+      ...updates,
+      lastAnalysisWarnings: warnings || [],
+    });
   }
 
   async function processText() {
@@ -300,17 +305,14 @@
     error = "";
 
     try {
-      const newProject = await startNewProject({ transcript: submittedText });
-      if (!newProject) {
-        throw new Error("Failed to create project");
-      }
+      const conversationId = crypto.randomUUID();
 
       const result = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: submittedText,
-          conversationId: newProject.id,
+          conversationId,
         }),
       });
 
@@ -319,7 +321,7 @@
         throw new Error(data.error || "Failed to process text");
       }
 
-      applyProcessResult(await result.json(), submittedText);
+      applyProcessResult(await result.json(), submittedText, conversationId);
       textInput = "";
     } catch (err: any) {
       console.error("Error processing text:", err);
@@ -347,6 +349,7 @@
   function applyProcessResult(
     result: ProcessResponse,
     fallbackTranscript = "",
+    conversationId = crypto.randomUUID(),
   ) {
     const current = get(currentProject);
     const transcript =
@@ -356,17 +359,23 @@
       current?.transcript ||
       "";
 
-    updateProject({
+    const updates = {
       title: result.conversation?.title || current?.title || "Mapped project",
       transcript,
       summary: result.summary || current?.summary || "",
       actionItems: result.actionItems || current?.actionItems || [],
       topics: result.topics?.nodes || current?.topics || [],
       edges: result.topics?.edges || current?.edges || [],
-    });
+      lastAnalysisWarnings: result.warnings || [],
+    };
 
-    if (result.warnings?.length) {
-      console.warn("Analysis warnings:", result.warnings);
+    if (current) {
+      updateProject(updates);
+    } else {
+      startNewProject({
+        id: result.conversation?.id || conversationId,
+        ...updates,
+      });
     }
   }
 

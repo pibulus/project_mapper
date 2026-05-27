@@ -20,7 +20,11 @@ import {
   guardRequest,
   isAllowedAudioUpload,
 } from "$lib/server/apiGuard";
-import { processText } from "$lib/core/orchestration/conversation-flow";
+import {
+  processText,
+  type ProcessTextResult,
+} from "$lib/core/orchestration/conversation-flow";
+import type { ActionItem, Edge, Node } from "$lib/core/types";
 
 const MAX_UPLOAD_BYTES = getMaxUploadBytes();
 
@@ -74,7 +78,7 @@ export const POST: RequestHandler = async (event) => {
         speakers,
       );
 
-      return json(result);
+      return json(hydrateProcessResult(result, conversationId));
     }
 
     // Handle JSON (text input)
@@ -92,7 +96,7 @@ export const POST: RequestHandler = async (event) => {
       // Use core orchestration
       const result = await processText(aiService, text, id);
 
-      return json(result);
+      return json(hydrateProcessResult(result, id));
     }
 
     return json({ error: "Invalid content type" }, { status: 400 });
@@ -116,3 +120,78 @@ export const POST: RequestHandler = async (event) => {
     return json({ error: friendlyMessage }, { status: error?.status || 500 });
   }
 };
+
+function hydrateProcessResult(
+  result: ProcessTextResult,
+  conversationId: string,
+) {
+  return {
+    ...result,
+    actionItems: hydrateActionItems(result.actionItems, conversationId),
+    topics: {
+      nodes: hydrateNodes(result.topics.nodes, conversationId),
+      edges: hydrateEdges(result.topics.edges, conversationId),
+    },
+  };
+}
+
+function hydrateActionItems(
+  items: ProcessTextResult["actionItems"],
+  conversationId: string,
+): ActionItem[] {
+  const now = new Date().toISOString();
+
+  return items
+    .map((item) => ({
+      ...item,
+      description: item.description.trim(),
+    }))
+    .filter((item) => item.description)
+    .map((item, index) => ({
+      id: crypto.randomUUID(),
+      conversation_id: conversationId,
+      description: item.description,
+      assignee: item.assignee ?? null,
+      due_date: item.due_date ?? null,
+      status: "pending" as const,
+      created_at: now,
+      updated_at: now,
+      sort_order: index * 10,
+    }));
+}
+
+function hydrateNodes(
+  nodes: ProcessTextResult["topics"]["nodes"],
+  conversationId: string,
+): Node[] {
+  const now = new Date().toISOString();
+
+  return nodes
+    .filter((node) => node.id && node.label)
+    .map((node) => ({
+      id: node.id,
+      conversation_id: conversationId,
+      label: node.label,
+      emoji: node.emoji || "",
+      color: node.color || "#999999",
+      created_at: now,
+    }));
+}
+
+function hydrateEdges(
+  edges: ProcessTextResult["topics"]["edges"],
+  conversationId: string,
+): Edge[] {
+  const now = new Date().toISOString();
+
+  return edges
+    .filter((edge) => edge.source_topic_id && edge.target_topic_id)
+    .map((edge) => ({
+      id: crypto.randomUUID(),
+      conversation_id: conversationId,
+      source_topic_id: edge.source_topic_id,
+      target_topic_id: edge.target_topic_id,
+      color: edge.color || "#999999",
+      created_at: now,
+    }));
+}

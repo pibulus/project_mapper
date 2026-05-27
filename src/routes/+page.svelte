@@ -8,8 +8,13 @@
    */
   import { onMount } from "svelte";
   import {
+    clearCurrentProject,
     currentProject,
+    isLoading,
+    loadFromSupabase,
+    loadLocalProject,
     loadFromLocalStorage,
+    localProjects,
   } from "$lib/stores/projectStore";
   import Upload from "$lib/components/Upload.svelte";
   import Dashboard from "$lib/components/Dashboard.svelte";
@@ -18,11 +23,44 @@
   import ProjectHeader from "$lib/components/ProjectHeader.svelte";
 
   let exportDrawerOpen = false;
+  let starterText = "";
+  let starterTextKey = 0;
+
+  const sampleRant = `Spidergoats sound fake until you realize the useful part is the silk, not the goat.
+
+The real project would be mapping what has to be true: animal welfare constraints, silk protein yield, lab processing, public reaction, regulation, and whether this is actually better than yeast or bacteria production.
+
+I want a map of the science, the weird social backlash, the risks, and the most practical next experiments. Then turn it into a short article I can edit.`;
 
   // Auto-restore from localStorage on mount
-  onMount(() => {
+  onMount(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedProjectId = params.get("project");
+
+    if (sharedProjectId) {
+      const sharedProject = await loadFromSupabase(sharedProjectId);
+      if (sharedProject) return;
+    }
+
     loadFromLocalStorage();
   });
+
+  function loadSampleRant() {
+    starterText = sampleRant;
+    starterTextKey += 1;
+  }
+
+  function formatProjectDate(value: string) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Recently";
+
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
 </script>
 
 <svelte:head>
@@ -38,7 +76,7 @@
   {#if $currentProject}
     <ProjectHeader
       project={$currentProject}
-      on:back={() => ($currentProject = null)}
+      on:back={clearCurrentProject}
       on:export={() => (exportDrawerOpen = true)}
     />
   {:else}
@@ -54,7 +92,14 @@
 
   <!-- Main content -->
   <main class="landing-main">
-    {#if $currentProject}
+    {#if $isLoading}
+      <div class="shell dashboard-shell">
+        <div class="loading-card">
+          <span class="inline-block animate-spin-slow">⚙️</span>
+          Loading shared project...
+        </div>
+      </div>
+    {:else if $currentProject}
       <!-- Show dashboard when project exists -->
       <div class="shell dashboard-shell">
         <Dashboard />
@@ -68,15 +113,71 @@
               <div class="section-kicker">Welcome to ProMapper</div>
               <h2>Turn a conversation into a project map.</h2>
               <p class="hero-lede">
-                Record, paste, or upload. ProMapper pulls out the transcript,
-                summary, tasks, and topics.
+                Record, paste, or upload. ProMapper turns the mess into a map,
+                checklist, summary, and editable article draft.
               </p>
+              <div class="hero-actions">
+                <button
+                  type="button"
+                  class="sample-btn"
+                  on:click={loadSampleRant}
+                >
+                  Try the weird science rant
+                </button>
+              </div>
+              <div class="payoff-preview" aria-label="Example project output">
+                <div class="preview-map">
+                  <span class="preview-node node-a">Silk yield</span>
+                  <span class="preview-node node-b">Bioethics</span>
+                  <span class="preview-node node-c">Public story</span>
+                </div>
+                <div class="preview-list">
+                  <span>✓ Pull out the useful tasks</span>
+                  <span>↳ Map the new connections</span>
+                  <span>MD Export editable draft</span>
+                </div>
+              </div>
             </div>
             <div class="hero-panel">
-              <Upload />
+              <Upload
+                initialText={starterText}
+                initialTextKey={starterTextKey}
+              />
             </div>
           </div>
         </section>
+
+        {#if $localProjects.length}
+          <section class="recent-projects" aria-label="Recent projects">
+            <div class="recent-heading">
+              <p class="section-kicker">Recent work</p>
+              <h2>Pick up a previous map.</h2>
+            </div>
+            <div class="recent-list">
+              {#each $localProjects.slice(0, 5) as project}
+                <button
+                  type="button"
+                  class="recent-project"
+                  on:click={() => loadLocalProject(project.id)}
+                >
+                  <span class="recent-project__title">{project.title}</span>
+                  <span class="recent-project__meta">
+                    {project.isPublic
+                      ? "Shared"
+                      : project.syncEnabled
+                        ? "Cloud saved"
+                        : "Local"} · {formatProjectDate(project.updatedAt)}
+                  </span>
+                  {#if project.summary}
+                    <span class="recent-project__summary">
+                      {project.summary}
+                    </span>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          </section>
+        {/if}
 
         <section class="feature-grid" aria-label="Product highlights">
           <div class="feature-card card">
@@ -108,6 +209,7 @@
   <!-- Export Drawer -->
   <ExportDrawer
     bind:isOpen={exportDrawerOpen}
+    project={$currentProject}
     transcript={$currentProject?.transcript || ""}
   />
 </div>
@@ -151,6 +253,18 @@
     padding-top: 0.5rem;
   }
 
+  .loading-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.12);
+    border-radius: var(--pm-radius-md);
+    background: rgba(255, 247, 239, 0.78);
+    box-shadow: var(--pm-shadow-soft);
+    font-weight: 700;
+  }
+
   .home-shell {
     display: grid;
     gap: clamp(1.5rem, 3vw, 2.25rem);
@@ -189,6 +303,100 @@
     color: rgba(58, 42, 34, 0.82);
   }
 
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .sample-btn {
+    min-height: 44px;
+    padding: 0.7rem 1rem;
+    border-radius: var(--pm-radius-sm);
+    border: var(--pm-border-medium) solid var(--pm-black);
+    background: var(--pm-yellow);
+    color: var(--pm-black);
+    box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.18);
+    font-size: var(--pm-text-sm);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .sample-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 4px 4px 0 rgba(30, 23, 20, 0.22);
+  }
+
+  .payoff-preview {
+    display: grid;
+    gap: 1rem;
+    max-width: 32rem;
+    padding-top: 0.5rem;
+  }
+
+  .preview-map {
+    position: relative;
+    min-height: 120px;
+    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.16);
+    border-radius: var(--pm-radius-md);
+    background:
+      linear-gradient(rgba(30, 23, 20, 0.08), rgba(30, 23, 20, 0.08)) 50% 50% /
+        72% 2px no-repeat,
+      linear-gradient(
+        120deg,
+        rgba(168, 216, 234, 0.32),
+        rgba(255, 217, 184, 0.34)
+      );
+  }
+
+  .preview-node {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--pm-radius-full);
+    border: var(--pm-border-medium) solid var(--pm-black);
+    background: var(--pm-cream-light);
+    box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.16);
+    font-size: var(--pm-text-xs);
+    font-weight: 800;
+  }
+
+  .node-a {
+    left: 8%;
+    top: 18%;
+  }
+
+  .node-b {
+    right: 8%;
+    top: 14%;
+  }
+
+  .node-c {
+    left: 34%;
+    bottom: 14%;
+  }
+
+  .preview-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .preview-list span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--pm-radius-full);
+    background: rgba(255, 255, 255, 0.58);
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
+    color: rgba(30, 23, 20, 0.76);
+  }
+
   .hero-panel {
     min-width: 0;
   }
@@ -197,6 +405,66 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
+  }
+
+  .recent-projects {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .recent-heading {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .recent-heading h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 2.2vw, 2rem);
+    letter-spacing: -0.03em;
+  }
+
+  .recent-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem;
+  }
+
+  .recent-project {
+    display: grid;
+    gap: 0.35rem;
+    min-height: 124px;
+    padding: 1rem;
+    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.14);
+    border-radius: var(--pm-radius-sm);
+    background: rgba(255, 247, 239, 0.74);
+    box-shadow: var(--pm-shadow-soft);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .recent-project:hover {
+    transform: translateY(-1px);
+    border-color: rgba(30, 23, 20, 0.28);
+    box-shadow: var(--pm-shadow-lifted);
+  }
+
+  .recent-project__title {
+    font-weight: 800;
+    color: var(--pm-black);
+  }
+
+  .recent-project__meta,
+  .recent-project__summary {
+    font-size: var(--pm-text-xs);
+    line-height: 1.4;
+    color: rgba(58, 42, 34, 0.68);
+  }
+
+  .recent-project__summary {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .feature-card {

@@ -75,6 +75,21 @@
     {/each}
   </div>
 {:else}
+  {#if $currentProject.lastAnalysisWarnings?.length}
+    <div class="analysis-banner" role="status">
+      <strong>Analysis completed with gaps.</strong>
+      <span>
+        Some AI steps failed, so this project may need a manual pass before
+        sharing.
+      </span>
+      <ul>
+        {#each $currentProject.lastAnalysisWarnings as warning}
+          <li>{warning.scope}: {warning.message}</li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+
   <!-- Mobile Swipe Container -->
   <div
     class="mobile-carousel"
@@ -115,6 +130,28 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .analysis-banner {
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border: var(--pm-border-medium) solid rgba(232, 131, 156, 0.45);
+    border-radius: var(--pm-radius-md);
+    background: rgba(255, 247, 239, 0.82);
+    box-shadow: var(--pm-shadow-soft);
+    color: var(--pm-brown);
+    font-size: var(--pm-text-sm);
+  }
+
+  .analysis-banner strong {
+    color: var(--pm-black);
+  }
+
+  .analysis-banner ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
   }
 
   .panel {
