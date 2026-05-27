@@ -17,8 +17,14 @@
 
   const STORAGE_PREFIX = "pm_topic_graph_positions";
 
-  type GraphNode = Node & { x?: number; y?: number };
+  type GraphNode = Node & {
+    x?: number;
+    y?: number;
+    fx?: number | null;
+    fy?: number | null;
+  };
   type PositionMap = Record<string, { x: number; y: number }>;
+  type LayoutMode = "organic" | "readable";
 
   const {
     hoveredTopic: hoveredTopicStore,
@@ -41,6 +47,7 @@
   let lastEditableTopicId: string | null = null;
   let pendingDeleteTopicId: string | null = null;
   let topicMessage = "";
+  let layoutMode: LayoutMode = "organic";
 
   const loadPositions = (projectId: string): PositionMap => {
     if (!browser) return {};
@@ -138,15 +145,50 @@
   }
 
   // Merge stored positions with topics
-  $: graphNodes = topics.map((topic) => {
-    const stored = storedPositions?.[topic.id];
-    if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) {
-      return { ...topic, x: stored.x, y: stored.y };
+  $: graphNodes =
+    layoutMode === "readable"
+      ? buildReadableGraphNodes(topics)
+      : topics.map((topic) => {
+          const stored = storedPositions?.[topic.id];
+          if (
+            stored &&
+            Number.isFinite(stored.x) &&
+            Number.isFinite(stored.y)
+          ) {
+            return { ...topic, x: stored.x, y: stored.y };
+          }
+          return { ...topic };
+        });
+
+  function buildReadableGraphNodes(sourceTopics: Node[]): GraphNode[] {
+    const width = 600;
+    const height = 400;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(170, Math.max(105, sourceTopics.length * 14));
+
+    if (sourceTopics.length === 1) {
+      return [
+        {
+          ...sourceTopics[0],
+          x: centerX,
+          y: centerY,
+          fx: centerX,
+          fy: centerY,
+        },
+      ];
     }
-    return { ...topic };
-  });
+
+    return sourceTopics.map((topic, index) => {
+      const angle = (index / sourceTopics.length) * Math.PI * 2 - Math.PI / 2;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      return { ...topic, x, y, fx: x, fy: y };
+    });
+  }
 
   function handlePositionsChange(nodesData: any[]) {
+    if (layoutMode === "readable") return;
     if (!projectId) return;
     const positions = (nodesData as GraphNode[]).reduce<PositionMap>(
       (acc, node) => {
@@ -180,7 +222,19 @@
     lastBroadcastSelectionId = NO_TOPIC;
     broadcastHover(null);
     broadcastSelection(null);
+    if (layoutMode === "readable") {
+      graphHandle?.update({ nodes: graphNodes, edges, config: graphConfig });
+      graphHandle?.updateLayout();
+      return;
+    }
     graphHandle?.resetVisualization();
+  }
+
+  async function toggleLayoutMode() {
+    layoutMode = layoutMode === "organic" ? "readable" : "organic";
+    await tick();
+    graphHandle?.update({ nodes: graphNodes, edges, config: graphConfig });
+    graphHandle?.updateLayout();
   }
 
   function renameSelectedTopic() {
@@ -318,6 +372,10 @@
 
   $: graphConfig = {
     ...graphConfigBase,
+    chargeStrength:
+      layoutMode === "readable" ? -120 : graphConfigBase.chargeStrength,
+    linkDistance:
+      layoutMode === "readable" ? 140 : graphConfigBase.linkDistance,
     onMouseOverNode: handleNodeHover,
     onDoubleClickNode: handleNodeSelect,
     onBackgroundClick: clearHover,
@@ -341,6 +399,14 @@
           <button class="graph-btn" on:click={exportGraph} title="Export SVG"
             >Export</button
           >
+          <button
+            class="graph-btn"
+            class:graph-btn-active={layoutMode === "readable"}
+            on:click={toggleLayoutMode}
+            title="Toggle readable layout"
+          >
+            {layoutMode === "readable" ? "Organic" : "Readable"}
+          </button>
           <button
             class="graph-btn"
             on:click={toggleFullscreen}
@@ -522,6 +588,16 @@
     color: var(--pm-pink);
     transform: translateY(-1px);
     box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.12);
+  }
+
+  .graph-btn-active {
+    border-color: var(--pm-black);
+    background: var(--pm-black);
+    color: white;
+  }
+
+  .graph-btn-active:hover {
+    color: white;
   }
 
   .badge-row {
