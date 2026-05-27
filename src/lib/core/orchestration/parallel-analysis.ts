@@ -14,6 +14,7 @@ import type {
   ActionItemInput,
   ActionItemStatusUpdate,
   ConversationGraph,
+  EdgeInput,
   NodeInput,
 } from "../types/index";
 
@@ -39,6 +40,7 @@ export async function analyzeText(
   speakers: string[] = [],
   existingActionItems: ActionItem[] = [],
   existingNodes: NodeInput[] = [],
+  existingEdges: EdgeInput[] = [],
   onUpdate?: AnalysisUpdateCallback,
 ): Promise<AnalysisResult> {
   const warnings: AnalysisWarning[] = [];
@@ -53,7 +55,7 @@ export async function analyzeText(
 
   // Run all AI operations, streaming results as they become available
   const topicsPromise = aiService
-    .extractTopics(text, existingNodes)
+    .extractTopics(text, existingNodes, existingEdges)
     .then((topics) => {
       onUpdate?.("topics", topics);
       return topics;

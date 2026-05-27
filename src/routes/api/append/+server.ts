@@ -30,6 +30,7 @@ import type {
   ActionItemStatusUpdate,
   ConversationGraph,
   Edge,
+  EdgeInput,
   Node,
   NodeInput,
 } from "$lib/core/types";
@@ -96,6 +97,7 @@ export const POST: RequestHandler = async (event) => {
       parseArrayField(existingEdgesJson, "existing edges"),
     );
     const existingTopicInputs = existingTopics.map(topicToInput);
+    const existingEdgeInputs = existingEdges.map(edgeToInput);
 
     // Transcribe audio (uploads, transcribes, cleans up automatically)
     const { text, speakers } = await transcribeAudio(audioFile);
@@ -111,6 +113,7 @@ export const POST: RequestHandler = async (event) => {
       speakers,
       existingActionItems,
       existingTopicInputs,
+      existingEdgeInputs,
     );
 
     const transcript = {
@@ -295,6 +298,14 @@ function topicToInput(topic: Node): NodeInput {
     label: topic.label,
     color: topic.color,
     emoji: topic.emoji,
+  };
+}
+
+function edgeToInput(edge: Edge): EdgeInput {
+  return {
+    source_topic_id: edge.source_topic_id,
+    target_topic_id: edge.target_topic_id,
+    color: edge.color,
   };
 }
 

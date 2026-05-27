@@ -71,7 +71,7 @@ export const POST: RequestHandler = async (event) => {
     const id = conversationId || crypto.randomUUID();
 
     // Don't await this, let it run in the background
-    processText(aiService, text, id, speakers, [], [], (type, data) => {
+    processText(aiService, text, id, speakers, [], [], [], (type, data) => {
       postUpdateToParty(id, { type, data, timestamp: Date.now() });
     });
 

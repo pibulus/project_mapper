@@ -17,6 +17,7 @@ import type {
   ActionItemStatusUpdate,
   Conversation,
   ConversationGraph,
+  EdgeInput,
   NodeInput,
   Transcript,
 } from "../types/index";
@@ -43,6 +44,7 @@ export async function processText(
   speakers: string[] = [],
   existingActionItems: ActionItem[] = [],
   existingNodes: NodeInput[] = [],
+  existingEdges: EdgeInput[] = [],
   onUpdate?: AnalysisUpdateCallback,
 ): Promise<ProcessTextResult> {
   const initialTranscript: Transcript = {
@@ -62,6 +64,7 @@ export async function processText(
     speakers,
     existingActionItems,
     existingNodes,
+    existingEdges,
     onUpdate,
   );
 
