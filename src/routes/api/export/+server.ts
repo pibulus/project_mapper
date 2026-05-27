@@ -6,9 +6,15 @@
  * Supported formats:
  * - BLOG: Blog post with sections and flow
  * - TECHNICAL_MANUAL: Manual with steps
+ * - MEETING: Formal meeting minutes
+ * - SPECIFICATIONS: Technical specification
  * - HAIKU: Poetic compact summary
  * - SUMMARY: Executive summary
  * - PLAN: Action plan
+ * - RESEARCH: Research notes
+ * - JOURNAL: Reflective journal entry
+ * - REPORT: Case study/report
+ * - CUSTOM: User-supplied transform prompt
  */
 
 import { json } from "@sveltejs/kit";
@@ -27,7 +33,7 @@ export const POST: RequestHandler = async (event) => {
 
     const { request } = event;
     const body = await request.json();
-    const { transcript, format, project } = body;
+    const { transcript, format, project, customPrompt } = body;
 
     if (transcript && typeof transcript !== "string") {
       return json({ error: "Transcript must be a string" }, { status: 400 });
@@ -37,11 +43,17 @@ export const POST: RequestHandler = async (event) => {
       return json({ error: "Format required" }, { status: 400 });
     }
 
-    // Get format prompt from core
-    const formatPrompt = EXPORT_FORMATS[format as keyof typeof EXPORT_FORMATS];
+    const formatPrompt =
+      format === "CUSTOM"
+        ? normalizeString(customPrompt)
+        : EXPORT_FORMATS[format as keyof typeof EXPORT_FORMATS];
 
     if (!formatPrompt) {
-      return json({ error: `Unknown format: ${format}` }, { status: 400 });
+      const error =
+        format === "CUSTOM"
+          ? "Custom prompt required"
+          : `Unknown format: ${format}`;
+      return json({ error }, { status: 400 });
     }
 
     const aiService = getAIService();

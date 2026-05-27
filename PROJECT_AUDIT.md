@@ -43,9 +43,9 @@ Goal: make validation commands trustworthy before relying on deeper findings.
 
 Goal: verify the user-facing promise works end to end.
 
-- [x] New text project smoke reviewed: local `/api/process` returns transcript and fallback title; full summary/actions/topics are blocked until `GEMINI_API_KEY` is valid.
+- [x] New text project smoke reviewed: local `/api/process` now returns transcript, summary, action items, title, topics, and edges with the repo-local Gemini key.
 - [x] New recorded audio path reviewed: server upload/transcription path is guarded; real microphone validation remains a browser/device release check.
-- [x] Uploaded audio path reviewed: file upload route has size/type guards; live transcription validation remains blocked by the invalid Gemini key.
+- [x] Uploaded audio path reviewed: file upload route has size/type guards; live browser transcription remains a manual device/release check.
 - [x] Append audio merges transcript and action items correctly.
 - [x] AI title regeneration works and fails cleanly.
 - [x] Export drawer uses valid format IDs.
@@ -143,8 +143,8 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 ## Audit Closeout
 
 - Automated validation gate: `npm run check` passes.
-- Local HTTP smoke: home route passed; `/api/process` returned partial project data despite invalid Gemini key; `/api/title` now falls back cleanly.
-- Current env blocker: `GEMINI_API_KEY` is invalid, so full AI artifact generation and live audio transcription cannot be marked as product-green yet.
+- Local HTTP smoke: home route passed; `/api/process` returned real Gemini artifacts after the local env precedence fix; `/api/title` falls back cleanly if AI fails.
+- Current env note: the repo `.env` key validated, but a different inherited shell `GEMINI_API_KEY` was overriding it in dev. The server Gemini loader now prefers repo-local Gemini `.env` values during local development.
 - Manual release checks still needed: real microphone/browser permissions, desktop/mobile visual pass, graph controls, Supabase deployment behavior, and PartyKit deployment behavior.
 - Product decision still needed before private production: Supabase Auth versus explicit share-token ownership. Current sharing is public-by-link/demo editable.
 
@@ -167,3 +167,4 @@ Goal: make handoff, Pi deployment, and launch story reliable.
 - 2026-05-27: Docs organization pass moved historical notes and focused audits under `docs/`, added `docs/README.md`, `GLOSSARY.md`, and `CLAUDE.md`, and did an 80/20 stale-reference pass.
 - 2026-05-27: Fantasy-flow pass fixed first-run project creation so failed analysis stays on the capture screen, normalized `/api/process` action items/topics into dashboard-ready records, blocked filtered drag reorder data loss, added browser-local recent projects, made sharing explicit/public-by-link, made export project-aware/editable/downloadable, preserved local edits during append merges, and added a landing-page sample payoff.
 - 2026-05-27: Compared topic graph quality against `conversation_mapper` and `conversation_mapper_fresh`, added `docs/audits/TOPIC_GRAPH_QUALITY_AUDIT.md`, tightened the topic extraction prompt, passed existing edge context into append analysis, and hardened topic node/edge normalization for labels, IDs, colors, emoji, duplicates, and self-loops.
+- 2026-05-27: Resolved local Gemini env precedence so repo `.env` wins over a conflicting inherited shell key in dev, restored real `/api/process` AI output, added `docs/audits/FEATURE_PARITY_AUDIT.md`, and expanded the export drawer/API to cover the old Markdown Maker preset family plus custom prompts.

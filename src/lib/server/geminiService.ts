@@ -6,12 +6,29 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
+import fs from "node:fs";
+import path from "node:path";
 import { createGeminiService, type AIService } from "$lib/core/ai/gemini";
 
-const GEMINI_API_KEY = env.GEMINI_API_KEY;
-const GEMINI_MODEL = env.GEMINI_MODEL || "gemini-2.5-flash";
-const GEMINI_FALLBACK_MODELS = env.GEMINI_FALLBACK_MODELS || "gemini-2.0-flash";
+const localDevEnv = dev ? readLocalGeminiEnv() : {};
+
+if (
+  dev &&
+  localDevEnv.GEMINI_API_KEY &&
+  env.GEMINI_API_KEY &&
+  localDevEnv.GEMINI_API_KEY !== env.GEMINI_API_KEY
+) {
+  console.warn(
+    "[Gemini] Using local .env GEMINI_API_KEY over inherited shell value in dev",
+  );
+}
+
+const GEMINI_API_KEY = getPrivateEnv("GEMINI_API_KEY");
+const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-2.5-flash";
+const GEMINI_FALLBACK_MODELS =
+  getPrivateEnv("GEMINI_FALLBACK_MODELS") || "gemini-2.0-flash";
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");
@@ -19,6 +36,57 @@ if (!GEMINI_API_KEY) {
 
 let cachedModel: any = null;
 let cachedService: AIService | null = null;
+
+function getPrivateEnv(key: string) {
+  return localDevEnv[key] || env[key];
+}
+
+function readLocalGeminiEnv(): Record<string, string> {
+  const values: Record<string, string> = {};
+  const cwd = process.cwd();
+  const files = [
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.development.local",
+  ];
+
+  for (const file of files) {
+    const filePath = path.join(cwd, file);
+    if (!fs.existsSync(filePath)) continue;
+
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+
+      const separatorIndex = line.indexOf("=");
+      if (separatorIndex === -1) continue;
+
+      const key = line
+        .slice(0, separatorIndex)
+        .trim()
+        .replace(/^export\s+/, "");
+
+      if (!key.startsWith("GEMINI_")) continue;
+
+      values[key] = parseEnvValue(line.slice(separatorIndex + 1));
+    }
+  }
+
+  return values;
+}
+
+function parseEnvValue(value: string) {
+  const trimmed = value.trim();
+  const quote = trimmed[0];
+
+  if ((quote === '"' || quote === "'") && trimmed.endsWith(quote)) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed.replace(/\s+#.*$/, "");
+}
 
 function getModelNames(): string[] {
   return [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS.split(",")]

@@ -21,6 +21,7 @@ Last updated: 2026-05-27
 
 - [`audits/ACTIONITEMS_AUDIT.md`](audits/ACTIONITEMS_AUDIT.md) - action item feature comparison across related projects.
 - [`audits/ACTIONITEMS_STYLING_AUDIT.md`](audits/ACTIONITEMS_STYLING_AUDIT.md) - action item visual/design comparison.
+- [`audits/FEATURE_PARITY_AUDIT.md`](audits/FEATURE_PARITY_AUDIT.md) - old `conversation_mapper` parity review with keep/defer/drop decisions.
 - [`audits/TOPIC_GRAPH_QUALITY_AUDIT.md`](audits/TOPIC_GRAPH_QUALITY_AUDIT.md) - topic map quality comparison across old and current graph systems.
 
 Historical files are useful background, but the current truth should live in `README.md`, `ARCHITECTURE.md`, `PROJECT_AUDIT.md`, and the source.

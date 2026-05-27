@@ -16,15 +16,17 @@
   export let transcript = "";
   export let project: ConversationData | null = null;
 
-  type ExportFormatId = keyof typeof EXPORT_FORMATS;
+  type ExportFormatId = keyof typeof EXPORT_FORMATS | "CUSTOM";
   type ExportOption = {
     id: ExportFormatId;
     label: string;
     desc: string;
+    custom?: boolean;
   };
 
   let selectedFormat: ExportOption | null = null;
   let generatedMarkdown = "";
+  let customPrompt = "";
   let isGenerating = false;
   let error = "";
   let copyStatus = "";
@@ -38,17 +40,64 @@
       desc: "Formatted article with sections",
     },
     {
-      id: "TECHNICAL_MANUAL",
-      label: "📖 Technical Manual",
-      desc: "Step-by-step guide",
+      id: "MEETING",
+      label: "🗓️ Meeting Minutes",
+      desc: "Decisions, discussion, and tasks",
+    },
+    {
+      id: "PLAN",
+      label: "✅ Action Plan",
+      desc: "Tasks, owners, and timeframes",
     },
     {
       id: "SUMMARY",
       label: "📋 Executive Summary",
       desc: "High-level overview",
     },
+    {
+      id: "RESEARCH",
+      label: "🔎 Research Notes",
+      desc: "Findings and follow-up areas",
+    },
+    {
+      id: "SPECIFICATIONS",
+      label: "🧩 Specifications",
+      desc: "Requirements and implementation notes",
+    },
+    {
+      id: "TECHNICAL_MANUAL",
+      label: "📖 Technical Manual",
+      desc: "Step-by-step guide",
+    },
+    {
+      id: "JOURNAL",
+      label: "📓 Journal Entry",
+      desc: "Reflective narrative output",
+    },
+    {
+      id: "REPORT",
+      label: "📊 Case Study",
+      desc: "Situation, solution, and lessons",
+    },
     { id: "HAIKU", label: "🎋 Haiku", desc: "Poetic compact summary" },
+    {
+      id: "CUSTOM",
+      label: "✍️ Custom Prompt",
+      desc: "Write your own transform",
+      custom: true,
+    },
   ];
+
+  function selectFormat(format: ExportOption) {
+    selectedFormat = format;
+    generatedMarkdown = "";
+    error = "";
+    copyStatus = "";
+
+    if (!format.custom) {
+      generateExport(format);
+    }
+  }
 
   async function generateExport(format: ExportOption) {
     if (
@@ -57,6 +106,11 @@
       !project?.actionItems?.length
     ) {
       error = "No project content available";
+      return;
+    }
+
+    if (format.custom && !customPrompt.trim()) {
+      error = "Write a custom prompt first";
       return;
     }
 
@@ -74,6 +128,7 @@
           transcript: exportTranscript,
           project,
           format: format.id,
+          customPrompt: format.custom ? customPrompt : undefined,
         }),
       });
 
@@ -140,6 +195,7 @@
       generatedMarkdown = "";
       error = "";
       copyStatus = "";
+      customPrompt = "";
     }, 300);
   }
 
@@ -199,7 +255,7 @@
           <p class="text-gray-600 mb-4">Choose an export format:</p>
           {#each formats as format}
             <button
-              on:click={() => generateExport(format)}
+              on:click={() => selectFormat(format)}
               class="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all group"
             >
               <div class="flex items-center justify-between">
@@ -245,6 +301,29 @@
                   Generating your {selectedFormat.label}...
                 </p>
               </div>
+            </div>
+          {:else if selectedFormat.custom && !generatedMarkdown}
+            <div class="space-y-4">
+              {#if error}
+                <div class="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                  <p class="text-red-700">{error}</p>
+                </div>
+              {/if}
+              <label class="markdown-editor">
+                <span>Custom transform prompt</span>
+                <textarea
+                  bind:value={customPrompt}
+                  rows="8"
+                  placeholder="Turn this project into..."
+                ></textarea>
+              </label>
+              <button
+                on:click={() => generateExport(selectedFormat)}
+                class="w-full btn btn-primary"
+                disabled={!customPrompt.trim()}
+              >
+                Generate Custom Export
+              </button>
             </div>
           {:else if error}
             <!-- Error state -->

@@ -109,8 +109,8 @@ Still weaker than the fantasy:
 4. **Emoji quality needs product-specific examples.**  
    The current prompt says "semantically meaningful", but examples matter. Future fixture tests should include weird science, product planning, and messy meeting transcripts.
 
-5. **Graph UX needs visual QA with real AI output.**  
-   Current local env has an invalid Gemini key, so this pass validates code paths, not actual node quality.
+5. **Graph UX still needs visual QA with real AI output.**  
+   The local Gemini route now returns real topic nodes and edges, but desktop/mobile graph readability still needs browser inspection with several transcript shapes.
 
 ## Recommended Next Tests
 

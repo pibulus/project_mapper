@@ -18,7 +18,7 @@ What still wants attention:
 
 - `Upload.svelte` still owns a lot of orchestration and will become a maintenance hotspot.
 - There is no stronger auth/session story yet; API hardening is intentionally lightweight.
-- Full AI/product validation is still blocked locally until Gemini/Supabase/PartyKit env vars are valid.
+- Full AI text validation is working locally with the repo `.env`; Supabase, PartyKit, audio upload/transcription, and real browser/device checks still need release validation.
 - Current docs are organized: root reference docs stay at the top level, while older handoff and synthesis notes live under `docs/history/`.
 
 Obvious next moves:
@@ -26,3 +26,4 @@ Obvious next moves:
 - Test end-to-end on the Pi with real env vars for Gemini, Supabase, and PartyKit.
 - Decide whether this should get a real release version/tag once that flow is stable.
 - Consider splitting recording/upload orchestration out of `Upload.svelte`.
+- Consider project JSON import/export and saved markdown drafts as the next highest-value parity fixes from `docs/audits/FEATURE_PARITY_AUDIT.md`.

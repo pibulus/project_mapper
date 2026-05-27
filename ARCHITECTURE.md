@@ -58,4 +58,4 @@ npm run check
 
 That runs Prettier, ESLint, TypeScript, and a production build.
 
-Manual validation still needs a valid Gemini key and real browser/device passes for microphone permission states, mobile layout, graph controls, and full Supabase/PartyKit deployment behavior.
+Manual validation still needs real browser/device passes for microphone permission states, mobile layout, graph controls, uploaded audio transcription, and full Supabase/PartyKit deployment behavior.
