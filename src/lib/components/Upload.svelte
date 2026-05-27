@@ -5,7 +5,7 @@
    * Handles: text input, file upload (drag/drop), and audio recording
    * Warm pastel punk aesthetic with juicy interactions
    */
-  import { onDestroy } from "svelte";
+  import { createEventDispatcher, onDestroy } from "svelte";
   import { browser } from "$app/environment";
   import {
     currentProject,
@@ -20,6 +20,11 @@
 
   export let initialText = "";
   export let initialTextKey = 0;
+  export let appendAudioOnly = false;
+
+  const dispatch = createEventDispatcher<{
+    appendComplete: void;
+  }>();
 
   type ProcessResponse = {
     transcript?: { text?: string };
@@ -72,16 +77,25 @@
   // ===================================================================
 
   $: timeRemaining = MAX_RECORDING_TIME - recordingTime;
-  $: hasText = textInput.trim().length > 0;
+  $: hasText = !appendAudioOnly && textInput.trim().length > 0;
   $: primaryLabel = isRecording
     ? "Stop Recording"
     : hasText
       ? "Analyze Text"
       : audioFile
-        ? "Map Audio"
-        : "Start Recording";
+        ? appendAudioOnly
+          ? "Append Audio"
+          : "Map Audio"
+        : appendAudioOnly
+          ? "Start Append Recording"
+          : "Start Recording";
   $: primaryDisabled = isProcessing && !isRecording;
+  $: if (appendAudioOnly && mode !== "audio") {
+    mode = "audio";
+    textInput = "";
+  }
   $: if (
+    !appendAudioOnly &&
     initialText &&
     initialTextKey !== appliedInitialTextKey &&
     !isProcessing
@@ -108,7 +122,15 @@
   // ===================================================================
 
   async function startRecording() {
+    if (isProcessing || isRecording) return;
+
     try {
+      if (!browser || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          "Microphone recording is not supported in this browser.",
+        );
+      }
+
       const userStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -178,10 +200,11 @@
   }
 
   async function stopRecording() {
-    if (!mediaRecorder) return;
+    if (!mediaRecorder || mediaRecorder.state === "inactive") return;
 
     return new Promise<void>((resolve) => {
       const recorder = mediaRecorder!;
+      mediaRecorder = null;
 
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, {
@@ -226,15 +249,17 @@
   // ===================================================================
 
   async function processRecordedAudio(audioBlob: Blob) {
+    if (isProcessing) return;
+
     isProcessing = true;
     error = "";
 
     try {
+      const file = new File([audioBlob], "recording.webm", {
+        type: audioBlob.type || "audio/webm",
+      });
       const project = get(currentProject);
       if (project) {
-        const file = new File([audioBlob], "recording.webm", {
-          type: audioBlob.type || "audio/webm",
-        });
         await appendAudioToProject(file, project.id);
       } else {
         const conversationId = crypto.randomUUID();
@@ -245,8 +270,12 @@
         const result = await processNewCapture(formData);
         applyProcessResult(result, "", conversationId);
       }
+      audioFile = null;
     } catch (err: any) {
       console.error("❌ Error processing audio:", err);
+      audioFile = new File([audioBlob], "recording.webm", {
+        type: audioBlob.type || "audio/webm",
+      });
       error = err.message || "Failed to process audio";
     } finally {
       isProcessing = false;
@@ -254,8 +283,11 @@
   }
 
   async function processAudioFile(file: File) {
+    if (isProcessing) return;
+
     isProcessing = true;
     error = "";
+    let succeeded = false;
 
     try {
       const project = get(currentProject);
@@ -270,14 +302,18 @@
         const result = await processNewCapture(formData);
         applyProcessResult(result, "", conversationId);
       }
+      succeeded = true;
     } catch (err: any) {
       console.error("❌ Error processing file:", err);
+      audioFile = file;
+      textInput = "";
       error = err.message || "Failed to process audio file";
     } finally {
       isProcessing = false;
-      // Reset form
-      audioFile = null;
-      textInput = "";
+      if (succeeded) {
+        audioFile = null;
+        textInput = "";
+      }
     }
   }
 
@@ -288,13 +324,27 @@
     }
 
     const { updates, warnings } = await appendProjectAudio(project, file);
+    const latestProject = get(currentProject);
+    if (!latestProject || latestProject.id !== projectId) {
+      throw new Error(
+        "Append finished, but the active project changed. Reopen the original project and retry.",
+      );
+    }
+
     updateProject({
       ...updates,
       lastAnalysisWarnings: warnings || [],
     });
+    dispatch("appendComplete");
   }
 
   async function processText() {
+    if (isProcessing) return;
+    if (appendAudioOnly) {
+      error = "Append currently supports audio recordings and audio files.";
+      return;
+    }
+
     const submittedText = textInput.trim();
     if (!submittedText) {
       error = "Please enter some text";
@@ -386,6 +436,7 @@
   function stageFile(file: File) {
     audioFile = file;
     textInput = "";
+    error = "";
     isDragActive = false;
   }
 
@@ -400,6 +451,7 @@
 
   function clearSelectedFile() {
     audioFile = null;
+    error = "";
     if (fileInput) {
       fileInput.value = "";
     }
@@ -441,6 +493,8 @@
   // ===================================================================
 
   async function handlePrimaryAction() {
+    if (isProcessing && !isRecording) return;
+
     if (isRecording) {
       await stopRecording();
       return;
@@ -461,6 +515,28 @@
     }
   }
 
+  function activateUnifiedInput() {
+    if (isRecording) return;
+    if (appendAudioOnly) {
+      fileInput?.click();
+      return;
+    }
+    textArea?.focus();
+  }
+
+  function handleUnifiedInputKeydown(event: KeyboardEvent) {
+    if (isRecording || (event.key !== "Enter" && event.key !== " ")) return;
+
+    if (appendAudioOnly) {
+      event.preventDefault();
+      fileInput?.click();
+      return;
+    }
+
+    event.preventDefault();
+    textArea?.focus();
+  }
+
   // ===================================================================
   // LIFECYCLE
   // ===================================================================
@@ -474,33 +550,47 @@
   <!-- Header with mode toggle -->
   <div class="upload-header">
     <div class="upload-intro">
-      <p class="upload-kicker">Start mapping</p>
-      <h2>Start with audio or notes</h2>
-      <p class="upload-description">Record, paste, or upload a call.</p>
+      <p class="upload-kicker">
+        {appendAudioOnly ? "Append update" : "Start mapping"}
+      </p>
+      <h2>
+        {appendAudioOnly ? "Append a recording" : "Start with audio or notes"}
+      </h2>
+      <p class="upload-description">
+        {appendAudioOnly
+          ? "Record or upload audio to update this project."
+          : "Record, paste, or upload a call."}
+      </p>
     </div>
-    <div class="mode-toggle">
-      <button
-        type="button"
-        class="mode-btn {mode === 'audio' ? 'active' : ''}"
-        on:click={() => (mode = "audio")}
-      >
-        <span aria-hidden="true">🎙️</span>
-        Audio
-      </button>
-      <button
-        type="button"
-        class="mode-btn {mode === 'text' ? 'active' : ''}"
-        on:click={() => (mode = "text")}
-      >
-        <span aria-hidden="true">📝</span>
-        Text
-      </button>
-    </div>
+    {#if !appendAudioOnly}
+      <div class="mode-toggle">
+        <button
+          type="button"
+          class="mode-btn {mode === 'audio' ? 'active' : ''}"
+          on:click={() => (mode = "audio")}
+        >
+          <span aria-hidden="true">🎙️</span>
+          Audio
+        </button>
+        <button
+          type="button"
+          class="mode-btn {mode === 'text' ? 'active' : ''}"
+          on:click={() => (mode = "text")}
+        >
+          <span aria-hidden="true">📝</span>
+          Text
+        </button>
+      </div>
+    {/if}
   </div>
 
   <div class="upload-body">
     <div class="upload-hint">
-      <span>Cmd/Ctrl + Enter to analyze text fast</span>
+      <span>
+        {appendAudioOnly
+          ? "Updates transcript, tasks, summary, and map"
+          : "Cmd/Ctrl + Enter to analyze text fast"}
+      </span>
       <span>10 minute recording cap</span>
     </div>
 
@@ -514,13 +604,8 @@
       on:dragenter={isRecording ? undefined : handleDragOver}
       on:dragleave={isRecording ? undefined : handleDragLeave}
       on:drop={isRecording ? undefined : handleDrop}
-      on:click={() => !isRecording && textArea?.focus()}
-      on:keydown={(event) => {
-        if (!isRecording && (event.key === "Enter" || event.key === " ")) {
-          event.preventDefault();
-          textArea?.focus();
-        }
-      }}
+      on:click={activateUnifiedInput}
+      on:keydown={handleUnifiedInputKeydown}
       role="button"
       tabindex="0"
     >
@@ -555,27 +640,42 @@
           </div>
         </div>
       {:else}
-        <!-- Text Input State -->
-        <textarea
-          bind:this={textArea}
-          bind:value={textInput}
-          class="text-input"
-          placeholder={mode === "audio"
-            ? "Talk it out, paste a rant, or drop a recording here."
-            : "Paste notes, meeting rambles, or half-formed thoughts here."}
-          on:input={() => {
-            if (audioFile) {
-              audioFile = null;
-            }
-          }}
-          on:keydown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && hasText) {
-              e.preventDefault();
-              processText();
-            }
-          }}
-          on:focus={() => (isDragActive = false)}
-        ></textarea>
+        {#if appendAudioOnly}
+          <div class="audio-only-prompt">
+            <strong>Record the next chunk or attach an audio file.</strong>
+            <span
+              >The append will merge into this project instead of creating a new
+              map.</span
+            >
+          </div>
+        {:else}
+          <!-- Text Input State -->
+          <textarea
+            bind:this={textArea}
+            bind:value={textInput}
+            class="text-input"
+            placeholder={mode === "audio"
+              ? "Talk it out, paste a rant, or drop a recording here."
+              : "Paste notes, meeting rambles, or half-formed thoughts here."}
+            on:input={() => {
+              if (audioFile) {
+                audioFile = null;
+              }
+            }}
+            on:keydown={(e) => {
+              if (
+                (e.ctrlKey || e.metaKey) &&
+                e.key === "Enter" &&
+                hasText &&
+                !isProcessing
+              ) {
+                e.preventDefault();
+                processText();
+              }
+            }}
+            on:focus={() => (isDragActive = false)}
+          ></textarea>
+        {/if}
 
         <!-- File Chip -->
         {#if audioFile}
@@ -612,7 +712,17 @@
     <!-- Error Message -->
     {#if error}
       <div class="error-box">
-        {error}
+        <p>{error}</p>
+        {#if audioFile && !isProcessing}
+          <div class="error-actions">
+            <button type="button" on:click={() => processAudioFile(audioFile!)}>
+              Retry audio
+            </button>
+            <button type="button" on:click={clearSelectedFile}>
+              Discard audio
+            </button>
+          </div>
+        {/if}
       </div>
     {/if}
 
@@ -625,7 +735,7 @@
     >
       {#if isProcessing && !isRecording}
         <span
-          class="inline-block animate-spin-slow"
+          class="animate-spin-slow inline-block"
           style="margin-right: 0.5rem;">⚙️</span
         >
         Processing with AI...
@@ -838,6 +948,28 @@
     opacity: 0.46;
   }
 
+  .audio-only-prompt {
+    flex: 1;
+    display: grid;
+    place-content: center;
+    gap: 0.45rem;
+    min-height: 0;
+    padding: 0 1rem;
+    text-align: center;
+    color: rgba(58, 42, 34, 0.72);
+  }
+
+  .audio-only-prompt strong {
+    color: var(--pm-black);
+    font-size: var(--pm-text-lg);
+    line-height: 1.25;
+  }
+
+  .audio-only-prompt span {
+    font-size: var(--pm-text-sm);
+    line-height: 1.45;
+  }
+
   /* ===================================================================
 	 * FILE CHIP
 	 * ================================================================= */
@@ -1011,6 +1143,29 @@
     border-radius: var(--pm-radius-sm);
     font-size: var(--pm-text-sm);
     color: #b91c1c;
+  }
+
+  .error-box p {
+    margin: 0;
+  }
+
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+  }
+
+  .error-actions button {
+    min-height: 44px;
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    padding: 0.45rem 0.75rem;
+    color: var(--pm-black);
+    font-size: var(--pm-text-xs);
+    font-weight: 800;
+    cursor: pointer;
   }
 
   @media (max-width: 768px) {

@@ -2,6 +2,11 @@ import type { ConversationData } from "$lib/core/types";
 import { get } from "svelte/store";
 import { currentProject } from "$lib/stores/projectStore";
 
+type AppendMergeProject = Pick<
+  ConversationData,
+  "id" | "transcript" | "summary" | "actionItems" | "topics" | "edges"
+>;
+
 export interface AppendAudioResponse {
   transcript?: {
     text?: string;
@@ -29,6 +34,7 @@ export async function appendAudioToProject(
   formData.append("audio", file);
   formData.append("conversationId", project.id);
   formData.append("existingTranscript", project.transcript || "");
+  formData.append("existingSummary", project.summary || "");
   formData.append(
     "existingActionItems",
     JSON.stringify(project.actionItems || []),
@@ -52,16 +58,28 @@ export async function appendAudioToProject(
     latestProject?.id === project.id ? latestProject : project;
 
   return {
-    updates: buildAppendUpdates(project, mergeTarget, result),
+    updates: mergeAppendUpdates(project, mergeTarget, result),
     warnings: result.warnings ?? [],
   };
 }
 
-function buildAppendUpdates(
-  baseProject: ConversationData,
-  latestProject: ConversationData,
+export function mergeAppendUpdates(
+  baseProject: AppendMergeProject,
+  latestProject: AppendMergeProject,
   result: AppendAudioResponse,
 ): Partial<ConversationData> {
+  const topics = mergeNodes(
+    baseProject.topics || [],
+    latestProject.topics || [],
+    result.topics?.nodes || [],
+  );
+  const edges = mergeEdges(
+    baseProject.edges || [],
+    latestProject.edges || [],
+    result.topics?.edges || [],
+    topics,
+  );
+
   return {
     transcript: mergeTranscriptResult(
       baseProject.transcript,
@@ -77,8 +95,8 @@ function buildAppendUpdates(
       latestProject.actionItems || [],
       result.actionItems || [],
     ),
-    topics: mergeNodes(latestProject.topics || [], result.topics?.nodes || []),
-    edges: mergeEdges(latestProject.edges || [], result.topics?.edges || []),
+    topics,
+    edges,
   };
 }
 
@@ -130,12 +148,13 @@ function mergeActionItems(
     const latestItem = latestById.get(returnedItem.id);
 
     if (!baseItem) {
-      mergedById.set(returnedItem.id, returnedItem);
+      if (!latestItem) {
+        mergedById.set(returnedItem.id, returnedItem);
+      }
       continue;
     }
 
     if (!latestItem) {
-      mergedById.set(returnedItem.id, returnedItem);
       continue;
     }
 
@@ -147,33 +166,94 @@ function mergeActionItems(
 }
 
 function mergeNodes(
+  baseNodes: ConversationData["topics"],
   latestNodes: ConversationData["topics"],
   returnedNodes: ConversationData["topics"],
 ) {
-  const nodesById = new Map(returnedNodes.map((node) => [node.id, node]));
+  const baseById = new Map(baseNodes.map((node) => [node.id, node]));
+  const latestById = new Map(latestNodes.map((node) => [node.id, node]));
+  const mergedById = new Map(latestNodes.map((node) => [node.id, node]));
 
-  for (const node of latestNodes) {
-    nodesById.set(node.id, node);
+  for (const returnedNode of returnedNodes) {
+    const baseNode = baseById.get(returnedNode.id);
+    const latestNode = latestById.get(returnedNode.id);
+
+    if (!baseNode) {
+      if (!latestNode) {
+        mergedById.set(returnedNode.id, returnedNode);
+      }
+      continue;
+    }
+
+    if (!latestNode) {
+      continue;
+    }
+
+    mergedById.set(
+      returnedNode.id,
+      hasChanged(latestNode, baseNode) ? latestNode : returnedNode,
+    );
   }
 
-  return [...nodesById.values()];
+  return [...mergedById.values()];
 }
 
 function mergeEdges(
+  baseEdges: ConversationData["edges"],
   latestEdges: ConversationData["edges"],
   returnedEdges: ConversationData["edges"],
+  mergedNodes: ConversationData["topics"],
 ) {
-  const edgesByKey = new Map(
-    returnedEdges.map((edge) => [edgeKey(edge), edge]),
+  const validNodeIds = new Set(mergedNodes.map((node) => node.id));
+  const baseByKey = new Map(baseEdges.map((edge) => [edgeKey(edge), edge]));
+  const latestByKey = new Map(
+    latestEdges
+      .filter((edge) => isValidEdge(edge, validNodeIds))
+      .map((edge) => [edgeKey(edge), edge]),
   );
+  const mergedByKey = new Map(latestByKey);
 
-  for (const edge of latestEdges) {
-    edgesByKey.set(edgeKey(edge), edge);
+  for (const returnedEdge of returnedEdges) {
+    if (!isValidEdge(returnedEdge, validNodeIds)) continue;
+
+    const key = edgeKey(returnedEdge);
+    const baseEdge = baseByKey.get(key);
+    const latestEdge = latestByKey.get(key);
+
+    if (!baseEdge) {
+      if (!latestEdge) {
+        mergedByKey.set(key, returnedEdge);
+      }
+      continue;
+    }
+
+    if (!latestEdge) {
+      continue;
+    }
+
+    mergedByKey.set(
+      key,
+      hasChanged(latestEdge, baseEdge) ? latestEdge : returnedEdge,
+    );
   }
 
-  return [...edgesByKey.values()];
+  return [...mergedByKey.values()];
 }
 
 function edgeKey(edge: { source_topic_id: string; target_topic_id: string }) {
   return `${edge.source_topic_id}->${edge.target_topic_id}`;
+}
+
+function isValidEdge(
+  edge: { source_topic_id: string; target_topic_id: string },
+  validNodeIds: Set<string>,
+) {
+  return (
+    validNodeIds.has(edge.source_topic_id) &&
+    validNodeIds.has(edge.target_topic_id)
+  );
+}
+
+function hasChanged<T>(latest: T, base: T) {
+  return JSON.stringify(latest) !== JSON.stringify(base);
 }

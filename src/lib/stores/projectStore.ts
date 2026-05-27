@@ -45,12 +45,31 @@ export const isLoading = writable(false);
  */
 export const saveStatus = writable<"saved" | "saving" | "error">("saved");
 
+/**
+ * Last browser-local persistence problem, shown so users know refresh may lose
+ * the in-memory project.
+ */
+export const localSaveError = writable("");
+
+const LOCAL_SAVE_FAILURE_MESSAGE =
+  "Local browser save failed. Download a backup before refreshing.";
+
 function nowIso() {
   return new Date().toISOString();
 }
 
 function projectStorageKey(projectId: string) {
   return `${PROJECT_STORAGE_PREFIX}${projectId}`;
+}
+
+function clearLocalSaveFailure() {
+  localSaveError.set("");
+}
+
+function reportLocalSaveFailure(context: string, error: unknown) {
+  console.error(`[ProjectStore] ${context}:`, error);
+  localSaveError.set(LOCAL_SAVE_FAILURE_MESSAGE);
+  saveStatus.set("error");
 }
 
 function normalizeProject(project: ConversationData): ConversationData {
@@ -153,18 +172,24 @@ function readProjectIndex(): LocalProjectSummary[] {
 }
 
 function writeProjectIndex(projects: LocalProjectSummary[]) {
-  if (!browser) return;
+  if (!browser) return true;
 
-  const sorted = sortProjectSummaries(projects);
-  localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(sorted));
-  localProjects.set(sorted);
+  try {
+    const sorted = sortProjectSummaries(projects);
+    localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(sorted));
+    localProjects.set(sorted);
+    return true;
+  } catch (error) {
+    reportLocalSaveFailure("Error saving project index", error);
+    return false;
+  }
 }
 
 function upsertProjectIndex(project: ConversationData) {
   const index = readProjectIndex();
   const summary = summaryFromProject(project);
   const withoutProject = index.filter((item) => item.id !== project.id);
-  writeProjectIndex([summary, ...withoutProject]);
+  return writeProjectIndex([summary, ...withoutProject]);
 }
 
 export function refreshLocalProjects() {
@@ -207,18 +232,23 @@ export function loadFromLocalStorage() {
  * Save project to localStorage (instant backup)
  */
 export function saveToLocalStorage(project: ConversationData) {
-  if (!browser) return;
+  if (!browser) return true;
 
   try {
     const normalized = normalizeProject(project);
-    localStorage.setItem(CURRENT_PROJECT_ID_KEY, normalized.id);
     localStorage.setItem(
       projectStorageKey(normalized.id),
       JSON.stringify(normalized),
     );
-    upsertProjectIndex(normalized);
+
+    if (!upsertProjectIndex(normalized)) return false;
+
+    localStorage.setItem(CURRENT_PROJECT_ID_KEY, normalized.id);
+    clearLocalSaveFailure();
+    return true;
   } catch (error) {
-    console.error("[ProjectStore] Error saving to localStorage:", error);
+    reportLocalSaveFailure("Error saving to localStorage", error);
+    return false;
   }
 }
 
@@ -230,8 +260,13 @@ export function loadLocalProject(projectId: string) {
     if (!raw) return null;
 
     const project = normalizeProject(JSON.parse(raw));
-    localStorage.setItem(CURRENT_PROJECT_ID_KEY, project.id);
     currentProject.set(project);
+    try {
+      localStorage.setItem(CURRENT_PROJECT_ID_KEY, project.id);
+      clearLocalSaveFailure();
+    } catch (error) {
+      reportLocalSaveFailure("Error selecting local project", error);
+    }
     refreshLocalProjects();
     return project;
   } catch (error) {
@@ -243,15 +278,22 @@ export function loadLocalProject(projectId: string) {
 export function deleteLocalProject(projectId: string) {
   if (!browser) return;
 
-  localStorage.removeItem(projectStorageKey(projectId));
-  const index = readProjectIndex().filter(
-    (project) => project.id !== projectId,
-  );
-  writeProjectIndex(index);
+  try {
+    const wasCurrent =
+      localStorage.getItem(CURRENT_PROJECT_ID_KEY) === projectId;
+    localStorage.removeItem(projectStorageKey(projectId));
+    const index = readProjectIndex().filter(
+      (project) => project.id !== projectId,
+    );
+    if (!writeProjectIndex(index)) return;
 
-  if (localStorage.getItem(CURRENT_PROJECT_ID_KEY) === projectId) {
-    localStorage.removeItem(CURRENT_PROJECT_ID_KEY);
-    currentProject.set(null);
+    if (wasCurrent) {
+      localStorage.removeItem(CURRENT_PROJECT_ID_KEY);
+      currentProject.set(null);
+      clearLocalSaveFailure();
+    }
+  } catch (error) {
+    reportLocalSaveFailure("Error deleting local project", error);
   }
 }
 
@@ -262,14 +304,18 @@ export function setCurrentProject(project: ConversationData | null) {
   }
 
   if (!project) {
-    localStorage.removeItem(CURRENT_PROJECT_ID_KEY);
+    try {
+      localStorage.removeItem(CURRENT_PROJECT_ID_KEY);
+      clearLocalSaveFailure();
+    } catch (error) {
+      reportLocalSaveFailure("Error clearing current project", error);
+    }
     currentProject.set(null);
     refreshLocalProjects();
     return;
   }
 
   const normalized = normalizeProject(project);
-  localStorage.setItem(CURRENT_PROJECT_ID_KEY, normalized.id);
   currentProject.set(normalized);
   saveToLocalStorage(normalized);
 }

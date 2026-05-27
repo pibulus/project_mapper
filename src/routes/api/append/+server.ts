@@ -53,6 +53,7 @@ export const POST: RequestHandler = async (event) => {
       .get("existingTranscript")
       ?.toString()
       .trim();
+    const existingSummary = formData.get("existingSummary")?.toString() || "";
     const existingActionItemsJson = formData
       .get("existingActionItems")
       ?.toString();
@@ -134,11 +135,22 @@ export const POST: RequestHandler = async (event) => {
       analysisResult.topics,
     );
 
-    await broadcastUpdates(conversationId, {
-      transcript,
-      topics,
-      summary: analysisResult.summary,
-      actionItems,
+    await broadcastAppendResult(conversationId, {
+      baseProject: {
+        id: conversationId,
+        transcript: existingTranscript || "",
+        summary: existingSummary,
+        actionItems: existingActionItems,
+        topics: existingTopics,
+        edges: existingEdges,
+      },
+      result: {
+        transcript,
+        topics,
+        summary: analysisResult.summary,
+        actionItems,
+        warnings: analysisResult.warnings,
+      },
     });
 
     return json({
@@ -452,21 +464,25 @@ function edgeKey(edge: Pick<Edge, "source_topic_id" | "target_topic_id">) {
   return `${edge.source_topic_id}->${edge.target_topic_id}`;
 }
 
-async function broadcastUpdates(
+async function broadcastAppendResult(
   conversationId: string,
-  result: Pick<ProcessTextResult, "transcript" | "summary"> & {
-    topics: { nodes: Node[]; edges: Edge[] };
-    actionItems: ActionItem[];
+  data: {
+    baseProject: {
+      id: string;
+      transcript: string;
+      summary: string;
+      actionItems: ActionItem[];
+      topics: Node[];
+      edges: Edge[];
+    };
+    result: Pick<ProcessTextResult, "transcript" | "summary" | "warnings"> & {
+      topics: { nodes: Node[]; edges: Edge[] };
+      actionItems: ActionItem[];
+    };
   },
 ) {
-  const payloads = [
-    { type: "transcript", data: result.transcript },
-    { type: "topics", data: result.topics },
-    { type: "summary", data: result.summary },
-    { type: "action-items", data: result.actionItems },
-  ];
-
-  await Promise.all(
-    payloads.map((payload) => postUpdateToParty(conversationId, payload)),
-  );
+  await postUpdateToParty(conversationId, {
+    type: "append-result",
+    data,
+  });
 }

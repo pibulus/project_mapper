@@ -4,14 +4,19 @@
  * Manages WebSocket connection to PartyKit room for multiplayer features
  */
 
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { env } from "$env/dynamic/public";
 import PartySocket from "partysocket";
 
 const PUBLIC_PARTYKIT_HOST = env.PUBLIC_PARTYKIT_HOST || "";
-import { updateProject } from "$lib/stores/projectStore";
+import { currentProject, updateProject } from "$lib/stores/projectStore";
+import {
+  mergeAppendUpdates,
+  type AppendAudioResponse,
+} from "$lib/client/appendAudio";
 import type {
+  ConversationData,
   Conversation,
   Transcript,
   Node,
@@ -32,6 +37,14 @@ interface PartyMessage {
   timestamp: number;
   count?: number;
   data?: any;
+}
+
+interface AppendResultData {
+  baseProject: Pick<
+    ConversationData,
+    "id" | "transcript" | "summary" | "actionItems" | "topics" | "edges"
+  >;
+  result: AppendAudioResponse;
 }
 
 function getPresenceCount(msg: PartyMessage) {
@@ -115,6 +128,43 @@ export function createProjectParty(projectId: string) {
             conversation.set(msg.data);
             updateProject(msg.data);
             break;
+          case "append-result": {
+            const data = msg.data as AppendResultData | undefined;
+            const current = get(currentProject);
+            if (
+              !current ||
+              current.id !== projectId ||
+              data?.baseProject?.id !== projectId ||
+              !data.result
+            ) {
+              break;
+            }
+
+            const updates = mergeAppendUpdates(
+              data.baseProject,
+              current,
+              data.result,
+            );
+            const nextTopics = updates.topics ?? current.topics ?? [];
+            const nextEdges = updates.edges ?? current.edges ?? [];
+            const nextActionItems =
+              updates.actionItems ?? current.actionItems ?? [];
+            const nextSummary = updates.summary ?? current.summary ?? "";
+            const nextTranscript =
+              updates.transcript ?? current.transcript ?? "";
+
+            transcript.set({ text: nextTranscript });
+            nodes.set(nextTopics);
+            edges.set(nextEdges);
+            actionItems.set(nextActionItems);
+            summary.set(nextSummary);
+            updateProject({
+              ...updates,
+              lastAnalysisWarnings:
+                data.result.warnings ?? current.lastAnalysisWarnings ?? [],
+            });
+            break;
+          }
           case "topics":
             nodes.set(msg.data.nodes || []);
             edges.set(msg.data.edges || []);
