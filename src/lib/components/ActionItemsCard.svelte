@@ -227,6 +227,8 @@
   }
 
   // Drag and Drop handlers
+  let dragOverItemId: string | null = null;
+
   function handleDragStart(itemId: string) {
     if (!canManualReorder) return;
     draggedItemId = itemId;
@@ -237,7 +239,24 @@
     event.preventDefault();
   }
 
+  function handleDragEnter(itemId: string) {
+    if (!canManualReorder || draggedItemId === itemId) return;
+    dragOverItemId = itemId;
+  }
+
+  function handleDragLeave(itemId: string) {
+    if (dragOverItemId === itemId) {
+      dragOverItemId = null;
+    }
+  }
+
+  function handleDragEnd() {
+    draggedItemId = null;
+    dragOverItemId = null;
+  }
+
   function handleDrop(targetItemId: string) {
+    dragOverItemId = null;
     if (!draggedItemId || draggedItemId === targetItemId || !canManualReorder) {
       draggedItemId = null;
       return;
@@ -351,7 +370,7 @@
             animate:flip={{ duration: 250 }}
             class="action-item-wrapper"
             class:dragging={draggedItemId === item.id}
-            class:drag-over={hoveredItemId === item.id &&
+            class:drag-over={dragOverItemId === item.id &&
               draggedItemId !== item.id}
             class:selected={selectedItemIndex === index}
             class:topic-match={activeTopic &&
@@ -360,6 +379,9 @@
             role="listitem"
             on:dragstart={() => handleDragStart(item.id)}
             on:dragover={handleDragOver}
+            on:dragenter={() => handleDragEnter(item.id)}
+            on:dragleave={() => handleDragLeave(item.id)}
+            on:dragend={handleDragEnd}
             on:drop={() => handleDrop(item.id)}
             on:mouseenter={() => (hoveredItemId = item.id)}
             on:mouseleave={() => (hoveredItemId = null)}
@@ -376,6 +398,11 @@
                 ? 'completed'
                 : ''}"
             >
+              {#if canManualReorder}
+                <div class="drag-grip" title="Drag to reorder">
+                  ⋮⋮
+                </div>
+              {/if}
               <input
                 class="complete-checkbox"
                 type="checkbox"
@@ -611,11 +638,38 @@
   }
 
   .action-item-wrapper.dragging {
-    opacity: 0.5;
+    opacity: 0.4;
+    transform: scale(0.98);
   }
 
   .action-item-wrapper.drag-over {
-    border-top: 2px solid var(--pm-pink);
+    border-top: 4px solid var(--pm-pink);
+  }
+
+  .drag-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(30, 23, 20, 0.35);
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: grab;
+    padding-right: 0.15rem;
+    user-select: none;
+    flex-shrink: 0;
+    align-self: center;
+    line-height: 1;
+    transition: color var(--pm-transition-fast), transform var(--pm-transition-fast);
+  }
+
+  .drag-grip:hover {
+    color: var(--pm-black);
+    transform: scale(1.1);
+  }
+
+  .action-item-wrapper.dragging .drag-grip {
+    cursor: grabbing;
+    color: var(--pm-pink);
   }
 
   .action-item-wrapper.selected .action-item {
