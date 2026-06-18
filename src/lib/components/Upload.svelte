@@ -43,7 +43,7 @@
   // STATE MANAGEMENT
   // ===================================================================
 
-  let mode: "audio" | "text" = "audio";
+  let mode: "record" | "text" | "upload" = "record";
   let textInput = "";
   let appliedInitialTextKey = -1;
   let audioFile: File | null = null;
@@ -80,18 +80,18 @@
   $: hasText = !appendAudioOnly && textInput.trim().length > 0;
   $: primaryLabel = isRecording
     ? "Stop Recording"
-    : hasText
-      ? "Analyze Text"
-      : audioFile
-        ? appendAudioOnly
-          ? "Append Audio"
-          : "Map Audio"
+    : mode === "text"
+      ? "Analyze Notes"
+      : mode === "upload"
+        ? audioFile
+          ? (appendAudioOnly ? "Append Audio File" : "Map Audio File")
+          : "Choose Audio File"
         : appendAudioOnly
           ? "Start Append Recording"
           : "Start Recording";
-  $: primaryDisabled = isProcessing && !isRecording;
-  $: if (appendAudioOnly && mode !== "audio") {
-    mode = "audio";
+  $: primaryDisabled = (isProcessing && !isRecording) || (mode === "text" && !hasText);
+  $: if (appendAudioOnly && mode === "text") {
+    mode = "record";
     textInput = "";
   }
   $: if (
@@ -500,18 +500,24 @@
       return;
     }
 
-    if (hasText) {
+    if (mode === "text" && hasText) {
       await processText();
       return;
     }
 
-    if (audioFile) {
-      await processAudioFile(audioFile);
+    if (mode === "upload") {
+      if (audioFile) {
+        await processAudioFile(audioFile);
+      } else {
+        fileInput?.click();
+      }
       return;
     }
 
-    if (!isProcessing) {
-      await startRecording();
+    if (mode === "record") {
+      if (!isProcessing) {
+        await startRecording();
+      }
     }
   }
 
@@ -563,22 +569,59 @@
       </p>
     </div>
     {#if !appendAudioOnly}
-      <div class="mode-toggle">
+      <div class="mode-toggle" role="tablist">
         <button
           type="button"
-          class="mode-btn {mode === 'audio' ? 'active' : ''}"
-          on:click={() => (mode = "audio")}
+          role="tab"
+          aria-selected={mode === "record"}
+          class="mode-btn {mode === 'record' ? 'active' : ''}"
+          on:click={() => { mode = "record"; audioFile = null; }}
         >
           <span aria-hidden="true">🎙️</span>
-          Audio
+          Record
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={mode === "text"}
           class="mode-btn {mode === 'text' ? 'active' : ''}"
-          on:click={() => (mode = "text")}
+          on:click={() => { mode = "text"; audioFile = null; setTimeout(() => textArea?.focus(), 50); }}
         >
           <span aria-hidden="true">📝</span>
           Text
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "upload"}
+          class="mode-btn {mode === 'upload' ? 'active' : ''}"
+          on:click={() => { mode = "upload"; textInput = ""; }}
+        >
+          <span aria-hidden="true">📤</span>
+          Upload
+        </button>
+      </div>
+    {:else}
+      <div class="mode-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "record"}
+          class="mode-btn {mode === 'record' ? 'active' : ''}"
+          on:click={() => { mode = "record"; audioFile = null; }}
+        >
+          <span aria-hidden="true">🎙️</span>
+          Record
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "upload"}
+          class="mode-btn {mode === 'upload' ? 'active' : ''}"
+          on:click={() => { mode = "upload"; }}
+        >
+          <span aria-hidden="true">📤</span>
+          Upload
         </button>
       </div>
     {/if}
@@ -640,23 +683,42 @@
           </div>
         </div>
       {:else}
-        {#if appendAudioOnly}
-          <div class="audio-only-prompt">
-            <strong>Record the next chunk or attach an audio file.</strong>
-            <span
-              >The append will merge into this project instead of creating a new
-              map.</span
-            >
-          </div>
-        {:else}
-          <!-- Text Input State -->
+        {#if mode === "record"}
+          <button type="button" class="mode-container record-inactive" on:click={handlePrimaryAction}>
+            <div class="pulse-icon mic-pulse-icon">🎙️</div>
+            <strong>Tap below to start recording</strong>
+            <span>Up to 10 minutes of audio mapping</span>
+          </button>
+        {:else if mode === "upload"}
+          {#if audioFile}
+            <div class="mode-container file-staged">
+              <div class="pulse-icon file-pulse-icon">🎵</div>
+              <strong class="file-name">{audioFile.name}</strong>
+              <span class="file-size">{(audioFile.size / (1024 * 1024)).toFixed(2)} MB · Ready to map</span>
+              <button
+                type="button"
+                class="btn-clear-file"
+                on:click={(event) => {
+                  event.stopPropagation();
+                  clearSelectedFile();
+                }}
+              >
+                Change file
+              </button>
+            </div>
+          {:else}
+            <button type="button" class="mode-container file-dropzone" on:click={() => fileInput?.click()}>
+              <div class="pulse-icon upload-pulse-icon">📤</div>
+              <strong>Drop an audio file here</strong>
+              <span>or click to browse your system</span>
+            </button>
+          {/if}
+        {:else if mode === "text"}
           <textarea
             bind:this={textArea}
             bind:value={textInput}
             class="text-input"
-            placeholder={mode === "audio"
-              ? "Talk it out, paste a rant, or drop a recording here."
-              : "Paste notes, meeting rambles, or half-formed thoughts here."}
+            placeholder="Paste raw transcript, meeting notes, or write your thoughts..."
             on:input={() => {
               if (audioFile) {
                 audioFile = null;
@@ -676,36 +738,6 @@
             on:focus={() => (isDragActive = false)}
           ></textarea>
         {/if}
-
-        <!-- File Chip -->
-        {#if audioFile}
-          <div class="file-chip">
-            <span>{audioFile.name}</span>
-            <button
-              type="button"
-              aria-label="Remove file"
-              on:click={(event) => {
-                event.stopPropagation();
-                clearSelectedFile();
-              }}
-            >
-              ×
-            </button>
-          </div>
-        {/if}
-
-        <!-- Paperclip Button -->
-        <button
-          type="button"
-          class="clip-btn"
-          aria-label="Browse file"
-          on:click={(event) => {
-            event.stopPropagation();
-            fileInput?.click();
-          }}
-        >
-          📎
-        </button>
       {/if}
     </div>
 
@@ -948,108 +980,6 @@
     opacity: 0.46;
   }
 
-  .audio-only-prompt {
-    flex: 1;
-    display: grid;
-    place-content: center;
-    gap: 0.45rem;
-    min-height: 0;
-    padding: 0 1rem;
-    text-align: center;
-    color: rgba(58, 42, 34, 0.72);
-  }
-
-  .audio-only-prompt strong {
-    color: var(--pm-black);
-    font-size: var(--pm-text-lg);
-    line-height: 1.25;
-  }
-
-  .audio-only-prompt span {
-    font-size: var(--pm-text-sm);
-    line-height: 1.45;
-  }
-
-  /* ===================================================================
-	 * FILE CHIP
-	 * ================================================================= */
-
-  .file-chip {
-    position: absolute;
-    bottom: 1rem;
-    left: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.375rem 0.75rem;
-    background: var(--pm-mint);
-    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
-    border-radius: var(--pm-radius-sm);
-    font-size: var(--pm-text-xs);
-    font-weight: 600;
-    color: var(--pm-black);
-    box-shadow: var(--pm-shadow-soft);
-    max-width: calc(100% - 5rem);
-  }
-
-  .file-chip span {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .file-chip button {
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(30, 23, 20, 0.08);
-    color: var(--pm-black);
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 0;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--pm-transition-fast);
-  }
-
-  .file-chip button:hover {
-    color: var(--pm-pink);
-    transform: scale(1.06);
-  }
-
-  /* ===================================================================
-	 * PAPERCLIP BUTTON
-	 * ================================================================= */
-
-  .clip-btn {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: var(--pm-radius-sm);
-    background: var(--pm-cream);
-    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    cursor: pointer;
-    transition: all var(--pm-transition-fast);
-    box-shadow: var(--pm-shadow-soft);
-  }
-
-  .clip-btn:hover {
-    background: var(--pm-pink);
-    border-color: var(--pm-pink);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(232, 131, 156, 0.26);
-  }
-
   /* ===================================================================
 	 * RECORDING VISUAL
 	 * ================================================================= */
@@ -1197,9 +1127,99 @@
     .text-input {
       font-size: 0.95rem;
     }
+  }
 
-    .file-chip {
-      max-width: calc(100% - 4.6rem);
+  /* Segment Switcher custom states styling */
+  .mode-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1rem;
+    height: 100%;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .pulse-icon {
+    font-size: 2.25rem;
+    width: 4.5rem;
+    height: 4.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--pm-cream-light);
+    border: var(--pm-border-medium) solid var(--pm-black);
+    box-shadow: 2px 2px 0 var(--pm-black);
+    margin-bottom: 0.5rem;
+    transition: transform 0.2s ease;
+  }
+
+  .mode-container:hover .pulse-icon {
+    transform: scale(1.08) rotate(3deg);
+  }
+
+  .mic-pulse-icon {
+    background: rgba(232, 131, 156, 0.12);
+  }
+
+  .file-pulse-icon {
+    background: rgba(168, 216, 234, 0.16);
+  }
+
+  .upload-pulse-icon {
+    background: rgba(212, 181, 247, 0.16);
+  }
+
+  .mode-container strong {
+    font-size: var(--pm-text-md);
+    font-weight: 800;
+    color: var(--pm-black);
+  }
+
+  .mode-container span {
+    font-size: var(--pm-text-xs);
+    color: var(--pm-brown);
+    opacity: 0.75;
+  }
+
+  .btn-clear-file {
+    margin-top: 0.5rem;
+    min-height: 34px;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--pm-radius-sm);
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+    background: white;
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+  }
+
+  .btn-clear-file:hover {
+    border-color: #b91c1c;
+    color: #b91c1c;
+    background: #fff5f5;
+  }
+
+  .file-name {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>

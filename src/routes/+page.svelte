@@ -23,12 +23,19 @@
   import ExportDrawer from "$lib/components/ExportDrawer.svelte";
   import TopicTooltip from "$lib/components/TopicTooltip.svelte";
   import ProjectHeader from "$lib/components/ProjectHeader.svelte";
+  import { fade, fly } from "svelte/transition";
+  import { cycleTheme } from "$lib/stores/themeStore";
 
   let exportDrawerOpen = false;
+  let historyOpen = false;
   let starterText = "";
   let starterTextKey = 0;
   let importInput: HTMLInputElement | null = null;
   let importError = "";
+
+  function toggleHistory() {
+    historyOpen = !historyOpen;
+  }
 
   const sampleRant = `Spidergoats sound fake until you realize the useful part is the silk, not the goat.
 
@@ -105,12 +112,20 @@ I want a map of the science, the weird social backlash, the risks, and the most 
       on:export={() => (exportDrawerOpen = true)}
     />
   {:else}
-    <header class="app-header">
-      <div class="shell app-header__inner">
-        <div class="app-header__brand">
-          <span class="section-kicker">Conversation to clarity</span>
-          <h1>ProMapper</h1>
+    <header class="app-header transparent-header">
+      <div class="shell app-header__inner flex-header">
+        <div class="landing-header__brand">
+          Conversation Mapper
         </div>
+        <button
+          type="button"
+          class="theme-toggle-btn"
+          on:click={cycleTheme}
+          title="Cycle color theme"
+          aria-label="Cycle color theme"
+        >
+          🎨
+        </button>
       </div>
     </header>
   {/if}
@@ -136,10 +151,13 @@ I want a map of the science, the weird social backlash, the risks, and the most 
           <div class="hero-grid">
             <div class="hero-copy">
               <div class="section-kicker">Welcome to ProMapper</div>
-              <h2>Turn a conversation into a project map.</h2>
+              <h2>See what you're really saying</h2>
               <p class="hero-lede">
-                Record, paste, or upload. ProMapper turns the mess into a map,
-                checklist, summary, and editable article draft.
+                Build a confident map for every conversation—stable layout,
+                playful controls, no resizing jump scares when you switch modes.
+              </p>
+              <p class="hero-subtext">
+                Record / Paste / Upload — same module, same rhythm.
               </p>
               <div class="hero-actions">
                 <button
@@ -170,14 +188,14 @@ I want a map of the science, the weird social backlash, the risks, and the most 
               {/if}
               <div class="payoff-preview" aria-label="Example project output">
                 <div class="preview-map">
-                  <span class="preview-node node-a">Silk yield</span>
-                  <span class="preview-node node-b">Bioethics</span>
-                  <span class="preview-node node-c">Public story</span>
+                  <span class="preview-node node-a">🔍 Silk yield</span>
+                  <span class="preview-node node-b">⚖️ Bioethics</span>
+                  <span class="preview-node node-c">📢 Public story</span>
                 </div>
                 <div class="preview-list">
-                  <span>✓ Pull out the useful tasks</span>
-                  <span>↳ Map the new connections</span>
-                  <span>MD Export editable draft</span>
+                  <span>✓ Extract tasks</span>
+                  <span>↳ Connection map</span>
+                  <span>MD Draft article</span>
                 </div>
               </div>
             </div>
@@ -189,38 +207,6 @@ I want a map of the science, the weird social backlash, the risks, and the most 
             </div>
           </div>
         </section>
-
-        {#if $localProjects.length}
-          <section class="recent-projects" aria-label="Recent projects">
-            <div class="recent-heading">
-              <p class="section-kicker">Recent work</p>
-              <h2>Pick up a previous map.</h2>
-            </div>
-            <div class="recent-list">
-              {#each $localProjects.slice(0, 5) as project}
-                <button
-                  type="button"
-                  class="recent-project"
-                  on:click={() => loadLocalProject(project.id)}
-                >
-                  <span class="recent-project__title">{project.title}</span>
-                  <span class="recent-project__meta">
-                    {project.isPublic
-                      ? "Shared"
-                      : project.syncEnabled
-                        ? "Cloud saved"
-                        : "Local"} · {formatProjectDate(project.updatedAt)}
-                  </span>
-                  {#if project.summary}
-                    <span class="recent-project__summary">
-                      {project.summary}
-                    </span>
-                  {/if}
-                </button>
-              {/each}
-            </div>
-          </section>
-        {/if}
 
         <section class="feature-grid" aria-label="Product highlights">
           <div class="feature-card card">
@@ -249,6 +235,79 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     {/if}
   </main>
 
+  <!-- Floating History Button -->
+  {#if !$currentProject && $localProjects.length}
+    <button
+      type="button"
+      class="history-float-btn"
+      on:click={toggleHistory}
+      title="View history"
+      aria-label="View local project history"
+    >
+      📂 History
+    </button>
+  {/if}
+
+  <!-- History Drawer -->
+  {#if historyOpen && !$currentProject}
+    <div
+      class="history-backdrop"
+      on:click={toggleHistory}
+      on:keydown={(e) => (e.key === "Escape" || e.key === "Enter") && toggleHistory()}
+      transition:fade={{ duration: 200 }}
+      role="button"
+      tabindex="0"
+      aria-label="Close history"
+    ></div>
+
+    <div
+      class="history-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Recent project history"
+      transition:fly={{ x: 400, duration: 300 }}
+    >
+      <div class="history-drawer__header">
+        <h2>Recent work</h2>
+        <button
+          type="button"
+          class="history-drawer__close"
+          on:click={toggleHistory}
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="history-drawer__content">
+        {#if $localProjects.length === 0}
+          <p class="empty-state">No local project history found</p>
+        {:else}
+          <div class="history-drawer__list">
+            {#each $localProjects as project}
+              <button
+                type="button"
+                class="history-drawer-item"
+                on:click={() => {
+                  loadLocalProject(project.id);
+                  historyOpen = false;
+                }}
+              >
+                <div class="history-drawer-item__title">{project.title}</div>
+                <div class="history-drawer-item__meta">
+                  {project.isPublic ? "Shared" : project.syncEnabled ? "Cloud save" : "Local"} · {formatProjectDate(project.updatedAt)}
+                </div>
+                {#if project.summary}
+                  <div class="history-drawer-item__summary">{project.summary}</div>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
   <!-- Export Drawer -->
   <ExportDrawer
     bind:isOpen={exportDrawerOpen}
@@ -271,21 +330,6 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     display: flex;
     justify-content: center;
     padding: 0.9rem 0 1rem;
-  }
-
-  .app-header__brand {
-    display: grid;
-    justify-items: center;
-    gap: 0.75rem;
-    text-align: center;
-  }
-
-  .app-header h1 {
-    font-size: clamp(1.5rem, 3vw, 2.1rem);
-    font-weight: 800;
-    color: var(--pm-black);
-    letter-spacing: -0.05em;
-    margin: 0;
   }
 
   .landing-main {
@@ -475,65 +519,7 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     gap: 1.25rem;
   }
 
-  .recent-projects {
-    display: grid;
-    gap: 1rem;
-  }
 
-  .recent-heading {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .recent-heading h2 {
-    margin: 0;
-    font-size: clamp(1.4rem, 2.2vw, 2rem);
-    letter-spacing: -0.03em;
-  }
-
-  .recent-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.9rem;
-  }
-
-  .recent-project {
-    display: grid;
-    gap: 0.35rem;
-    min-height: 124px;
-    padding: 1rem;
-    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.14);
-    border-radius: var(--pm-radius-sm);
-    background: rgba(255, 247, 239, 0.74);
-    box-shadow: var(--pm-shadow-soft);
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .recent-project:hover {
-    transform: translateY(-1px);
-    border-color: rgba(30, 23, 20, 0.28);
-    box-shadow: var(--pm-shadow-lifted);
-  }
-
-  .recent-project__title {
-    font-weight: 800;
-    color: var(--pm-black);
-  }
-
-  .recent-project__meta,
-  .recent-project__summary {
-    font-size: var(--pm-text-xs);
-    line-height: 1.4;
-    color: rgba(58, 42, 34, 0.68);
-  }
-
-  .recent-project__summary {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
 
   .feature-card {
     min-height: 200px;
@@ -618,5 +604,182 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     .feature-card .card-body {
       padding: 1.25rem;
     }
+  }
+
+  /* Transparent header styles */
+  .transparent-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+  }
+
+  .flex-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 1.5rem 1rem 0;
+  }
+
+  .landing-header__brand {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--pm-black);
+    letter-spacing: -0.03em;
+  }
+
+  .hero-subtext {
+    font-size: var(--pm-text-sm);
+    color: var(--pm-brown);
+    opacity: 0.8;
+    margin: -0.25rem 0 0.5rem;
+    font-weight: 600;
+  }
+
+  /* History Floating Button styles */
+  .history-float-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    min-height: 48px;
+    padding: 0 1.25rem;
+    border-radius: var(--pm-radius-full);
+    border: var(--pm-border-medium) solid var(--pm-black);
+    background: var(--pm-yellow);
+    color: var(--pm-black);
+    font-size: var(--pm-text-sm);
+    font-weight: 800;
+    box-shadow: var(--pm-shadow-slab);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+    z-index: 35;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .history-float-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--pm-black);
+  }
+
+  .history-float-btn:active {
+    transform: translateY(0);
+  }
+
+  /* History Drawer styles */
+  .history-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(30, 23, 20, 0.42);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  .history-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 50;
+    width: min(100%, 420px);
+    height: 100%;
+    overflow-y: auto;
+    border-left: var(--pm-border-medium) solid var(--pm-black);
+    background: linear-gradient(180deg, var(--pm-cream-light) 0%, var(--pm-cream) 100%);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .history-drawer__header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: var(--pm-border-medium) solid var(--pm-black);
+    background: var(--pm-cream-light);
+    padding: 1.25rem;
+  }
+
+  .history-drawer__header h2 {
+    margin: 0;
+    color: var(--pm-black);
+    font-size: var(--pm-text-xl);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .history-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.15);
+    border-radius: var(--pm-radius-sm);
+    background: white;
+    color: var(--pm-black);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+  }
+
+  .history-drawer__close:hover {
+    background: var(--pm-cream-dark);
+    transform: translateY(-1px);
+  }
+
+  .history-drawer__content {
+    padding: 1.25rem;
+  }
+
+  .history-drawer__list {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .history-drawer-item {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1rem;
+    border: var(--pm-border-medium) solid var(--pm-black);
+    border-radius: var(--pm-radius-sm);
+    background: var(--pm-cream-light);
+    box-shadow: var(--pm-shadow-slab);
+    text-align: left;
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+  }
+
+  .history-drawer-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--pm-black);
+    background: white;
+  }
+
+  .history-drawer-item__title {
+    font-weight: 800;
+    color: var(--pm-black);
+    font-size: var(--pm-text-md);
+  }
+
+  .history-drawer-item__meta {
+    font-size: var(--pm-text-xs);
+    color: var(--pm-brown);
+    opacity: 0.7;
+    font-weight: 600;
+  }
+
+  .history-drawer-item__summary {
+    font-size: var(--pm-text-xs);
+    color: var(--pm-brown);
+    opacity: 0.8;
+    line-height: 1.4;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 </style>

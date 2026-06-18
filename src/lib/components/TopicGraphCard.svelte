@@ -346,7 +346,7 @@
   }
 
   const graphConfigBase = {
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: "transparent",
     linkDistance: 110,
     chargeStrength: -900,
     collisionRadius: 75,
@@ -573,7 +573,7 @@
     min-height: 44px;
     border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
     border-radius: var(--pm-radius-sm);
-    background: white;
+    background: var(--pm-cream-light);
     padding: 0.45rem 0.7rem;
     font-size: var(--pm-text-xs);
     font-weight: 600;
@@ -643,7 +643,7 @@
     padding: 0.7rem;
     border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.1);
     border-radius: var(--pm-radius-sm);
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--pm-glass-bg);
   }
 
   .topic-editor__identity {
@@ -669,7 +669,7 @@
     min-width: 0;
     border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
     border-radius: var(--pm-radius-sm);
-    background: white;
+    background: var(--pm-cream-light);
     padding: 0.55rem 0.7rem;
     color: var(--pm-black);
     font-size: var(--pm-text-sm);
@@ -680,7 +680,7 @@
     min-height: 44px;
     border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
     border-radius: var(--pm-radius-sm);
-    background: white;
+    background: var(--pm-cream-light);
     padding: 0.5rem 0.75rem;
     color: var(--pm-brown);
     font-size: var(--pm-text-xs);
@@ -792,7 +792,7 @@
     border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.12);
     overflow: hidden;
     position: relative;
-    background: white;
+    background: var(--pm-cream-light);
   }
 
   .graph-surface.fullscreen {

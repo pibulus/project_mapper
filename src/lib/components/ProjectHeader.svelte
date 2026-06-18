@@ -9,6 +9,7 @@
   } from "$lib/stores/projectStore";
   import { downloadProjectBackup } from "$lib/client/projectBackup";
   import type { ConversationData } from "$lib/core/types/project";
+  import { cycleTheme } from "$lib/stores/themeStore";
 
   export let project: ConversationData | null = null;
 
@@ -283,6 +284,15 @@
       <button class="pill-btn pill-solid" on:click={() => dispatch("export")}
         >Export</button
       >
+      <button
+        class="theme-toggle-btn"
+        on:click={cycleTheme}
+        type="button"
+        title="Cycle color theme"
+        aria-label="Cycle color theme"
+      >
+        🎨
+      </button>
       {#if shareMessage}
         <span class="share-message">{shareMessage}</span>
       {/if}

@@ -298,7 +298,35 @@ function createNodeGroup(
     .style("cursor", "grab")
     .call(dragBehavior)
     .on("mouseover", (event, d) => {
+      // D3-level hover effect for links & node fading
+      const svgElement = d3.select(event.currentTarget.ownerSVGElement);
+
+      // Highlight connected links, fade others
+      svgElement
+        .selectAll("line")
+        .classed(
+          "connected",
+          (l: any) => l.source.id === d.id || l.target.id === d.id,
+        )
+        .classed(
+          "fade-out",
+          (l: any) => l.source.id !== d.id && l.target.id !== d.id,
+        );
+
+      // Fade other nodes
+      svgElement
+        .selectAll(".node-group")
+        .classed("fade-out", (n: any) => n.id !== d.id);
+
       if (config.onMouseOverNode) config.onMouseOverNode(event, d);
+    })
+    .on("mouseout", (event) => {
+      const svgElement = d3.select(event.currentTarget.ownerSVGElement);
+      svgElement
+        .selectAll("line")
+        .classed("connected", false)
+        .classed("fade-out", false);
+      svgElement.selectAll(".node-group").classed("fade-out", false);
     })
     .on("dblclick", (event, d) => {
       if (config.onDoubleClickNode) config.onDoubleClickNode(event, d);
@@ -307,6 +335,38 @@ function createNodeGroup(
       event.preventDefault();
       if (config.onRightClickNode) config.onRightClickNode(event, d);
     });
+
+  // Calculate capsule width based on label length
+  const getWidth = (d: NodeData) => {
+    const labelLen = d.label ? d.label.length : 0;
+    return Math.max(85, labelLen * 7.5 + 56);
+  };
+
+  // Add background capsule rect
+  selection
+    .append("rect")
+    .attr("class", "capsule")
+    .attr("x", (d) => -getWidth(d) / 2)
+    .attr("y", -17)
+    .attr("width", (d) => getWidth(d))
+    .attr("height", 34)
+    .attr("rx", 17)
+    .attr("ry", 17)
+    .attr("fill", (d) => (d.color ? d.color + "1A" : "var(--pm-cream-light)"))
+    .attr("stroke", "var(--pm-black)")
+    .attr("stroke-width", 2)
+    .style("transition", "stroke 0.15s ease, filter 0.15s ease");
+
+  // Add small colored indicator dot
+  selection
+    .append("circle")
+    .attr("class", "indicator-dot")
+    .attr("cx", (d) => -getWidth(d) / 2 + 15)
+    .attr("cy", 0)
+    .attr("r", 5)
+    .attr("fill", (d) => d.color || "var(--pm-black)")
+    .attr("stroke", "var(--pm-black)")
+    .attr("stroke-width", 1);
 
   // Add emoji
   selection
@@ -317,20 +377,24 @@ function createNodeGroup(
         d.emoji || (d.meta && d.meta.emoji) || (d.metadata && d.metadata.emoji);
       return emoji && emoji.trim().length > 0 ? emoji : "❓";
     })
+    .attr("x", (d) => -getWidth(d) / 2 + 30)
+    .attr("y", 1)
     .attr("text-anchor", "middle")
     .attr("dominant-baseline", "middle")
-    .attr("font-size", config.emojiFontSize)
-    .attr("fill", (d) => d.color || config.nodeColor);
+    .attr("font-size", "15px");
 
   // Add label
   selection
     .append("text")
     .attr("class", "label")
     .text((d) => d.label)
-    .attr("text-anchor", "middle")
-    .attr("y", 25)
-    .attr("font-size", config.labelFontSize)
-    .attr("fill", config.labelColor);
+    .attr("x", (d) => -getWidth(d) / 2 + 45)
+    .attr("y", 0)
+    .attr("text-anchor", "start")
+    .attr("dominant-baseline", "middle")
+    .attr("font-size", "13px")
+    .attr("font-weight", "800")
+    .attr("fill", "var(--pm-black)");
 
   return selection;
 }
@@ -389,7 +453,39 @@ function updateElements({
           .call((selection) =>
             createNodeGroup(selection, config, dragBehavior),
           ),
-      (update) => update,
+      (update) => {
+        // Update label text and rect width in case of rename
+        const getWidth = (d: NodeData) => {
+          const labelLen = d.label ? d.label.length : 0;
+          return Math.max(85, labelLen * 7.5 + 56);
+        };
+        update
+          .select("rect.capsule")
+          .attr("x", (d) => -getWidth(d) / 2)
+          .attr("width", (d) => getWidth(d))
+          .attr("fill", (d) =>
+            d.color ? d.color + "1A" : "var(--pm-cream-light)",
+          );
+        update
+          .select("circle.indicator-dot")
+          .attr("cx", (d) => -getWidth(d) / 2 + 15)
+          .attr("fill", (d) => d.color || "var(--pm-black)");
+        update
+          .select("text.emoji")
+          .attr("x", (d) => -getWidth(d) / 2 + 30)
+          .text((d) => {
+            const emoji =
+              d.emoji ||
+              (d.meta && d.meta.emoji) ||
+              (d.metadata && d.metadata.emoji);
+            return emoji && emoji.trim().length > 0 ? emoji : "❓";
+          });
+        update
+          .select("text.label")
+          .attr("x", (d) => -getWidth(d) / 2 + 45)
+          .text((d) => d.label);
+        return update;
+      },
       (exit) => exit.remove(),
     );
 
