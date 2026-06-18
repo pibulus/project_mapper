@@ -26,7 +26,7 @@ if (
 }
 
 const GEMINI_API_KEY = getPrivateEnv("GEMINI_API_KEY");
-const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-3.1-flash-lite";
+const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-2.5-flash";
 const GEMINI_FALLBACK_MODELS =
   getPrivateEnv("GEMINI_FALLBACK_MODELS") ||
   "gemini-2.5-flash-lite,gemini-2.5-flash";
