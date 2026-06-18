@@ -7,8 +7,11 @@
 
 import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
+import { env } from "$env/dynamic/public";
 import type { ConversationData } from "$lib/core/types";
 import { supabase, isSupabaseConfigured } from "$lib/supabaseClient";
+
+const PUBLIC_PARTYKIT_HOST = env.PUBLIC_PARTYKIT_HOST || "";
 
 const LEGACY_STORAGE_KEY = "promap_current_project";
 const CURRENT_PROJECT_ID_KEY = "promap_current_project_id";
@@ -459,6 +462,52 @@ export async function loadFromSupabase(
 }
 
 /**
+ * Load project from PartyKit Durable Storage
+ */
+export async function loadFromPartyKit(
+  projectId: string,
+): Promise<ConversationData | null> {
+  if (!PUBLIC_PARTYKIT_HOST) {
+    console.warn(
+      "[ProjectStore] PartyKit host not configured, skipping HTTP fetch",
+    );
+    return null;
+  }
+
+  isLoading.set(true);
+
+  try {
+    const host = PUBLIC_PARTYKIT_HOST.replace(/\/$/, "");
+    const url = `${host}/parties/project/${projectId}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      if (response.status !== 404) {
+        console.warn(
+          `[ProjectStore] PartyKit load error: ${response.status} ${response.statusText}`,
+        );
+      }
+      return null;
+    }
+
+    const data = await response.json();
+    const project = normalizeProject({
+      ...data,
+      syncEnabled: true,
+    });
+
+    currentProject.set(project);
+    saveToLocalStorage(project); // Cache locally
+    refreshLocalProjects();
+    return project;
+  } catch (error) {
+    console.error("[ProjectStore] Error loading from PartyKit:", error);
+    return null;
+  } finally {
+    isLoading.set(false);
+  }
+}
+
+/**
  * Create a new project locally
  */
 export function startNewProject(
@@ -513,10 +562,24 @@ export async function enableSync(
   return success;
 }
 
+export type ProjectUpdateListener = (
+  updates: Partial<ConversationData>,
+) => void;
+let projectUpdateListener: ProjectUpdateListener | null = null;
+
+export function registerProjectUpdateListener(
+  listener: ProjectUpdateListener | null,
+) {
+  projectUpdateListener = listener;
+}
+
 /**
  * Update current project
  */
-export function updateProject(updates: Partial<ConversationData>) {
+export function updateProject(
+  updates: Partial<ConversationData>,
+  origin: "local" | "remote" = "local",
+) {
   const current = get(currentProject);
   if (!current) return;
 
@@ -528,8 +591,18 @@ export function updateProject(updates: Partial<ConversationData>) {
   currentProject.set(updated);
   saveToLocalStorage(updated);
 
-  // Debounced cloud save
-  debounceCloudSave(updated);
+  if (origin === "local") {
+    if (projectUpdateListener) {
+      try {
+        projectUpdateListener(updates);
+      } catch (err) {
+        console.error("[ProjectStore] Error in project update listener:", err);
+      }
+    }
+
+    // Debounced cloud save
+    debounceCloudSave(updated);
+  }
 }
 
 // Debounce cloud saves (don't spam Supabase)

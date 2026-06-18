@@ -12,6 +12,7 @@
     currentProject,
     isLoading,
     loadFromSupabase,
+    loadFromPartyKit,
     loadLocalProject,
     loadFromLocalStorage,
     localProjects,
@@ -54,7 +55,12 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     const sharedProjectId = params.get("project");
 
     if (sharedProjectId) {
-      const sharedProject = await loadFromSupabase(sharedProjectId);
+      // Try fetching from PartyKit Durable Storage first
+      let sharedProject = await loadFromPartyKit(sharedProjectId);
+      if (sharedProject) return;
+
+      // Fallback to Supabase
+      sharedProject = await loadFromSupabase(sharedProjectId);
       if (sharedProject) return;
     }
 

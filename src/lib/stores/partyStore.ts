@@ -10,7 +10,11 @@ import { env } from "$env/dynamic/public";
 import PartySocket from "partysocket";
 
 const PUBLIC_PARTYKIT_HOST = env.PUBLIC_PARTYKIT_HOST || "";
-import { currentProject, updateProject } from "$lib/stores/projectStore";
+import {
+  currentProject,
+  updateProject,
+  registerProjectUpdateListener,
+} from "$lib/stores/projectStore";
 import {
   mergeAppendUpdates,
   type AppendAudioResponse,
@@ -80,6 +84,11 @@ export function createProjectParty(projectId: string) {
 
     socket.addEventListener("open", () => {
       connected.set(true);
+
+      // Register project update listener to forward local modifications to PartyKit
+      registerProjectUpdateListener((updates) => {
+        send("project-update", updates);
+      });
     });
 
     socket.addEventListener("message", (event) => {
@@ -115,18 +124,52 @@ export function createProjectParty(projectId: string) {
             }
             break;
 
+          // State synchronization
+          case "sync":
+            if (msg.data) {
+              const remoteProject = msg.data;
+              transcript.set({ text: remoteProject.transcript });
+              nodes.set(remoteProject.topics || []);
+              edges.set(remoteProject.edges || []);
+              actionItems.set(remoteProject.actionItems || []);
+              summary.set(remoteProject.summary || "");
+              updateProject(remoteProject, "remote");
+            } else {
+              // Room is empty on PartyKit edge. Populate the room with our local copy
+              const current = get(currentProject);
+              if (current && current.id === projectId) {
+                send("project-update", current);
+              }
+            }
+            break;
+
+          // Socket Updates (collaboration)
+          case "project-update":
+            if (msg.data) {
+              const updates = msg.data;
+              if (updates.transcript !== undefined)
+                transcript.set({ text: updates.transcript });
+              if (updates.topics !== undefined) nodes.set(updates.topics);
+              if (updates.edges !== undefined) edges.set(updates.edges);
+              if (updates.actionItems !== undefined)
+                actionItems.set(updates.actionItems);
+              if (updates.summary !== undefined) summary.set(updates.summary);
+              updateProject(updates, "remote");
+            }
+            break;
+
           // Analysis updates
           case "transcript":
             transcript.set(msg.data);
-            updateProject({ transcript: msg.data.text });
+            updateProject({ transcript: msg.data.text }, "remote");
             break;
           case "title":
             conversation.update((c) => ({ ...c, title: msg.data }));
-            updateProject({ title: msg.data });
+            updateProject({ title: msg.data }, "remote");
             break;
           case "conversation":
             conversation.set(msg.data);
-            updateProject(msg.data);
+            updateProject(msg.data, "remote");
             break;
           case "append-result": {
             const data = msg.data as AppendResultData | undefined;
@@ -158,25 +201,31 @@ export function createProjectParty(projectId: string) {
             edges.set(nextEdges);
             actionItems.set(nextActionItems);
             summary.set(nextSummary);
-            updateProject({
-              ...updates,
-              lastAnalysisWarnings:
-                data.result.warnings ?? current.lastAnalysisWarnings ?? [],
-            });
+            updateProject(
+              {
+                ...updates,
+                lastAnalysisWarnings:
+                  data.result.warnings ?? current.lastAnalysisWarnings ?? [],
+              },
+              "remote",
+            );
             break;
           }
           case "topics":
             nodes.set(msg.data.nodes || []);
             edges.set(msg.data.edges || []);
-            updateProject({ topics: msg.data.nodes, edges: msg.data.edges });
+            updateProject(
+              { topics: msg.data.nodes, edges: msg.data.edges },
+              "remote",
+            );
             break;
           case "action-items":
             actionItems.set(msg.data || []);
-            updateProject({ actionItems: msg.data });
+            updateProject({ actionItems: msg.data }, "remote");
             break;
           case "summary":
             summary.set(msg.data || "");
-            updateProject({ summary: msg.data });
+            updateProject({ summary: msg.data }, "remote");
             break;
           case "status-updates":
             actionItems.update((items) => {
@@ -190,7 +239,7 @@ export function createProjectParty(projectId: string) {
                   item.updated_at = new Date().toISOString();
                 }
               });
-              updateProject({ actionItems: newItems });
+              updateProject({ actionItems: newItems }, "remote");
               return newItems;
             });
             break;
@@ -222,6 +271,7 @@ export function createProjectParty(projectId: string) {
     socket.addEventListener("close", () => {
       connected.set(false);
       socket = null;
+      registerProjectUpdateListener(null);
     });
 
     socket.addEventListener("error", (error) => {
