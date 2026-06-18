@@ -2,8 +2,9 @@
   /**
    * Dashboard Component
    *
-   * Simple CSS Grid layout coordinating all cards
-   * Subscribes to real-time updates from the partyStore
+   * Coordinates the main layout grid of widgets: Transcript, Summary, Tasks, and Topic Graph.
+   * On mobile, it rearranges into a native-feeling horizontal carousel using CSS scroll snap
+   * and synchronized navigation tabs.
    */
   import { currentProject } from "$lib/stores/projectStore";
   import { createProjectParty } from "$lib/stores/partyStore";
@@ -11,7 +12,6 @@
   import SummaryCard from "./SummaryCard.svelte";
   import ActionItemsCard from "./ActionItemsCard.svelte";
   import TopicGraphCard from "./TopicGraphCard.svelte";
-  import { swipe } from "$lib/actions/swipe";
   import { onDestroy } from "svelte";
 
   type PartyStore = ReturnType<typeof createProjectParty>;
@@ -39,6 +39,7 @@
 
   onDestroy(() => {
     setPartyProject(null);
+    clearTimeout(scrollTimeout);
   });
 
   // Mobile Carousel State
@@ -50,16 +51,40 @@
     { id: "graph", label: "Map" },
   ];
 
-  function nextPanel() {
-    if (activePanel < panels.length - 1) activePanel++;
-  }
+  let gridContainer: HTMLDivElement;
+  let scrollTimeout: number;
+  let isProgrammaticScroll = false;
 
-  function prevPanel() {
-    if (activePanel > 0) activePanel--;
+  function handleScroll() {
+    if (!gridContainer || window.innerWidth >= 768) return;
+    if (isProgrammaticScroll) return;
+
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const scrollLeft = gridContainer.scrollLeft;
+      const width = gridContainer.clientWidth;
+      if (width > 0) {
+        const index = Math.round(scrollLeft / width);
+        if (index >= 0 && index < panels.length) {
+          activePanel = index;
+        }
+      }
+    }, 80) as unknown as number;
   }
 
   function setPanel(index: number) {
     activePanel = index;
+    if (gridContainer && window.innerWidth < 768) {
+      isProgrammaticScroll = true;
+      gridContainer.scrollTo({
+        left: index * gridContainer.clientWidth,
+        behavior: "smooth",
+      });
+      // Unlock scroll tracking after animation finishes
+      setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 350);
+    }
   }
 </script>
 
@@ -90,25 +115,26 @@
     </div>
   {/if}
 
-  <!-- Mobile Swipe Container -->
-  <div
-    class="mobile-carousel"
-    use:swipe
-    on:swipeleft={nextPanel}
-    on:swiperight={prevPanel}
-  >
+  <!-- Mobile Swipe Carousel Wrapper -->
+  <div class="mobile-carousel">
     <div class="mobile-tabs" aria-label="Project panels">
       {#each panels as panel, i}
         <button
           class="mobile-tab"
           class:active={activePanel === i}
           on:click={() => setPanel(i)}
-          aria-label="Show {panel.label}">{panel.label}</button
+          aria-label="Show {panel.label}"
         >
+          {panel.label}
+        </button>
       {/each}
     </div>
 
-    <div class="dashboard-grid" class:mobile-active={true}>
+    <div
+      bind:this={gridContainer}
+      on:scroll={handleScroll}
+      class="dashboard-grid"
+    >
       <section class="panel transcript" class:active={activePanel === 0}>
         <TranscriptCard />
       </section>
@@ -192,19 +218,31 @@
 
   @media (max-width: 767px) {
     .dashboard-grid {
-      display: flex; /* Switch to flex for carousel effect if needed, or just hide/show */
-      flex-direction: column;
-      gap: 0;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 1.5rem;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 0.5rem 1rem;
+    }
+
+    .dashboard-grid::-webkit-scrollbar {
+      display: none;
     }
 
     .panel {
-      display: none; /* Hide all by default */
+      display: block !important;
+      flex: 0 0 100%;
       width: 100%;
-      animation: fadeIn 0.3s ease;
+      scroll-snap-align: center;
+      transition: opacity 0.25s ease;
     }
 
-    .panel.active {
-      display: block; /* Show only active */
+    .panel:not(.active) {
+      opacity: 0.45;
     }
 
     .mobile-tabs {
@@ -216,17 +254,6 @@
       background: rgba(255, 247, 239, 0.88);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-    }
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
     }
   }
 

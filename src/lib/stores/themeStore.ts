@@ -1,7 +1,7 @@
 import { writable } from "svelte/store";
 import { browser } from "$app/environment";
 
-export type ThemeType = "cream" | "dusk" | "riso" | "cyber";
+export type ThemeType = "cream" | "peach";
 
 export const currentTheme = writable<ThemeType>("cream");
 
@@ -12,25 +12,13 @@ export const themes: {
   desc: string;
 }[] = [
   { id: "cream", label: "Vintage Cream", emoji: "🍦", desc: "Warm nostalgia" },
-  { id: "dusk", label: "Terminal Dusk", emoji: "📟", desc: "Midnight hacker" },
-  {
-    id: "riso",
-    label: "Risograph Clash",
-    emoji: "🏵️",
-    desc: "Pink & Yellow friction",
-  },
-  {
-    id: "cyber",
-    label: "Cyber Blue",
-    emoji: "🌊",
-    desc: "Indigo & Pool Water",
-  },
+  { id: "peach", label: "Warm Peach", emoji: "🍑", desc: "Sunny coral" },
 ];
 
 export function initTheme() {
   if (!browser) return;
   const saved = localStorage.getItem("promap_theme") as ThemeType;
-  if (saved && ["cream", "dusk", "riso", "cyber"].includes(saved)) {
+  if (saved && ["cream", "peach"].includes(saved)) {
     applyTheme(saved);
   } else {
     applyTheme("cream");
@@ -44,12 +32,7 @@ export function applyTheme(theme: ThemeType) {
 
   // Apply theme class to document element
   const root = document.documentElement;
-  root.classList.remove(
-    "theme-cream",
-    "theme-dusk",
-    "theme-riso",
-    "theme-cyber",
-  );
+  root.classList.remove("theme-cream", "theme-peach");
   root.classList.add(`theme-${theme}`);
 }
 

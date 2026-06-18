@@ -71,7 +71,7 @@
 	   TYPOGRAPHY - Clean and readable
 	   ================================================================ */
   --pm-font-sans:
-    "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --pm-font-mono:
     "IBM Plex Mono", "SF Mono", "Monaco", "Cascadia Code", monospace;
   --pm-text-xs: 0.75rem; /* 12px */
@@ -94,109 +94,40 @@
   /* ===================================================================
 	   GRADIENTS - Warm background washes
 	   ================================================================ */
-  --pm-gradient-warm: linear-gradient(135deg, #ffebd4 0%, #ffd9b8 100%);
+  --pm-gradient-warm: linear-gradient(135deg, #ffeedd 0%, #ffdac7 100%);
   --pm-gradient-hero:
     radial-gradient(
-      circle at 20% 20%,
-      rgba(255, 138, 170, 0.16),
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 80% 10%,
-      rgba(255, 198, 114, 0.14),
+      circle at 15% 15%,
+      rgba(168, 216, 234, 0.25) 0%,
       transparent 50%
     ),
-    linear-gradient(125deg, #fff8f1 0%, #f8f2ff 50%, #f1fbf4 100%);
+    radial-gradient(
+      circle at 85% 15%,
+      rgba(232, 131, 156, 0.2) 0%,
+      transparent 50%
+    ),
+    linear-gradient(135deg, #fffbf7 0%, #ffebd4 100%);
   --pm-shell-width: 1120px;
 }
 
-:root.theme-dusk {
-  --pm-black: #00ff88;
-  --pm-brown: #00cc6a;
-  --pm-cream: #0a0b0f;
-  --pm-cream-dark: #121319;
-  --pm-cream-light: #161922;
-  --pm-pink: #00ff88;
-  --pm-peach: #00e5ff;
-  --pm-mint: #76ff03;
-  --pm-lavender: #d500f9;
-  --pm-yellow: #ffd600;
-  --pm-glass-bg: rgba(10, 11, 15, 0.85);
-  --pm-glass-border: rgba(0, 255, 136, 0.25);
-  --pm-shadow-soft: 0 2px 8px rgba(0, 255, 136, 0.1);
-  --pm-shadow-lifted: 0 4px 12px rgba(0, 255, 136, 0.15);
-  --pm-shadow-slab: 4px 4px 0 rgba(0, 255, 136, 0.3);
-  --pm-shadow-slab-lg: 8px 8px 0 rgba(0, 255, 136, 0.35);
-  --pm-gradient-hero:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(0, 255, 136, 0.12),
-      transparent 45%
-    ),
-    radial-gradient(circle at 80% 10%, rgba(213, 0, 249, 0.1), transparent 50%),
-    linear-gradient(125deg, #0a0b0f 0%, #15171f 50%, #0d0e14 100%);
-}
-
-:root.theme-riso {
-  --pm-black: #c2185b;
-  --pm-brown: #880e4f;
-  --pm-cream: #fffef7;
-  --pm-cream-dark: #fff59d;
-  --pm-cream-light: #fffdf0;
-  --pm-pink: #ff1493;
-  --pm-peach: #ff80ab;
-  --pm-mint: #00e676;
-  --pm-lavender: #2979ff;
-  --pm-yellow: #ffea00;
-  --pm-glass-bg: rgba(255, 254, 247, 0.82);
-  --pm-glass-border: rgba(194, 24, 91, 0.2);
-  --pm-shadow-soft: 0 2px 8px rgba(194, 24, 91, 0.08);
-  --pm-shadow-lifted: 0 4px 12px rgba(194, 24, 91, 0.12);
-  --pm-shadow-slab: 4px 4px 0 rgba(194, 24, 91, 0.25);
-  --pm-shadow-slab-lg: 8px 8px 0 rgba(194, 24, 91, 0.3);
-  --pm-gradient-hero:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(255, 20, 147, 0.15),
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 80% 10%,
-      rgba(255, 234, 0, 0.18),
-      transparent 50%
-    ),
-    linear-gradient(125deg, #fffef7 0%, #fff9e6 50%, #fffef0 100%);
-}
-
-:root.theme-cyber {
-  --pm-black: #1a237e;
-  --pm-brown: #283593;
-  --pm-cream: #f8faff;
-  --pm-cream-dark: #e8efff;
-  --pm-cream-light: #ffffff;
-  --pm-pink: #3f51b5;
-  --pm-peach: #7986cb;
-  --pm-mint: #00b0ff;
-  --pm-lavender: #82b1ff;
-  --pm-yellow: #00e5ff;
-  --pm-glass-bg: rgba(248, 250, 255, 0.82);
-  --pm-glass-border: rgba(26, 35, 126, 0.15);
-  --pm-shadow-soft: 0 2px 8px rgba(26, 35, 126, 0.08);
-  --pm-shadow-lifted: 0 4px 12px rgba(26, 35, 126, 0.12);
-  --pm-shadow-slab: 4px 4px 0 rgba(26, 35, 126, 0.25);
-  --pm-shadow-slab-lg: 8px 8px 0 rgba(26, 35, 126, 0.3);
-  --pm-gradient-hero:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(63, 81, 181, 0.12),
-      transparent 45%
-    ),
-    radial-gradient(
-      circle at 80% 10%,
-      rgba(0, 229, 255, 0.12),
-      transparent 50%
-    ),
-    linear-gradient(125deg, #f8faff 0%, #edf2ff 50%, #f5f8ff 100%);
+:root.theme-peach {
+  --pm-black: #1e1714;
+  --pm-brown: #3a2a22;
+  --pm-cream: #ffeade;
+  --pm-cream-dark: #ffdac7;
+  --pm-cream-light: #fff5f0;
+  --pm-pink: #ff8e9b;
+  --pm-peach: #ffc29c;
+  --pm-mint: #a8ebd9;
+  --pm-lavender: #e4c5ff;
+  --pm-yellow: #fffa80;
+  --pm-glass-bg: rgba(255, 238, 221, 0.65);
+  --pm-glass-border: rgba(255, 238, 221, 0.3);
+  --pm-shadow-soft: 0 2px 8px rgba(58, 42, 34, 0.08);
+  --pm-shadow-lifted: 0 4px 12px rgba(58, 42, 34, 0.12);
+  --pm-shadow-slab: 4px 4px 0 rgba(58, 42, 34, 0.25);
+  --pm-shadow-slab-lg: 8px 8px 0 rgba(58, 42, 34, 0.3);
+  --pm-gradient-hero: linear-gradient(135deg, #ffeedd 0%, #ffa580 100%);
 }
 
 /* ===================================================================
@@ -591,27 +522,25 @@ svg line.fade-out {
 
 /* Theme Toggle Button */
 .theme-toggle-btn {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--pm-radius-sm);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
   background: var(--pm-cream-light);
-  border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
+  border: var(--pm-border-medium) solid var(--pm-black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   cursor: pointer;
   transition: all var(--pm-transition-fast);
-  box-shadow: var(--pm-shadow-soft);
+  box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.15);
   color: var(--pm-black);
 }
 
 .theme-toggle-btn:hover {
-  background: var(--pm-pink);
-  border-color: var(--pm-pink);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(232, 131, 156, 0.2);
-  color: var(--pm-cream);
+  background: var(--pm-peach);
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.2);
 }
 
 .theme-toggle-btn:active {

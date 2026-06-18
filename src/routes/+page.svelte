@@ -147,90 +147,51 @@ I want a map of the science, the weird social backlash, the risks, and the most 
       </div>
     {:else}
       <div class="shell home-shell">
-        <section class="glass-card hero-card">
-          <div class="hero-grid">
-            <div class="hero-copy">
-              <div class="section-kicker">Welcome to ProMapper</div>
-              <h2>See what you're really saying</h2>
-              <p class="hero-lede">
-                Build a confident map for every conversation—stable layout,
-                playful controls, no resizing jump scares when you switch modes.
-              </p>
-              <p class="hero-subtext">
-                Record / Paste / Upload — same module, same rhythm.
-              </p>
-              <div class="hero-actions">
-                <button
-                  type="button"
-                  class="sample-btn"
-                  on:click={loadSampleRant}
-                >
-                  Try the weird science rant
-                </button>
-                <button
-                  type="button"
-                  class="sample-btn sample-btn--secondary"
-                  on:click={openImportDialog}
-                >
-                  Import backup
-                </button>
-                <input
-                  bind:this={importInput}
-                  class="visually-hidden"
-                  type="file"
-                  accept="application/json,.json,.promapper.json"
-                  on:change={handleImportBackup}
-                  aria-label="Import project backup"
-                />
-              </div>
-              {#if importError}
-                <p class="import-error">{importError}</p>
-              {/if}
-              <div class="payoff-preview" aria-label="Example project output">
-                <div class="preview-map">
-                  <span class="preview-node node-a">🔍 Silk yield</span>
-                  <span class="preview-node node-b">⚖️ Bioethics</span>
-                  <span class="preview-node node-c">📢 Public story</span>
-                </div>
-                <div class="preview-list">
-                  <span>✓ Extract tasks</span>
-                  <span>↳ Connection map</span>
-                  <span>MD Draft article</span>
-                </div>
-              </div>
-            </div>
-            <div class="hero-panel">
-              <Upload
-                initialText={starterText}
-                initialTextKey={starterTextKey}
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <h2>See what you're really saying</h2>
+            <h3 class="hero-subheadline">Turn messy conversations into clear maps.</h3>
+            <p class="hero-lede">
+              Record, paste, or upload any conversation. Get instant summaries,
+              action items, and visual topic maps. No signup. Everything stays
+              private in your browser.
+            </p>
+            <div class="hero-actions">
+              <button
+                type="button"
+                class="link-action-btn"
+                on:click={loadSampleRant}
+              >
+                Try the weird science rant
+              </button>
+              <span class="action-divider">·</span>
+              <button
+                type="button"
+                class="link-action-btn"
+                on:click={openImportDialog}
+              >
+                Import backup
+              </button>
+              <input
+                bind:this={importInput}
+                class="visually-hidden"
+                type="file"
+                accept="application/json,.json,.promapper.json"
+                on:change={handleImportBackup}
+                aria-label="Import project backup"
               />
             </div>
+            {#if importError}
+              <p class="import-error">{importError}</p>
+            {/if}
           </div>
-        </section>
-
-        <section class="feature-grid" aria-label="Product highlights">
-          <div class="feature-card card">
-            <div class="card-body">
-              <div class="feature-icon">🎙️</div>
-              <h3>Capture first</h3>
-              <p>Talk, paste, or upload without changing tools.</p>
-            </div>
+          <div class="hero-panel">
+            <Upload
+              initialText={starterText}
+              initialTextKey={starterTextKey}
+            />
           </div>
-          <div class="feature-card card">
-            <div class="card-body">
-              <div class="feature-icon">🧭</div>
-              <h3>Map the signal</h3>
-              <p>Pull out the transcript, summary, tasks, and topics.</p>
-            </div>
-          </div>
-          <div class="feature-card card">
-            <div class="card-body">
-              <div class="feature-icon">👥</div>
-              <h3>Ready to sync</h3>
-              <p>Keep it local, or bring people in when the work needs them.</p>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
     {/if}
   </main>
@@ -357,15 +318,12 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     gap: clamp(1.5rem, 3vw, 2.25rem);
   }
 
-  .hero-card {
-    padding: clamp(1.25rem, 3vw, 2.5rem);
-  }
-
   .hero-grid {
     display: grid;
-    grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
-    gap: clamp(1.5rem, 4vw, 3rem);
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: clamp(1.5rem, 5vw, 4.5rem);
+    align-items: center;
+    padding: clamp(1rem, 4vh, 4rem) 0;
   }
 
   .hero-copy {
@@ -376,48 +334,61 @@ I want a map of the science, the weird social backlash, the risks, and the most 
 
   .hero-copy h2 {
     margin: 0;
-    font-size: clamp(2.2rem, 4vw, 3.75rem);
-    line-height: 1;
+    font-size: clamp(2.4rem, 4.5vw, 4rem);
+    line-height: 1.06;
     letter-spacing: -0.04em;
-    max-width: 13ch;
+    font-weight: 800;
+  }
+
+  .hero-subheadline {
+    margin: 0;
+    font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+    font-weight: 700;
+    color: var(--pm-brown);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    opacity: 0.9;
   }
 
   .hero-lede {
     margin: 0;
-    max-width: 54ch;
-    font-size: clamp(1rem, 1.3vw, 1.125rem);
-    line-height: 1.65;
-    color: rgba(58, 42, 34, 0.82);
+    max-width: 52ch;
+    font-size: clamp(0.95rem, 1.2vw, 1.06rem);
+    line-height: 1.6;
+    color: var(--pm-brown);
+    opacity: 0.8;
   }
 
   .hero-actions {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.65rem;
+    margin-top: 0.25rem;
   }
 
-  .sample-btn {
-    min-height: 44px;
-    padding: 0.7rem 1rem;
-    border-radius: var(--pm-radius-sm);
-    border: var(--pm-border-medium) solid var(--pm-black);
-    background: var(--pm-yellow);
-    color: var(--pm-black);
-    box-shadow: 3px 3px 0 rgba(30, 23, 20, 0.18);
+  .link-action-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
     font-size: var(--pm-text-sm);
-    font-weight: 800;
+    font-weight: 700;
+    color: var(--pm-brown);
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
     cursor: pointer;
+    transition: color var(--pm-transition-fast);
   }
 
-  .sample-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 4px 4px 0 rgba(30, 23, 20, 0.22);
+  .link-action-btn:hover {
+    color: var(--pm-black);
   }
 
-  .sample-btn--secondary {
-    background: var(--pm-cream-light);
-    border-color: rgba(30, 23, 20, 0.28);
-    box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.12);
+  .action-divider {
+    color: var(--pm-brown);
+    opacity: 0.4;
+    font-weight: bold;
+    user-select: none;
   }
 
   .visually-hidden {
@@ -439,142 +410,18 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     font-weight: 700;
   }
 
-  .payoff-preview {
-    display: grid;
-    gap: 1rem;
-    max-width: 32rem;
-    padding-top: 0.5rem;
-  }
-
-  .preview-map {
-    position: relative;
-    min-height: 120px;
-    border: var(--pm-border-medium) solid rgba(30, 23, 20, 0.16);
-    border-radius: var(--pm-radius-md);
-    background:
-      linear-gradient(rgba(30, 23, 20, 0.08), rgba(30, 23, 20, 0.08)) 50% 50% /
-        72% 2px no-repeat,
-      linear-gradient(
-        120deg,
-        rgba(168, 216, 234, 0.32),
-        rgba(255, 217, 184, 0.34)
-      );
-  }
-
-  .preview-node {
-    position: absolute;
-    display: inline-flex;
-    align-items: center;
-    min-height: 36px;
-    padding: 0.45rem 0.65rem;
-    border-radius: var(--pm-radius-full);
-    border: var(--pm-border-medium) solid var(--pm-black);
-    background: var(--pm-cream-light);
-    box-shadow: 2px 2px 0 rgba(30, 23, 20, 0.16);
-    font-size: var(--pm-text-xs);
-    font-weight: 800;
-  }
-
-  .node-a {
-    left: 8%;
-    top: 18%;
-  }
-
-  .node-b {
-    right: 8%;
-    top: 14%;
-  }
-
-  .node-c {
-    left: 34%;
-    bottom: 14%;
-  }
-
-  .preview-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .preview-list span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 32px;
-    padding: 0.35rem 0.6rem;
-    border-radius: var(--pm-radius-full);
-    background: rgba(255, 255, 255, 0.58);
-    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.12);
-    font-size: var(--pm-text-xs);
-    font-weight: 700;
-    color: rgba(30, 23, 20, 0.76);
-  }
-
   .hero-panel {
     min-width: 0;
   }
 
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.25rem;
-  }
-
-
-
-  .feature-card {
-    min-height: 200px;
-  }
-
-  .feature-card .card-body {
-    height: 100%;
-    display: grid;
-    align-content: end;
-    gap: 0.75rem;
-    padding: 1.5rem;
-    text-align: left;
-  }
-
-  .feature-icon {
-    width: 3rem;
-    height: 3rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.9rem;
-    background: linear-gradient(
-      135deg,
-      rgba(232, 131, 156, 0.22),
-      rgba(168, 216, 234, 0.28)
-    );
-    box-shadow: inset 0 0 0 1px rgba(30, 23, 20, 0.08);
-    font-size: 1.4rem;
-  }
-
-  .feature-card h3 {
-    margin: 0;
-    font-size: clamp(1.15rem, 2vw, 1.35rem);
-    letter-spacing: -0.04em;
-  }
-
-  .feature-card p {
-    margin: 0;
-    font-size: var(--pm-text-sm);
-    line-height: 1.6;
-    color: rgba(58, 42, 34, 0.72);
-  }
-
   @media (max-width: 960px) {
-    .hero-grid,
-    .feature-grid {
+    .hero-grid {
       grid-template-columns: 1fr;
+      gap: 2rem;
     }
 
     .hero-panel {
       order: -1;
-    }
-
-    .hero-copy h2 {
-      max-width: 14ch;
     }
   }
 
@@ -583,26 +430,13 @@ I want a map of the science, the weird social backlash, the risks, and the most 
       padding: 0.875rem 0 1rem;
     }
 
-    .hero-card {
-      padding: 1rem;
-    }
-
     .hero-copy {
       gap: 1rem;
     }
 
     .hero-copy h2 {
-      font-size: clamp(2rem, 9vw, 2.7rem);
+      font-size: clamp(2.1rem, 9vw, 2.8rem);
       line-height: 1.04;
-      max-width: 14ch;
-    }
-
-    .feature-card {
-      min-height: 0;
-    }
-
-    .feature-card .card-body {
-      padding: 1.25rem;
     }
   }
 
@@ -628,13 +462,6 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     letter-spacing: -0.03em;
   }
 
-  .hero-subtext {
-    font-size: var(--pm-text-sm);
-    color: var(--pm-brown);
-    opacity: 0.8;
-    margin: -0.25rem 0 0.5rem;
-    font-weight: 600;
-  }
 
   /* History Floating Button styles */
   .history-float-btn {
