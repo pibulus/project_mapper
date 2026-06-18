@@ -6,7 +6,7 @@ This repo is `project_mapper`, a SvelteKit 2 + TypeScript app for turning audio/
 
 1. Read `README.md` for the stack and commands.
 2. Read `ARCHITECTURE.md` for entry points, data flow, and ownership boundaries.
-3. Read `PROJECT_AUDIT.md` for the latest audit closeout and known residual risks.
+3. Read `docs/audits/INDEPENDENT_AUDIT_2026.md` for the latest independent audit.
 4. Use `GLOSSARY.md` for project-specific vocabulary.
 
 ## Current Truth
@@ -23,8 +23,8 @@ This repo is `project_mapper`, a SvelteKit 2 + TypeScript app for turning audio/
 - Keep `src/lib/core` framework-agnostic. No Svelte stores, SvelteKit request objects, browser globals, or route-relative `fetch` helpers there.
 - Put browser/API helpers in `src/lib/client`.
 - Put server-only configuration and guards in `src/lib/server`.
-- Treat PartyKit as realtime delivery, not durable truth.
-- Treat Supabase sync as anonymous/demo share-by-id until an auth or share-token model is chosen.
+- Treat PartyKit as a realtime delivery and edge persistent truth layer for active collaboration rooms.
+- Treat Supabase sync as anonymous/demo backup and share-by-id until an auth or share-token model is chosen.
 
 ## Watchouts
 

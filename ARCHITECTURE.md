@@ -33,9 +33,9 @@ Project Mapper / ProMapper is a SvelteKit 2 app that turns audio or text into a 
 - `src/lib/client` owns browser/API helpers that are not pure core logic.
 - `src/lib/stores` owns browser state, localStorage persistence, optional Supabase client sync, and PartyKit client wiring.
 - Svelte components should prefer rendering and user interaction. `Upload.svelte` is still the main exception and remains a refactor candidate.
-- PartyKit is treated as a realtime delivery layer, not source-of-truth storage.
-- Supabase is currently optional persistence, not a complete private ownership model.
-- Current ownership semantics are: local projects are private to the browser profile and appear in browser-local history; shared projects are explicitly published as anonymous/demo public-by-link projects and should not be treated as private.
+- PartyKit Durable Storage acts as the primary edge persistence layer for active collaboration rooms.
+- Supabase is optional database persistence for backup and fallback link sharing.
+- Current ownership semantics are: local projects are private to the browser profile and appear in browser-local history; shared projects are explicitly replicated to the PartyKit room and/or optional Supabase store, making them accessible via the project link.
 
 ## Realtime And Persistence
 

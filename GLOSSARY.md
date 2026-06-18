@@ -12,10 +12,10 @@ Last updated: 2026-05-27
 - **AI checkoff**: Gemini reviewing new input against existing action items and marking matching items pending or completed.
 - **Topic graph**: Topic nodes and relationship edges extracted from transcript text.
 - **Topic selection**: Shared local and remote hover/selection state in `src/lib/stores/topicSelection.ts`.
-- **PartyKit**: Realtime transport for presence, topic hover/selection, and analysis updates. It is not durable storage.
+- **PartyKit**: Realtime transport and durable storage engine for presence, topic hover/selection, and project state updates. It serves as the primary collaborative edge database.
 - **Party room**: A PartyKit room keyed by project id.
 - **PARTYKIT_UPDATE_TOKEN**: Optional shared secret for server-posted PartyKit room updates.
-- **Supabase sync**: Optional client-side persistence to the `projects` table. Current RLS is anonymous/demo-oriented, not private-production ownership.
+- **Supabase sync**: Optional client-side persistence/backup to the `projects` table. Current RLS is anonymous/demo-oriented, not private-production ownership.
 - **Local-first**: The current project is always saved to browser localStorage first.
 - **Share-by-id**: The effective current behavior for synced projects: anyone who can access the id and anon policies can interact. This is not private auth.
 - **Last-write-wins**: Current conflict behavior across local edits, PartyKit updates, and Supabase debounce.

@@ -19,8 +19,8 @@ An evolution from one-shot conversation processing to persistent, collaborative 
 
 - **Framework**: SvelteKit 2 with TypeScript
 - **AI**: Google Gemini 2.5 Flash (official SDK)
-- **Real-time**: PartyKit for multiplayer
-- **Database**: Supabase for persistence
+- **Real-time & Persistence**: PartyKit Durable Storage (Cloudflare Durable Objects) on the edge
+- **Database (Optional)**: Supabase for optional backup
 - **Styling**: Tailwind CSS (no DaisyUI - keep it clean)
 - **Deployment**: Node server via `@sveltejs/adapter-node`
 
@@ -77,7 +77,7 @@ This is beyond scaffolding. The current state already includes:
 - editable project-aware markdown export
 - a responsive dashboard with transcript, summary, action items, and topic graph views
 
-See `ARCHITECTURE.md` for the current system map, `PROJECT_AUDIT.md` for the audit closeout, `GLOSSARY.md` for project vocabulary, and `docs/README.md` for the documentation index. Older handoff and synthesis notes live under `docs/history/`.
+See `ARCHITECTURE.md` for the current system map, `docs/audits/INDEPENDENT_AUDIT_2026.md` for the latest independent audit, `GLOSSARY.md` for project vocabulary, and `docs/README.md` for the documentation index. Older handoff and synthesis notes live under `docs/history/`.
 
 ## Lineage / References
 

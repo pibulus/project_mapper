@@ -6,7 +6,6 @@ Last updated: 2026-05-27
 
 - [`../README.md`](../README.md) - project overview, stack, and development commands.
 - [`../ARCHITECTURE.md`](../ARCHITECTURE.md) - current system map, entry points, data flow, and ownership boundaries.
-- [`../PROJECT_AUDIT.md`](../PROJECT_AUDIT.md) - completed audit map, residual risks, and release-check notes.
 - [`../GLOSSARY.md`](../GLOSSARY.md) - project terms and local vocabulary.
 - [`../CLAUDE.md`](../CLAUDE.md) - concise context for AI coding agents.
 - [`../NEXT.md`](../NEXT.md) - short next-move list.
@@ -19,9 +18,11 @@ Last updated: 2026-05-27
 
 ## Focused Audits
 
+- [`audits/INDEPENDENT_AUDIT_2026.md`](audits/INDEPENDENT_AUDIT_2026.md) - 2026 independent audit of ProMapper features and stack.
+- [`audits/PROJECT_AUDIT_MAY_2026.md`](audits/PROJECT_AUDIT_MAY_2026.md) - May 2026 audit map, residual risks, and release-check notes.
 - [`audits/ACTIONITEMS_AUDIT.md`](audits/ACTIONITEMS_AUDIT.md) - action item feature comparison across related projects.
 - [`audits/ACTIONITEMS_STYLING_AUDIT.md`](audits/ACTIONITEMS_STYLING_AUDIT.md) - action item visual/design comparison.
 - [`audits/FEATURE_PARITY_AUDIT.md`](audits/FEATURE_PARITY_AUDIT.md) - old `conversation_mapper` parity review with keep/defer/drop decisions.
 - [`audits/TOPIC_GRAPH_QUALITY_AUDIT.md`](audits/TOPIC_GRAPH_QUALITY_AUDIT.md) - topic map quality comparison across old and current graph systems.
 
-Historical files are useful background, but the current truth should live in `README.md`, `ARCHITECTURE.md`, `PROJECT_AUDIT.md`, and the source.
+Historical files are useful background, but the current truth should live in `README.md`, `ARCHITECTURE.md`, `docs/audits/INDEPENDENT_AUDIT_2026.md`, and the source.
