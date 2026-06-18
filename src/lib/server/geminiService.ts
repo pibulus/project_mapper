@@ -26,10 +26,10 @@ if (
 }
 
 const GEMINI_API_KEY = getPrivateEnv("GEMINI_API_KEY");
-const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-2.5-flash";
+const GEMINI_MODEL = getPrivateEnv("GEMINI_MODEL") || "gemini-flash-latest";
 const GEMINI_FALLBACK_MODELS =
   getPrivateEnv("GEMINI_FALLBACK_MODELS") ||
-  "gemini-2.5-flash-lite,gemini-2.5-flash";
+  "gemini-flash-lite-latest,gemini-flash-latest";
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️ GEMINI_API_KEY not set - AI features will not work");

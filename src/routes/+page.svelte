@@ -32,6 +32,11 @@
   let starterTextKey = 0;
   let importInput: HTMLInputElement | null = null;
   let importError = "";
+  let filterMode: "all" | "starred" = "all";
+
+  $: filteredProjects = filterMode === "all"
+    ? $localProjects
+    : $localProjects.filter(p => p.isStarred);
 
   function toggleHistory() {
     historyOpen = !historyOpen;
@@ -244,25 +249,53 @@ I want a map of the science, the weird social backlash, the risks, and the most 
         {#if $localProjects.length === 0}
           <p class="empty-state">No local project history found</p>
         {:else}
+          <div class="drawer-tabs">
+            <button
+              type="button"
+              class="drawer-tab"
+              class:active={filterMode === "all"}
+              on:click={() => (filterMode = "all")}
+            >
+              All ({$localProjects.length})
+            </button>
+            <button
+              type="button"
+              class="drawer-tab"
+              class:active={filterMode === "starred"}
+              on:click={() => (filterMode = "starred")}
+            >
+              ★ Starred ({$localProjects.filter((p) => p.isStarred).length})
+            </button>
+          </div>
+
           <div class="history-drawer__list">
-            {#each $localProjects as project}
-              <button
-                type="button"
-                class="history-drawer-item"
-                on:click={() => {
-                  loadLocalProject(project.id);
-                  historyOpen = false;
-                }}
-              >
-                <div class="history-drawer-item__title">{project.title}</div>
-                <div class="history-drawer-item__meta">
-                  {project.isPublic ? "Shared" : project.syncEnabled ? "Cloud save" : "Local"} · {formatProjectDate(project.updatedAt)}
-                </div>
-                {#if project.summary}
-                  <div class="history-drawer-item__summary">{project.summary}</div>
-                {/if}
-              </button>
-            {/each}
+            {#if filteredProjects.length === 0}
+              <p class="empty-state">No starred projects found</p>
+            {:else}
+              {#each filteredProjects as project}
+                <button
+                  type="button"
+                  class="history-drawer-item"
+                  on:click={() => {
+                    loadLocalProject(project.id);
+                    historyOpen = false;
+                  }}
+                >
+                  <div class="history-drawer-item__title">
+                    {project.title}
+                    {#if project.isStarred}
+                      <span class="star-indicator">★</span>
+                    {/if}
+                  </div>
+                  <div class="history-drawer-item__meta">
+                    {project.isPublic ? "Shared" : project.syncEnabled ? "Cloud save" : "Local"} · {formatProjectDate(project.updatedAt)}
+                  </div>
+                  {#if project.summary}
+                    <div class="history-drawer-item__summary">{project.summary}</div>
+                  {/if}
+                </button>
+              {/each}
+            {/if}
           </div>
         {/if}
       </div>
@@ -608,5 +641,47 @@ I want a map of the science, the weird social backlash, the risks, and the most 
     overflow: hidden;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  /* Star and Tab Drawer styles */
+  .drawer-tabs {
+    display: flex;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--pm-black);
+    padding-bottom: 0.5rem;
+  }
+
+  .drawer-tab {
+    flex: 1;
+    min-height: 38px;
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--pm-radius-sm);
+    border: var(--pm-border-thin) solid rgba(30, 23, 20, 0.2);
+    background: transparent;
+    color: var(--pm-brown);
+    font-size: var(--pm-text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+  }
+
+  .drawer-tab:hover {
+    background: rgba(30, 23, 20, 0.05);
+  }
+
+  .drawer-tab.active {
+    background: var(--pm-black);
+    color: var(--pm-cream);
+    border-color: var(--pm-black);
+  }
+
+  .star-indicator {
+    color: var(--pm-yellow);
+    margin-left: 0.35rem;
+    font-size: 1.1rem;
+    display: inline-block;
+    line-height: 1;
+    text-shadow: 0 0 2px rgba(30, 23, 20, 0.15);
   }
 </style>

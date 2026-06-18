@@ -219,6 +219,16 @@
         {:else}
           <div class="title-display">
             <h1>{project.title || "Untitled Project"}</h1>
+            <button
+              class="star-toggle-btn"
+              class:starred={project.isStarred}
+              on:click={() => updateProject({ isStarred: !project.isStarred })}
+              type="button"
+              title={project.isStarred ? "Unstar project" : "Star project"}
+              aria-label={project.isStarred ? "Unstar project" : "Star project"}
+            >
+              {project.isStarred ? "★" : "☆"}
+            </button>
             <button class="ghost-btn" on:click={beginEdit} type="button"
               >Rename</button
             >
@@ -346,6 +356,30 @@
 {/if}
 
 <style>
+  .star-toggle-btn {
+    border: none;
+    background: transparent;
+    font-size: 1.45rem;
+    color: rgba(30, 23, 20, 0.28);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+    padding: 0.1rem 0.25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .star-toggle-btn:hover {
+    color: var(--pm-yellow);
+    transform: scale(1.15);
+  }
+
+  .star-toggle-btn.starred {
+    color: var(--pm-yellow);
+    text-shadow: 0 0 4px rgba(255, 244, 79, 0.45);
+  }
+
   .project-header {
     background: var(--pm-glass-bg);
     backdrop-filter: blur(var(--pm-glass-blur));

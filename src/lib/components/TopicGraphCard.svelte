@@ -12,6 +12,7 @@
   import { emojimap } from "$lib/actions/emojimap";
   import type { EmojimapHandle } from "$lib/utils/forceDirectedEmojimap";
   import { topicSelection } from "$lib/stores/topicSelection";
+  import { getDeterministicUser } from "$lib/utils/avatar";
 
   export let partySend: ((type: string, data?: any) => void) | null = null;
 
@@ -524,13 +525,17 @@
           <div class="remote-stack">
             <span class="remote-heading">Following</span>
             {#each remoteSelectionEntries as [userId, topic]}
-              <div class="remote-chip" title={`Viewing ${topic?.label}`}>
+              {@const user = getDeterministicUser(userId)}
+              <div class="remote-chip" title={`${user.nickname} (${user.emoji}) viewing ${topic?.label}`}>
                 <span
                   class="remote-dot"
                   style="background: {topic?.color || '#f97316'};"
                 ></span>
                 <span class="remote-label">{topic?.label}</span>
-                <span class="remote-user">{userId.slice(0, 4)}</span>
+                <span class="remote-user" style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                  <span>{user.emoji}</span>
+                  <span>{user.nickname}</span>
+                </span>
               </div>
             {/each}
           </div>
@@ -539,13 +544,17 @@
           <div class="remote-stack hover">
             <span class="remote-heading">Exploring</span>
             {#each remoteHoverEntries as [userId, topic]}
-              <div class="remote-hover-chip" title={`Hovering ${topic?.label}`}>
+              {@const user = getDeterministicUser(userId)}
+              <div class="remote-hover-chip" title={`${user.nickname} (${user.emoji}) hovering ${topic?.label}`}>
                 <span
                   class="remote-dot"
                   style="background: {topic?.color || '#0ea5e9'};"
                 ></span>
                 <span class="remote-label">{topic?.label}</span>
-                <span class="remote-user">{userId.slice(0, 4)}</span>
+                <span class="remote-user" style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                  <span>{user.emoji}</span>
+                  <span>{user.nickname}</span>
+                </span>
               </div>
             {/each}
           </div>
@@ -774,8 +783,8 @@
   }
 
   .remote-user {
-    font-family: var(--pm-font-mono, monospace);
     color: rgba(30, 23, 20, 0.7);
+    font-weight: 500;
   }
 
   .empty-state {

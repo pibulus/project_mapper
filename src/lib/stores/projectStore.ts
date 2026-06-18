@@ -23,6 +23,7 @@ export interface LocalProjectSummary {
   createdAt: string;
   syncEnabled: boolean;
   isPublic: boolean;
+  isStarred?: boolean;
 }
 
 /**
@@ -86,6 +87,7 @@ function normalizeProject(project: ConversationData): ConversationData {
     exportDrafts: normalizeExportDrafts(project.exportDrafts),
     syncEnabled: project.syncEnabled === true,
     isPublic: project.isPublic === true,
+    isStarred: project.isStarred === true,
     createdAt: project.createdAt || now,
     updatedAt: project.updatedAt || now,
     lastAnalysisWarnings: project.lastAnalysisWarnings || [],
@@ -126,6 +128,7 @@ function summaryFromProject(project: ConversationData): LocalProjectSummary {
     createdAt: project.createdAt || project.updatedAt || nowIso(),
     syncEnabled: project.syncEnabled === true,
     isPublic: project.isPublic === true,
+    isStarred: project.isStarred === true,
   };
 }
 
@@ -163,6 +166,7 @@ function readProjectIndex(): LocalProjectSummary[] {
           createdAt: item.createdAt || item.updatedAt,
           syncEnabled: item.syncEnabled === true,
           isPublic: item.isPublic === true,
+          isStarred: item.isStarred === true,
         })),
     );
   } catch (error) {
@@ -436,6 +440,7 @@ export async function loadFromSupabase(
       exportDrafts: normalizeExportDrafts(data.export_drafts),
       syncEnabled: true, // If loaded from Supabase, it's synced
       isPublic: data.is_public === true,
+      isStarred: false,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       lastAnalysisWarnings: [],

@@ -23,6 +23,7 @@ export interface ConversationData {
   exportDrafts?: ExportDraft[];
   syncEnabled: boolean;
   isPublic?: boolean;
+  isStarred?: boolean;
   createdAt?: string;
   updatedAt?: string;
   lastAnalysisWarnings?: Array<{
