@@ -20,6 +20,8 @@
   import ActionItemsHeader from "./ActionItemsHeader.svelte";
   import { topicSelection } from "$lib/stores/topicSelection";
   import { textMatchesTopic } from "$lib/utils/topicUtils";
+  import { flip } from "svelte/animate";
+  import { playChime, playWhoosh, playClick } from "$lib/utils/sounds";
 
   // Local UI state
   let isAdding = false;
@@ -90,6 +92,7 @@
     addItem(newItemDescription);
     newItemDescription = "";
     isAdding = false;
+    playClick();
   }
 
   function startEditingDescription(item: ActionItem) {
@@ -195,6 +198,7 @@
     deleteItem(itemId);
     undoState = { message: "Deleted item", item };
     pendingDeleteItemId = null;
+    playWhoosh();
   }
 
   function cancelDelete() {
@@ -208,12 +212,18 @@
         item.status === "completed" ? "Marked pending" : "Marked complete",
       item,
     };
+    if (item.status !== "completed") {
+      playChime();
+    } else {
+      playWhoosh();
+    }
   }
 
   function undoLastAction() {
     if (!undoState) return;
     restoreItem(undoState.item);
     undoState = null;
+    playWhoosh();
   }
 
   // Drag and Drop handlers
@@ -338,6 +348,7 @@
         {#each sortedItems as item, index (item.id)}
           <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
           <div
+            animate:flip={{ duration: 250 }}
             class="action-item-wrapper"
             class:dragging={draggedItemId === item.id}
             class:drag-over={hoveredItemId === item.id &&
