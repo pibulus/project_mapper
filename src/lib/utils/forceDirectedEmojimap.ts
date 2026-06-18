@@ -95,6 +95,7 @@ interface Config {
   onBackgroundClick?: (event: any) => void;
   onRightClickBackground?: (event: any) => void;
   onPositionsChange?: (nodes: NodeData[]) => void;
+  onMergeNodes?: (sourceId: string, targetId: string) => void;
 }
 
 // ===================================================================
@@ -689,6 +690,27 @@ export function forceDirectedEmojimap(
     .on("end", (event, d) => {
       dragended(event, d, simulation);
       mergedConfig.onPositionsChange?.(nodes);
+
+      if (mergedConfig.onMergeNodes && d.x !== undefined && d.y !== undefined) {
+        let nearestNode: NodeData | null = null;
+        let minDistance = Infinity;
+
+        for (const other of nodes) {
+          if (other.id === d.id) continue;
+          if (other.x === undefined || other.y === undefined) continue;
+
+          const distance = Math.hypot(d.x - other.x, d.y - other.y);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestNode = other;
+          }
+        }
+
+        const mergeThreshold = 45; // Overlap boundary in SVG units
+        if (nearestNode && minDistance < mergeThreshold) {
+          mergedConfig.onMergeNodes(d.id, nearestNode.id);
+        }
+      }
     });
 
   simulation.on("tick", () => {

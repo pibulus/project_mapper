@@ -371,6 +371,79 @@
     broadcastHover(null);
   };
 
+  // Merge state
+  let showMergeConfirm = false;
+  let mergeSourceNode: Node | null = null;
+  let mergeTargetNode: Node | null = null;
+
+  function handleMergeNodes(sourceId: string, targetId: string) {
+    const source = topics.find((t) => t.id === sourceId);
+    const target = topics.find((t) => t.id === targetId);
+    if (!source || !target) return;
+
+    mergeSourceNode = source;
+    mergeTargetNode = target;
+    showMergeConfirm = true;
+  }
+
+  async function confirmMerge() {
+    if (!mergeSourceNode || !mergeTargetNode) return;
+
+    const sId = mergeSourceNode.id;
+    const tId = mergeTargetNode.id;
+
+    // 1. Remove the source topic
+    const nextTopics = topics.filter((t) => t.id !== sId);
+
+    // 2. Rewire edges connecting to source to connect to target
+    const nextEdges = edges
+      .map((edge) => {
+        let updated = false;
+        let source_topic_id = edge.source_topic_id;
+        let target_topic_id = edge.target_topic_id;
+
+        if (source_topic_id === sId) {
+          source_topic_id = tId;
+          updated = true;
+        }
+        if (target_topic_id === sId) {
+          target_topic_id = tId;
+          updated = true;
+        }
+
+        return updated ? { ...edge, source_topic_id, target_topic_id } : edge;
+      })
+      .filter((edge) => edge.source_topic_id !== edge.target_topic_id);
+
+    // Deduplicate edges
+    const uniqueEdgesMap = new Map();
+    nextEdges.forEach((edge) => {
+      const key = `${edge.source_topic_id}->${edge.target_topic_id}`;
+      if (!uniqueEdgesMap.has(key)) {
+        uniqueEdgesMap.set(key, edge);
+      }
+    });
+    const finalEdges = [...uniqueEdgesMap.values()];
+
+    // 3. Play retro sound sweep
+    import("$lib/utils/sounds").then(({ playWhoosh }) => playWhoosh());
+
+    // 4. Propagate updates collaboratively (automatically broadcasts via PartyKit)
+    updateProject({
+      topics: nextTopics,
+      edges: finalEdges,
+    });
+
+    if (selectedTopic?.id === sId) {
+      topicSelection.setSelectedTopic(mergeTargetNode as GraphNode);
+      broadcastSelection(mergeTargetNode as GraphNode);
+    }
+
+    showMergeConfirm = false;
+    mergeSourceNode = null;
+    mergeTargetNode = null;
+  }
+
   $: graphConfig = {
     ...graphConfigBase,
     chargeStrength:
@@ -380,6 +453,7 @@
     onMouseOverNode: handleNodeHover,
     onDoubleClickNode: handleNodeSelect,
     onBackgroundClick: clearHover,
+    onMergeNodes: handleMergeNodes,
   };
 </script>
 
@@ -563,6 +637,49 @@
     {/if}
   {/if}
 </Card>
+
+{#if showMergeConfirm && mergeSourceNode && mergeTargetNode}
+  <div
+    class="merge-backdrop"
+    on:click={() => (showMergeConfirm = false)}
+    on:keydown={(e) => e.key === "Escape" && (showMergeConfirm = false)}
+    role="button"
+    tabindex="0"
+    aria-label="Cancel merge"
+    transition:fade={{ duration: 150 }}
+  ></div>
+  <div
+    class="merge-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Confirm merge topics"
+    transition:fly={{ y: 50, duration: 250 }}
+  >
+    <div class="merge-dialog__header">
+      <h3>Merge Topics?</h3>
+      <button type="button" on:click={() => (showMergeConfirm = false)}>×</button>
+    </div>
+    <div class="merge-dialog__body">
+      <p>
+        Do you want to merge 
+        <strong style="color: {mergeSourceNode.color}">{mergeSourceNode.emoji} {mergeSourceNode.label}</strong> 
+        into 
+        <strong style="color: {mergeTargetNode.color}">{mergeTargetNode.emoji} {mergeTargetNode.label}</strong>?
+      </p>
+      <p class="merge-dialog__warning">
+        This will combine all connections and remove <strong>{mergeSourceNode.label}</strong>. This action is real-time and collaborative.
+      </p>
+    </div>
+    <div class="merge-dialog__actions">
+      <button type="button" class="btn-cancel" on:click={() => (showMergeConfirm = false)}>
+        Cancel
+      </button>
+      <button type="button" class="btn-confirm" on:click={confirmMerge}>
+        Merge Topics
+      </button>
+    </div>
+  </div>
+{/if}
 
 <style>
   .graph-toolbar {
@@ -855,5 +972,97 @@
     .topic-editor__message {
       grid-column: 1;
     }
+  }
+
+  /* Merge Dialog Styles */
+  .merge-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 23, 20, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+  }
+
+  .merge-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(92vw, 480px);
+    background: var(--pm-cream);
+    border: var(--pm-border-medium, 3px) solid var(--pm-black);
+    border-radius: var(--pm-radius-lg, 12px);
+    box-shadow: var(--pm-shadow-slab-lg, 6px 6px 0 var(--pm-black));
+    z-index: 1001;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .merge-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .merge-dialog__header h3 {
+    margin: 0;
+    font-size: var(--pm-text-lg, 1.25rem);
+    font-weight: 800;
+  }
+
+  .merge-dialog__header button {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    cursor: pointer;
+    font-weight: 800;
+    color: var(--pm-brown);
+    line-height: 1;
+  }
+
+  .merge-dialog__body {
+    font-size: var(--pm-text-sm, 0.9rem);
+    line-height: 1.5;
+    color: var(--pm-black);
+  }
+
+  .merge-dialog__warning {
+    margin-top: 0.5rem;
+    color: var(--pm-brown);
+    font-size: var(--pm-text-xs, 0.8rem);
+    opacity: 0.85;
+  }
+
+  .merge-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .merge-dialog__actions button {
+    padding: 0.55rem 0.95rem;
+    border-radius: var(--pm-radius-full, 9999px);
+    font-size: var(--pm-text-xs, 0.8rem);
+    font-weight: 700;
+    cursor: pointer;
+    border: var(--pm-border-thin, 2px) solid var(--pm-black);
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .merge-dialog__actions .btn-cancel {
+    background: white;
+    color: var(--pm-black);
+  }
+
+  .merge-dialog__actions .btn-confirm {
+    background: var(--pm-pink, #ff6b9d);
+    color: white;
   }
 </style>
