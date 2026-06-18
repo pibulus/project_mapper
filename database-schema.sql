@@ -1,7 +1,10 @@
 -- Project Mapper Database Schema
 --
--- This schema supports persistent project storage and collaboration
--- Run this in your Supabase SQL editor to set up the database
+-- Note: As of June 2026, the primary collaborative state and edge persistence is powered
+-- by PartyKit Durable Storage (Durable Objects). This Supabase schema is optional and
+-- acts as a fallback database-first storage layer for backups and public link sharing.
+--
+-- Run this in your Supabase SQL editor to set up the database if you choose to configure it.
 
 -- =====================================================
 -- PROJECTS TABLE
